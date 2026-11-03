@@ -98,10 +98,10 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Estructura | Composición jerárquica de activos que define cómo está formado un tren del grupo |
 | Hueco | Cada posición de la estructura donde se monta un activo |
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
-| Categoría |  |
+| Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
 | Almacén |  |
-| Recepción en almacén |  |
-| Recepción en unidad |  |
+| Recepción en almacén | Dar de alta activos en el almacén |
+| Recepción en unidad | Dar de alta activos directamente en una unidad |
 
 ## Formatos y convenciones
 <!-- Fechas, horas, números, unidades de medida, idioma, mayúsculas… -->
