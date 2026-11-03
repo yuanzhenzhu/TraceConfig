@@ -13,19 +13,46 @@ Un **cliente** tiene una o varias **flotas**. Cada flota contiene uno o varios *
 Cliente
 └─ Flota (1..n)
    └─ Grupo de trenes (1..n)
-      ├─ usa → Estructura (1)
-      │        └─ jerarquía de activos, por ejemplo:
-      │           Coche
-      │           ├─ Bogie
-      │           │  ├─ Eje
-      │           │  │  └─ Rueda
-      │           │  └─ Motor
-      │           ├─ Puerta
-      │           └─ Tarjeta electrónica
-      └─ nº de unidades (trenes) en la flota
+      ├─ usa → Estructura (1)  → jerarquía de huecos (ver ejemplo)
+      └─ nº de unidades (trenes) asignadas
 ```
 
-Ejemplos de activos: coches, bogies, ejes, ruedas, motores, puertas, tarjetas electrónicas. (La jerarquía del diagrama es ilustrativa.)
+### Ejemplo de estructura: "Estructura 1"
+
+Cada nodo es un **hueco**, es decir, una posición donde se monta un activo. Los coches, bogies, ejes y puertas que tienen el mismo número repiten la misma composición.
+
+```
+Estructura 1
+└── Tren
+    ├── Coche 1
+    │   ├── Motor Coche
+    │   ├── Puerta 1
+    │   │   ├── Motor Puerta
+    │   │   └── Tarjeta Electrónica
+    │   ├── Puerta 2
+    │   │   ├── Motor Puerta
+    │   │   └── Tarjeta Electrónica
+    │   ├── Bogie 1
+    │   │   ├── Motor Bogie
+    │   │   ├── Eje 1
+    │   │   │   ├── Rueda 1
+    │   │   │   └── Rueda 2
+    │   │   └── Eje 2
+    │   │       ├── Rueda 1
+    │   │       └── Rueda 2
+    │   └── Bogie 2          (igual que Bogie 1)
+    ├── Coche 2              (igual que Coche 1)
+    └── Coche 3              (igual que Coche 1)
+```
+
+**Tamaño resultante** (útil para generar datos coherentes):
+- Por coche: 1 coche + 1 motor de coche + 2 puertas × 3 + 2 bogies × 8 = **24 huecos**
+- Por tren: 1 tren + 3 coches × 24 = **73 huecos**
+- Por coche: 2 puertas, 2 bogies, 4 ejes y 8 ruedas. Por tren: 6 puertas, 6 bogies, 12 ejes y 24 ruedas.
+
+**Ruta de un hueco** (cómo mostrarla en la interfaz): `Coche 2 › Bogie 1 › Eje 2 › Rueda 1`
+
+Tipos de activo (categorías) que aparecen: Tren, Coche, Motor Coche, Puerta, Motor Puerta, Tarjeta Electrónica, Bogie, Motor Bogie, Eje, Rueda.
 
 ### Reglas
 - **Varios grupos de trenes pueden compartir la misma estructura.**
