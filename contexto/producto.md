@@ -5,6 +5,34 @@
 ## Qué es
 <!-- Nombre del producto y en una o dos frases qué hace y qué problema resuelve. -->
 
+## Modelo de dominio
+
+Un **cliente** tiene una o varias **flotas**. Cada flota contiene uno o varios **grupos de trenes**. Cada grupo de trenes usa una **estructura**, que define la composición jerárquica de sus **activos**. Para cada estructura se indica **cuántas unidades (trenes)** hay dentro de la flota.
+
+```
+Cliente
+└─ Flota (1..n)
+   └─ Grupo de trenes (1..n)
+      ├─ usa → Estructura (1)
+      │        └─ jerarquía de activos, por ejemplo:
+      │           Coche
+      │           ├─ Bogie
+      │           │  ├─ Eje
+      │           │  │  └─ Rueda
+      │           │  └─ Motor
+      │           ├─ Puerta
+      │           └─ Tarjeta electrónica
+      └─ nº de unidades (trenes) en la flota
+```
+
+Ejemplos de activos: coches, bogies, ejes, ruedas, motores, puertas, tarjetas electrónicas.
+
+> ⚠️ Pendiente de confirmar:
+> - ¿Varios grupos de trenes (de la misma flota o de flotas distintas) pueden compartir la misma estructura?
+> - El nº de unidades, ¿se guarda por grupo de trenes o por estructura dentro de la flota?
+> - ¿Un **hueco** es cada posición de la estructura donde se monta un activo (por ejemplo "Coche 1 › Bogie delantero › Eje 2 › Rueda izquierda")?
+> - ¿Las unidades se identifican como `UT-xxx`?
+
 ## Para quién
 <!-- Tipos de usuario (rol, qué hacen en su día a día, nivel técnico) y qué puede hacer cada uno (permisos). -->
 
@@ -36,9 +64,13 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 
 | Término | Significado |
 |---|---|
-| Estructura |  |
+| Cliente | Empresa operadora; tiene una o varias flotas |
+| Flota | Conjunto de trenes de un cliente; contiene uno o varios grupos de trenes |
+| Grupo de trenes | Conjunto de trenes de una flota que comparten la misma estructura |
+| Unidad | Un tren concreto de un grupo |
+| Estructura | Composición jerárquica de activos que define cómo está formado un tren del grupo |
 | Hueco |  |
-| Activo |  |
+| Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría |  |
 | Almacén |  |
 | Recepción en taller |  |
