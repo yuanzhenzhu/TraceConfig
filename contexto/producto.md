@@ -99,7 +99,7 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Hueco | Cada posición de la estructura donde se monta un activo |
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
-| Almacén |  |
+| Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
 | Recepción en almacén | Dar de alta activos en el almacén |
 | Recepción en unidad | Dar de alta activos directamente en una unidad |
 
