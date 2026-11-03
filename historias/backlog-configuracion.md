@@ -4,9 +4,6 @@ Borrador sacado de los tableros de Figma (2026-11-03), con la nomenclatura acord
 
 Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propone Claude porque el flujo la necesita.
 
-## Referencias visuales
-- **Flotas y estructuras** (pantalla de entrada de Configuración, para HU-01): [Figma Main Trace, nodo 996:65446](https://www.figma.com/design/OkxPb4NC2yfn56xyenE3xF/Main-Trace?node-id=996-65446). Tiene navbar, un sidenav "Configuración" con navlist, el header con el botón "Añadir flota", filtros Flota y Estructura y dos propuestas de tabla.
-
 ## Épica A: Alta inicial de una configuración
 
 ### A1. Iniciar configuración

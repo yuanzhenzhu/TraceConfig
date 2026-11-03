@@ -2,7 +2,7 @@
 
 **Estado:** borrador, pendiente de validar
 **Módulo:** Configuración · **Épica:** A (alta inicial)
-**Referencia visual:** [Main Trace, Flotas y estructuras](https://www.figma.com/design/OkxPb4NC2yfn56xyenE3xF/Main-Trace?node-id=996-65446) (solo la distribución; la navbar se ignora y se usa la `navbar` del sistema)
+**Origen:** historia nueva propuesta por Claude (no está en el tablero). Sin referencia visual: el diseño sigue solo el sistema de diseño.
 
 ## Historia
 **Como** jefe de mantenimiento,
