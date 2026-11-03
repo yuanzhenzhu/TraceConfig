@@ -24,7 +24,7 @@ Cliente
 |---|---|
 | **Cliente** | El **catálogo de estructuras**. Una estructura es común y la pueden usar varias configuraciones de distintas flotas |
 | **Flota** | Nombre, descripción, **propiedades de categoría**, **propiedades de hueco** y **cálculos en SMS** |
-| **Configuración** | Nombre, descripción, la estructura que usa, el nº de unidades, los drivers y la carga de datos (plantillas) |
+| **Configuración** | Nombre, descripción, la estructura que usa, el nº de unidades, los drivers y la carga de datos (plantillas). Los **drivers** pueden ser **compartidos con la flota** o **propios**; lo elige el usuario |
 
 ### Reglas de las estructuras
 - **Una sola versión**: no hay versiones ni variantes. Modificar una estructura **afecta a todas las configuraciones que la usan**.

@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag, useSnackbar } from "./ds";
 import { iconoCategoria } from "./arbol";
 import {
-  DRIVERS, FORMAS_CALCULO, PASOS, PROPS_CATEGORIA, categoriasDe, contarHuecos, primerNivelCargado, recorrer,
+  DRIVERS, FORMAS_CALCULO, PASOS, PROPS_CATEGORIA, categoriasDe, contarHuecos, driversEfectivos, primerNivelCargado, recorrer,
   rutaDe, unidadesTerminadas, type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo,
 } from "@/lib/model";
 import type { PasoProps } from "./pasos-1-3";
@@ -22,7 +22,8 @@ function descargarPlantilla(c: Configuracion, raiz: Nodo, flota: Flota, categori
   const huecos: { id: string; ruta: string }[] = [];
   recorrer(raiz, (n) => { if (n.categoria === categoria) huecos.push({ id: n.id, ruta: rutaDe(raiz, n.id).join(" > ") || n.nombre }); });
   // Solo se pide el valor inicial de los drivers propios: si el driver es heredable, el valor viene del padre.
-  const drvs = DRIVERS.filter((d) => huecos.some((h) => c.drivers[h.id]?.[d.id] && !c.heredables?.[h.id]?.[d.id]));
+  const ef = driversEfectivos(c, flota, raiz);
+  const drvs = DRIVERS.filter((d) => huecos.some((h) => ef.drivers[h.id]?.[d.id] && !ef.heredables[h.id]?.[d.id]));
   const props = (flota.propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
   const esRaiz = categoria === raiz.categoria;
   const cab = esRaiz
@@ -185,8 +186,9 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const cats = categoriasDe(raiz);
   const enEstructura = new Set(cats.map((x) => x.categoria));
   const pendientes = cats.filter((x) => c.plantillas[x.categoria] !== "cargada");
+  const ef = driversEfectivos(c, flota, raiz);
   const nDrivers = DRIVERS.map((d) => ({
-    d, n: Object.values(c.drivers).filter((x) => x[d.id]).length, h: Object.values(c.heredables ?? {}).filter((x) => x[d.id]).length,
+    d, n: Object.values(ef.drivers).filter((x) => x[d.id]).length, h: Object.values(ef.heredables).filter((x) => x[d.id]).length,
   }));
   const nPropsCat = Object.entries(flota.propsCategoria).filter(([k]) => enEstructura.has(k)).reduce((s, [, l]) => s + l.length, 0);
   let nHuecosProps = 0; recorrer(raiz, (h) => { if (Object.keys(flota.propsHueco[h.id] ?? {}).length) nHuecosProps++; });
@@ -196,7 +198,7 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
     { n: 1, titulo: "Datos y estructura", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad</> },
     { n: 2, titulo: "Unidades", contenido: <>{c.unidades} unidades</> },
-    { n: 3, titulo: "Drivers", contenido: nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} huecos (${h} heredables)`).join(" · ") || "Sin drivers", aviso: omitido(3) ? "Paso omitido: se aplican los drivers por defecto" : undefined },
+    { n: 3, titulo: c.driversModo === "flota" ? "Drivers (compartidos con la flota)" : "Drivers (propios)", contenido: nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} huecos (${h} heredables)`).join(" · ") || "Sin drivers", aviso: omitido(3) ? "Paso omitido: se aplican los drivers por defecto" : undefined },
     { n: 4, titulo: "Propiedades de categoría (de la flota)", contenido: nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas", aviso: omitido(4) ? "Paso omitido" : undefined },
     { n: 5, titulo: "Propiedades de hueco (de la flota)", contenido: nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco", aviso: omitido(5) ? "Paso omitido" : undefined },
     ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS (de la flota)", contenido: sms ? `${sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === sms.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === sms.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),

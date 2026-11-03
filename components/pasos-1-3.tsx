@@ -7,8 +7,8 @@ import { useState } from "react";
 import { Banner, Button, Field, Icon, Tag } from "./ds";
 import { ArbolFilas, ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import {
-  DRIVERS, buscar, categoriasDe, clonar, contarHuecos, driversIniciales, driversPorDefecto, heredablesPorDefecto, nodo, nuevoId, recorrer,
-  type Configuracion, type DriverId, type Drivers, type Estructura, type Flota, type Nodo,
+  DRIVERS, buscar, categoriasDe, clonar, contarHuecos, driversEfectivos, driversIniciales, nodo, nuevoId, recorrer,
+  type Configuracion, type DriverId, type Drivers, type DriversConfig, type Estructura, type Flota, type Nodo,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -205,12 +205,28 @@ export function Paso2({ c, set, intentado, est }: PasoProps) {
 // Tener un driver y que sea heredable son dos marcas distintas:
 // - Tener: el hueco cuenta su vida con ese driver.
 // - Heredable: su valor viene del padre (no se registra aparte). La unidad no tiene padre, así que nunca hereda.
-export function Paso3({ c, set, est }: PasoProps) {
+export function Paso3({ c, set, est, flota, setFlota }: PasoProps) {
+  const store = useStore();
   const raiz: Nodo = est!.raiz;
-  const vacio = !Object.keys(c.drivers).length;
-  const d: Drivers = vacio ? driversPorDefecto(raiz) : c.drivers;
-  const h: Drivers = vacio || !c.heredables ? heredablesPorDefecto(raiz) : c.heredables;
+  const { drivers: d, heredables: h } = driversEfectivos(c, flota, raiz);
   const [catSel, setCatSel] = useState("");
+  const compartida = c.driversModo === "flota";
+  // Otras configuraciones de la flota que comparten estos drivers (misma estructura y modo flota)
+  const companeras = store.configs.filter((x) => x.id !== c.id && x.guardada && x.flotaId === flota.id && x.estructuraId === c.estructuraId && x.driversModo === "flota");
+
+  /** Guarda en la flota o en la configuración, según lo que haya elegido el usuario. */
+  const guardar = (dc: DriversConfig) => {
+    if (compartida) setFlota({ driversCompartidos: { ...flota.driversCompartidos, [est!.id]: dc } });
+    else set(dc);
+  };
+  const elegirModo = (modo: "flota" | "propios") => {
+    if (modo === c.driversModo) return;
+    if (modo === "propios") set({ driversModo: "propios", drivers: d, heredables: h }); // parte de los valores compartidos
+    else {
+      if (!flota.driversCompartidos?.[est!.id]) setFlota({ driversCompartidos: { ...flota.driversCompartidos, [est!.id]: { drivers: d, heredables: h } } });
+      set({ driversModo: "flota" });
+    }
+  };
 
   const marcar = (n: Nodo, drv: DriverId, valor: boolean, tiene: Drivers, hereda: Drivers) => {
     // Al marcar un driver en un hueco, también lo tienen todos sus hijos, que además lo heredan de él (el padre no).
@@ -228,15 +244,15 @@ export function Paso3({ c, set, est }: PasoProps) {
   const cambiarTiene = (id: string, drv: DriverId, valor: boolean) => {
     const tiene = { ...d }, hereda = { ...h };
     marcar(buscar(raiz, id)!, drv, valor, tiene, hereda);
-    set({ drivers: tiene, heredables: hereda });
+    guardar({ drivers: tiene, heredables: hereda });
   };
   const cambiarHeredable = (id: string, drv: DriverId, valor: boolean) => {
-    set({ drivers: d, heredables: { ...h, [id]: { ...h[id], [drv]: valor } } });
+    guardar({ drivers: d, heredables: { ...h, [id]: { ...h[id], [drv]: valor } } });
   };
   const aplicarCategoria = (drv: DriverId, valor: boolean) => {
     const tiene = { ...d }, hereda = { ...h };
     recorrer(raiz, (n) => { if (n.categoria === catSel) marcar(n, drv, valor, tiene, hereda); });
-    set({ drivers: tiene, heredables: hereda });
+    guardar({ drivers: tiene, heredables: hereda });
   };
   const cuenta = (m: Drivers, drv: DriverId) => Object.values(m).filter((x) => x[drv]).length;
   const COL = 88;
@@ -245,8 +261,30 @@ export function Paso3({ c, set, est }: PasoProps) {
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <div className="row gap-20">
         <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Drivers</h2>
-        <Button variant="text" icon="restart_alt" onClick={() => set(driversIniciales(raiz))}>Restablecer por defecto</Button>
+        <Button variant="text" icon="restart_alt" onClick={() => guardar(driversIniciales(raiz))}>Restablecer por defecto</Button>
       </div>
+      <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>¿De quién son estos drivers?</legend>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--lm-space-15)" }}>
+          {([
+            { modo: "flota", titulo: `Compartidos con la flota ${flota.codigo}`, desc: companeras.length
+              ? `También los usan: ${companeras.map((x) => x.nombre).join(", ")}. Un cambio aquí les afecta.`
+              : `Los usarán todas las configuraciones de ${flota.codigo} con ${est!.nombre} que elijan esta opción.` },
+            { modo: "propios", titulo: "Propios de esta configuración", desc: "Solo afectan a esta configuración. Se parte de los valores actuales." },
+          ] as const).map((o) => {
+            const sel = c.driversModo === o.modo;
+            return (
+              <label key={o.modo} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
+                <input type="radio" name="drivers-modo" checked={sel} onChange={() => elegirModo(o.modo)} aria-label={o.titulo} />
+                <span className="lm-radio__text gap-5">
+                  <span className="lm-title-small">{o.titulo}</span>
+                  <span className="lm-radio__support">{o.desc}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
       <Banner type="info" title="Tener un driver y que sea heredable son cosas distintas">
         <strong>Tener</strong>: el hueco cuenta su vida con ese driver (por defecto, el kilometraje lo tienen todos). <strong>Heredable</strong>: el valor viene del padre y no hay que registrarlo aparte (por defecto, todos menos la unidad). Al marcar un driver en un hueco, también lo tienen sus hijos y lo heredan de él.
       </Banner>

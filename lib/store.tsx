@@ -4,25 +4,25 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, sincronizarConEstructura,
+  ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, sincronizarConEstructura, sincronizarDrivers,
   type Configuracion, type Estructura, type Flota,
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[] };
-const CLAVE = "lm-trace-prototipo-v3";
+const CLAVE = "lm-trace-prototipo-v4";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
-    drivers: {}, heredables: {}, plantillas: {}, intentosPlantilla: {},
+    driversModo: "flota", drivers: {}, heredables: {}, plantillas: {}, intentosPlantilla: {},
     pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
   };
 }
 
-const flota = (f: Omit<Flota, "propsCategoria" | "propsHueco" | "sms"> & Partial<Flota>): Flota =>
-  ({ propsCategoria: {}, propsHueco: {}, sms: null, ...f });
+const flota = (f: Omit<Flota, "propsCategoria" | "propsHueco" | "sms" | "driversCompartidos"> & Partial<Flota>): Flota =>
+  ({ propsCategoria: {}, propsHueco: {}, sms: null, driversCompartidos: {}, ...f });
 
 function semilla(): Estado {
   const estructuras = ESTRUCTURAS.map((e) => ({ ...e, actualizada: "2026-05-20T08:00:00Z" }));
@@ -33,6 +33,7 @@ function semilla(): Estado {
       id: "f1000", codigo: "F1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
       propsCategoria: { Rueda: [{ propId: "diametro", historico: true }, { propId: "fabricante", historico: false }] },
       sms: { ambito: "flota", driver: "km", calculo: "real" },
+      driversCompartidos: { [e2.id]: driversIniciales(e2.raiz) },
     }),
     flota({ id: "f2000", codigo: "F2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: false }),
     flota({ id: "f3000", codigo: "F3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: true }),
@@ -42,17 +43,17 @@ function semilla(): Estado {
   const configs: Configuracion[] = [
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "Unidades de 3 coches", estructuraId: e1.id, unidades: 16,
-      ...driversIniciales(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
+      driversModo: "propios", ...driversIniciales(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "Unidades de 2 coches, ampliación 2026", estructuraId: e2.id, unidades: 8,
-      ...driversIniciales(e2.raiz), plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
+      driversModo: "flota", plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
       id: "cfg-tranvia", nombre: "Serie única", descripcion: "Todas las unidades del tranvía", estructuraId: e1.id, unidades: 12,
-      ...driversIniciales(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
+      driversModo: "propios", ...driversIniciales(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
     }),
   ];
@@ -143,7 +144,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const nueva = { ...e, actualizada: new Date().toISOString() };
       const estructuras = existe ? s.estructuras.map((x) => (x.id === e.id ? nueva : x)) : [...s.estructuras, nueva];
       const configs = s.configs.map((c) => (c.estructuraId === e.id ? { ...c, ...sincronizarConEstructura(c, e.raiz) } : c));
-      return { ...s, estructuras, configs };
+      const flotas = s.flotas.map((f) => (f.driversCompartidos?.[e.id]
+        ? { ...f, driversCompartidos: { ...f.driversCompartidos, [e.id]: sincronizarDrivers(f.driversCompartidos[e.id], e.raiz) } }
+        : f));
+      return { ...s, estructuras, configs, flotas };
     });
   }, []);
 
