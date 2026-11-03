@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Banner, Button, Field, Icon, Tag } from "./ds";
 import { ArbolFilas, ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import {
-  DRIVERS, buscar, categoriasDe, clonar, contarHuecos, driversPorDefecto, nodo, nuevoId, recorrer,
+  DRIVERS, buscar, categoriasDe, clonar, contarHuecos, driversIniciales, driversPorDefecto, heredablesPorDefecto, nodo, nuevoId, recorrer,
   type Configuracion, type DriverId, type Drivers, type Estructura, type Flota, type Nodo,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
@@ -202,36 +202,58 @@ export function Paso2({ c, set, intentado, est }: PasoProps) {
 }
 
 /* ---------- Paso 3 ---------- */
+// Tener un driver y que sea heredable son dos marcas distintas:
+// - Tener: el hueco cuenta su vida con ese driver.
+// - Heredable: su valor viene del padre (no se registra aparte). La unidad no tiene padre, así que nunca hereda.
 export function Paso3({ c, set, est }: PasoProps) {
   const raiz: Nodo = est!.raiz;
-  const d: Drivers = Object.keys(c.drivers).length ? c.drivers : driversPorDefecto(raiz);
+  const vacio = !Object.keys(c.drivers).length;
+  const d: Drivers = vacio ? driversPorDefecto(raiz) : c.drivers;
+  const h: Drivers = vacio || !c.heredables ? heredablesPorDefecto(raiz) : c.heredables;
   const [catSel, setCatSel] = useState("");
 
-  const cambiar = (id: string, drv: DriverId, valor: boolean) => {
-    const n = buscar(raiz, id)!;
-    const nuevo: Drivers = { ...d };
-    // Heredable: el cambio se aplica al hueco y a todos sus hijos, nunca al padre.
-    recorrer(n, (h) => { nuevo[h.id] = { ...nuevo[h.id], [drv]: valor }; });
-    set({ drivers: nuevo });
+  const marcar = (n: Nodo, drv: DriverId, valor: boolean, tiene: Drivers, hereda: Drivers) => {
+    // Al marcar un driver en un hueco, también lo tienen todos sus hijos, que además lo heredan de él (el padre no).
+    recorrer(n, (x) => {
+      tiene[x.id] = { ...tiene[x.id], [drv]: valor };
+      // El hueco marcado conserva su heredable; sus hijos pasan a heredar de él. Al desmarcar, nadie lo hereda.
+      hereda[x.id] = { ...hereda[x.id], [drv]: !valor ? false : x.id === n.id ? !!hereda[x.id]?.[drv] : true };
+    });
+  };
+  const padreTiene = (id: string, tiene: Drivers, drv: DriverId) => {
+    let ok = false;
+    recorrer(raiz, (x, _l, p) => { if (x.id === id && p) ok = !!tiene[p.id]?.[drv]; });
+    return ok;
+  };
+  const cambiarTiene = (id: string, drv: DriverId, valor: boolean) => {
+    const tiene = { ...d }, hereda = { ...h };
+    marcar(buscar(raiz, id)!, drv, valor, tiene, hereda);
+    set({ drivers: tiene, heredables: hereda });
+  };
+  const cambiarHeredable = (id: string, drv: DriverId, valor: boolean) => {
+    set({ drivers: d, heredables: { ...h, [id]: { ...h[id], [drv]: valor } } });
   };
   const aplicarCategoria = (drv: DriverId, valor: boolean) => {
-    const nuevo: Drivers = { ...d };
-    recorrer(raiz, (n) => { if (n.categoria === catSel) recorrer(n, (h) => { nuevo[h.id] = { ...nuevo[h.id], [drv]: valor }; }); });
-    set({ drivers: nuevo });
+    const tiene = { ...d }, hereda = { ...h };
+    recorrer(raiz, (n) => { if (n.categoria === catSel) marcar(n, drv, valor, tiene, hereda); });
+    set({ drivers: tiene, heredables: hereda });
   };
-  const cuenta = (drv: DriverId) => Object.values(d).filter((x) => x[drv]).length;
+  const cuenta = (m: Drivers, drv: DriverId) => Object.values(m).filter((x) => x[drv]).length;
+  const COL = 88;
 
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <div className="row gap-20">
         <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Drivers</h2>
-        <Button variant="text" icon="restart_alt" onClick={() => set({ drivers: driversPorDefecto(raiz) })}>Restablecer por defecto</Button>
+        <Button variant="text" icon="restart_alt" onClick={() => set(driversIniciales(raiz))}>Restablecer por defecto</Button>
       </div>
-      <Banner type="info" title="Cómo funcionan los drivers">
-        Un driver es la forma de contar la vida de un activo. Por defecto, el kilometraje está marcado en toda la estructura menos en la unidad. Al marcar un driver en un hueco, se marca también en todos sus hijos, pero no en el padre.
+      <Banner type="info" title="Tener un driver y que sea heredable son cosas distintas">
+        <strong>Tener</strong>: el hueco cuenta su vida con ese driver (por defecto, el kilometraje lo tienen todos). <strong>Heredable</strong>: el valor viene del padre y no hay que registrarlo aparte (por defecto, todos menos la unidad). Al marcar un driver en un hueco, también lo tienen sus hijos y lo heredan de él.
       </Banner>
-      <div className="row gap-20 wrap">
-        {DRIVERS.map((x) => <Tag key={x.id} tone="primary" num={cuenta(x.id)}>{x.nombre}</Tag>)}
+      <div className="row gap-10 wrap">
+        {DRIVERS.map((x) => (
+          <Tag key={x.id} tone="primary">{x.nombre}: {cuenta(d, x.id)} huecos · {cuenta(h, x.id)} heredables</Tag>
+        ))}
       </div>
       <div className="lm-card row gap-15 wrap">
         <span className="lm-title-small">Aplicar a toda una categoría</span>
@@ -247,9 +269,22 @@ export function Paso3({ c, set, est }: PasoProps) {
         ))}
       </div>
       <div className="lm-card">
-        <div className="row" style={{ height: "var(--lm-space-50)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
+        <div className="row" style={{ height: "var(--lm-space-40)" }}>
+          <span className="grow" />
+          {DRIVERS.map((x) => (
+            <span key={x.id} className="lm-label-medium" style={{ width: COL * 2, textAlign: "center", borderBottom: "1px solid var(--lm-sys-outline-variant)", margin: "0 var(--lm-space-5)" }}>
+              {x.nombre.toUpperCase()}
+            </span>
+          ))}
+        </div>
+        <div className="row" style={{ height: "var(--lm-space-40)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
           <span className="lm-label-medium grow" style={{ paddingLeft: "var(--lm-space-50)" }}>HUECO</span>
-          {DRIVERS.map((x) => <span key={x.id} className="lm-label-medium" style={{ width: 96, textAlign: "center" }}>{x.nombre.toUpperCase()}</span>)}
+          {DRIVERS.map((x) => (
+            <span key={x.id} className="row" style={{ margin: "0 var(--lm-space-5)" }}>
+              <span className="lm-label-small muted" style={{ width: COL, textAlign: "center" }}>TIENE</span>
+              <span className="lm-label-small muted" style={{ width: COL, textAlign: "center" }}>HEREDABLE</span>
+            </span>
+          ))}
         </div>
         <ArbolFilas raiz={raiz} abiertosIni={3} render={(n) => (
           <>
@@ -257,12 +292,24 @@ export function Paso3({ c, set, est }: PasoProps) {
               <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{n.nombre}</span>
               {n.id === raiz.id && <Tag tone="neutral">Unidad</Tag>}
             </span>
-            {DRIVERS.map((x) => (
-              <span key={x.id} style={{ width: 96, display: "flex", justifyContent: "center" }}>
-                <input type="checkbox" style={{ width: 18, height: 18, accentColor: "var(--lm-sys-primary)" }}
-                  aria-label={`${x.nombre} en ${n.nombre}`} checked={!!d[n.id]?.[x.id]} onChange={(e) => cambiar(n.id, x.id, e.target.checked)} />
-              </span>
-            ))}
+            {DRIVERS.map((x) => {
+              const tiene = !!d[n.id]?.[x.id];
+              const puedeHeredar = tiene && n.id !== raiz.id && padreTiene(n.id, d, x.id);
+              return (
+                <span key={x.id} className="row" style={{ margin: "0 var(--lm-space-5)" }}>
+                  <span style={{ width: COL, display: "flex", justifyContent: "center" }}>
+                    <input type="checkbox" style={{ width: 18, height: 18, accentColor: "var(--lm-sys-primary)" }}
+                      aria-label={`${n.nombre} tiene ${x.nombre}`} checked={tiene} onChange={(e) => cambiarTiene(n.id, x.id, e.target.checked)} />
+                  </span>
+                  <span style={{ width: COL, display: "flex", justifyContent: "center" }}>
+                    <input type="checkbox" style={{ width: 18, height: 18, accentColor: "var(--lm-sys-primary)" }}
+                      aria-label={`${x.nombre} heredable en ${n.nombre}`} disabled={!puedeHeredar}
+                      title={n.id === raiz.id ? "La unidad no tiene padre del que heredar" : !tiene ? `Marca antes que tiene ${x.nombre}` : !puedeHeredar ? `El padre no tiene ${x.nombre}` : undefined}
+                      checked={puedeHeredar && !!h[n.id]?.[x.id]} onChange={(e) => cambiarHeredable(n.id, x.id, e.target.checked)} />
+                  </span>
+                </span>
+              );
+            })}
           </>
         )} />
       </div>

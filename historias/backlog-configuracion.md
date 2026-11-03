@@ -26,7 +26,7 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 ### A3. Drivers
 | ID | Historia | Origen |
 |---|---|---|
-| HU-10 | Tener el driver kilometraje marcado por defecto y heredable en toda la estructura salvo la unidad | T |
+| HU-10 | Que todos los huecos tengan por defecto el driver kilometraje y que sea heredable en todos menos en la unidad (tener un driver y que sea heredable son dos marcas distintas) | T |
 | HU-11 | Elegir otros drivers (ciclos, horas) para algunas categorías | T |
 | HU-12 | Que los drivers de ciclos y horas se marquen por defecto en los hijos y se hereden a todo salvo al padre | T |
 | HU-13 | Cambiar la asignación de drivers más adelante | T |
@@ -99,5 +99,5 @@ La estructura es común a todo el cliente: modificarla afecta a todas las config
 - ¿Se puede crear un hueco y finalizar la configuración sin datos, y cargar el dato después fuera de configuración?
 - ¿Conviene separar los drivers de las propiedades de activo? (nota del equipo)
 - ~~Las propiedades de hueco dependen de la estructura y no de una flota~~ → **Resuelto:** las propiedades de categoría, las de hueco y el SMS son **de la flota**. Las comparten todas sus configuraciones.
-- ¿Los **drivers** también son de la flota, o de cada configuración? (de momento: de cada configuración)
+- Los **drivers** pueden ser compartidos por la flota o propios de cada configuración: ¿quién lo decide y cómo? (de momento: de cada configuración)
 - ¿La épica C pertenece a Configuración o a Operación?

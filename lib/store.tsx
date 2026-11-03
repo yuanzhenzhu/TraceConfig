@@ -4,17 +4,17 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  ESTRUCTURAS, categoriasDe, driversPorDefecto, nuevoId, plantillasIniciales, sincronizarConEstructura,
+  ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, sincronizarConEstructura,
   type Configuracion, type Estructura, type Flota,
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[] };
-const CLAVE = "lm-trace-prototipo-v2";
+const CLAVE = "lm-trace-prototipo-v3";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
-    drivers: {}, plantillas: {}, intentosPlantilla: {},
+    drivers: {}, heredables: {}, plantillas: {}, intentosPlantilla: {},
     pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
@@ -42,17 +42,17 @@ function semilla(): Estado {
   const configs: Configuracion[] = [
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "Unidades de 3 coches", estructuraId: e1.id, unidades: 16,
-      drivers: driversPorDefecto(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
+      ...driversIniciales(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "Unidades de 2 coches, ampliación 2026", estructuraId: e2.id, unidades: 8,
-      drivers: driversPorDefecto(e2.raiz), plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
+      ...driversIniciales(e2.raiz), plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
       id: "cfg-tranvia", nombre: "Serie única", descripcion: "Todas las unidades del tranvía", estructuraId: e1.id, unidades: 12,
-      drivers: driversPorDefecto(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
+      ...driversIniciales(e1.raiz), plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
     }),
   ];

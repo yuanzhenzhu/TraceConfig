@@ -125,7 +125,8 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
 | Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. Tiene nombre y descripción. La **flota es el paraguas** y puede tener varias configuraciones; las propiedades y el SMS son de la flota |
 | Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
-| Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro |
+| Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro. Cada hueco tiene dos marcas por driver: **tenerlo** y que sea **heredable** |
+| Heredable | Marca de un driver en un hueco: su valor viene del padre y no se registra aparte. Por defecto, el km lo **tienen** todos los huecos y es **heredable** en todos menos en la unidad, que no tiene padre |
 | Histórico | Marca de una propiedad de categoría que indica que se guarda la evolución de su valor en el tiempo |
 | Plantilla | Excel que genera la aplicación, por categoría, según la estructura, las propiedades y los drivers, para cargar los datos de los activos |
 | SMS | Herramienta hermana e independiente de Leadmind Trace para **planificar los mantenimientos**. Recibe datos de la configuración de la flota |

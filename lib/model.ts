@@ -20,7 +20,8 @@ export type Configuracion = {
   descripcion: string;
   estructuraId: string | null; // referencia al catálogo común
   unidades: number | null;
-  drivers: Drivers;
+  drivers: Drivers; // qué drivers tiene cada hueco
+  heredables: Drivers; // en qué huecos el driver se hereda del padre (su valor viene del padre)
   plantillas: Record<string, EstadoPlantilla>; // por categoría
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
@@ -157,12 +158,22 @@ export function categoriasDe(raiz: Nodo): { categoria: string; nivel: number; hu
 }
 
 /* ---------- Drivers por defecto ---------- */
-/** Km marcado en todos los huecos y heredable, salvo en la unidad (raíz). */
+/** Tener un driver y que sea heredable son cosas distintas. Por defecto, el km lo tienen todos los huecos. */
 export function driversPorDefecto(raiz: Nodo): Drivers {
+  const d: Drivers = {};
+  recorrer(raiz, (n) => { d[n.id] = { km: true }; });
+  return d;
+}
+
+/** Por defecto, el km es heredable en todos los huecos menos en la unidad (raíz), que no tiene padre del que heredar. */
+export function heredablesPorDefecto(raiz: Nodo): Drivers {
   const d: Drivers = {};
   recorrer(raiz, (n, nivel) => { d[n.id] = { km: nivel > 1 }; });
   return d;
 }
+
+/** Valores por defecto de los drivers de una configuración. */
+export const driversIniciales = (raiz: Nodo) => ({ drivers: driversPorDefecto(raiz), heredables: heredablesPorDefecto(raiz) });
 
 /* ---------- Estructuras existentes (ficticias) ---------- */
 function coche(i: number, puertas = 2, bogies = 2): Nodo {
@@ -222,15 +233,17 @@ export function unidadesTerminadas(c: Configuracion, raiz: Nodo | undefined): nu
 }
 
 /** Sincroniza plantillas y drivers de una configuración con la estructura actual (tras un cambio en el catálogo). */
-export function sincronizarConEstructura(c: Configuracion, raiz: Nodo): Pick<Configuracion, "plantillas" | "drivers"> {
+export function sincronizarConEstructura(c: Configuracion, raiz: Nodo): Pick<Configuracion, "plantillas" | "drivers" | "heredables"> {
   const plantillas: Record<string, EstadoPlantilla> = {};
   categoriasDe(raiz).forEach(({ categoria }) => { plantillas[categoria] = c.plantillas[categoria] ?? "pendiente"; });
   const drivers: Drivers = {};
+  const heredables: Drivers = {};
   recorrer(raiz, (n, _l, padre) => {
-    // Un hueco nuevo hereda los drivers de su padre
+    // Un hueco nuevo tiene los mismos drivers que su padre y los hereda de él
     drivers[n.id] = c.drivers[n.id] ?? (padre ? { ...drivers[padre.id] } : {});
+    heredables[n.id] = c.heredables?.[n.id] ?? (padre ? { ...drivers[padre.id] } : {});
   });
-  return { plantillas, drivers };
+  return { plantillas, drivers, heredables };
 }
 
 /** Diferencia de huecos entre dos versiones de una estructura. */
