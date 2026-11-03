@@ -30,7 +30,7 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 | HU-11 | Elegir otros drivers (ciclos, horas) para algunas categorías | T |
 | HU-12 | Que los drivers de ciclos y horas se marquen por defecto en los hijos y se hereden a todo salvo al padre | T |
 | HU-13 | Cambiar la asignación de drivers más adelante | T |
-| HU-44 | Elegir si los drivers de la configuración son compartidos con la flota o propios | N |
+| HU-44 | Elegir en el asistente un perfil de drivers del catálogo para la estructura de la configuración, o crear uno nuevo | N |
 
 ### A4. Propiedades de categoría
 | ID | Historia | Origen |
@@ -79,6 +79,16 @@ La estructura es común a todo el cliente: modificarla afecta a todas las config
 | HU-42 | Ver qué unidades han quedado incompletas por un cambio de estructura, para cargar sus datos | N |
 | HU-43 | Eliminar una estructura que no usa ninguna configuración | N |
 
+## Épica D: Catálogo de drivers (nuevo apartado)
+Los drivers son, como las estructuras, comunes a todo el cliente. Se agrupan en **perfiles de drivers** ligados a una estructura.
+
+| ID | Historia | Origen |
+|---|---|---|
+| HU-45 | Ver el catálogo de perfiles de drivers, con su estructura y cuántas configuraciones y unidades lo usan | N |
+| HU-46 | Crear un perfil de drivers para una estructura | N |
+| HU-47 | Modificar un perfil en uso viendo antes a qué configuraciones afecta | N |
+| HU-48 | Eliminar un perfil que no usa ninguna configuración | N |
+
 ## Épica B: Modificación de una configuración activa
 | ID | Historia | Origen |
 |---|---|---|
@@ -100,5 +110,5 @@ La estructura es común a todo el cliente: modificarla afecta a todas las config
 - ¿Se puede crear un hueco y finalizar la configuración sin datos, y cargar el dato después fuera de configuración?
 - ¿Conviene separar los drivers de las propiedades de activo? (nota del equipo)
 - ~~Las propiedades de hueco dependen de la estructura y no de una flota~~ → **Resuelto:** las propiedades de categoría, las de hueco y el SMS son **de la flota**. Las comparten todas sus configuraciones.
-- ~~¿Los drivers son de la flota o de la configuración?~~ → **Resuelto:** lo **elige el usuario** en el paso Drivers: *compartidos con la flota* (los usan las configuraciones de la flota con la misma estructura que elijan esa opción) o *propios de esta configuración*.
+- ~~¿Los drivers son de la flota o de la configuración?~~ → **Resuelto:** son un **catálogo común del cliente** (Configuración › Drivers), como las estructuras. Cada configuración usa un perfil de drivers de su estructura.
 - ¿La épica C pertenece a Configuración o a Operación?

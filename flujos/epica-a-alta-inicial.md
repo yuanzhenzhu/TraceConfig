@@ -89,6 +89,8 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 6. **Estructuras comunes** (2026-11-03): las estructuras forman un catálogo del cliente, en el apartado **Configuración › Estructuras**. En el paso 1 del asistente solo se **elige** una existente o se **crea** una nueva, que pasa al catálogo. Una estructura en uso se modifica desde el catálogo, con aviso de impacto, y el cambio afecta a todas las configuraciones que la usan.
 7. **Propiedades y SMS de la flota:** los pasos 4, 5 y 6 guardan los datos en la **flota** y avisan de que se comparten con todas sus configuraciones.
 
+8. **Drivers comunes** (2026-11-03): los drivers se agrupan en **perfiles** del catálogo del cliente, en el apartado **Configuración › Drivers**, ligados a una estructura. En el paso 3 se elige un perfil de la estructura o se crea uno nuevo, que pasa al catálogo. Un perfil en uso se modifica desde el catálogo, con aviso de impacto.
+
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
 2. **Pasos opcionales** con el botón "Omitir paso". En el stepper se marcan como *pendiente* y no como *hecho*.

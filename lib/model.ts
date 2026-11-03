@@ -20,9 +20,7 @@ export type Configuracion = {
   descripcion: string;
   estructuraId: string | null; // referencia al catálogo común
   unidades: number | null;
-  driversModo: "flota" | "propios"; // lo elige el usuario: compartidos con la flota o propios de esta configuración
-  drivers: Drivers; // propios: qué drivers tiene cada hueco
-  heredables: Drivers; // propios: en qué huecos el driver se hereda del padre (su valor viene del padre)
+  perfilDriversId: string | null; // referencia al catálogo común de drivers
   plantillas: Record<string, EstadoPlantilla>; // por categoría
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
@@ -39,11 +37,16 @@ export type Flota = {
   propsCategoria: Record<string, PropAsignada[]>; // por categoría
   propsHueco: Record<string, Record<string, string>>; // hueco -> propiedad -> valor ("" = sin valor)
   sms: Sms | null;
-  /** Drivers compartidos por las configuraciones de la flota que lo eligen, por estructura (los huecos dependen de ella). */
-  driversCompartidos: Record<string, DriversConfig>;
 };
 
+/** Qué drivers tiene cada hueco y en cuáles es heredable (su valor viene del padre). */
 export type DriversConfig = { drivers: Drivers; heredables: Drivers };
+
+/**
+ * Perfil de drivers del catálogo común del cliente, como las estructuras.
+ * Va ligado a una estructura (sus huecos) y lo pueden usar varias configuraciones: modificarlo les afecta a todas.
+ */
+export type PerfilDrivers = DriversConfig & { id: string; nombre: string; descripcion: string; estructuraId: string; actualizada?: string };
 
 export const DRIVERS: { id: DriverId; nombre: string; corto: string }[] = [
   { id: "km", nombre: "Kilometraje", corto: "Km" },
@@ -180,10 +183,9 @@ export function heredablesPorDefecto(raiz: Nodo): Drivers {
 /** Valores por defecto de los drivers de una configuración. */
 export const driversIniciales = (raiz: Nodo): DriversConfig => ({ drivers: driversPorDefecto(raiz), heredables: heredablesPorDefecto(raiz) });
 
-/** Drivers que aplican a una configuración según lo que haya elegido el usuario (con los valores por defecto si aún no hay nada). */
-export function driversEfectivos(c: Configuracion, flota: Flota, raiz: Nodo): DriversConfig {
-  const fuente = c.driversModo === "flota" ? flota.driversCompartidos?.[c.estructuraId ?? ""] : { drivers: c.drivers, heredables: c.heredables };
-  return fuente && Object.keys(fuente.drivers).length ? fuente : driversIniciales(raiz);
+/** Drivers que aplican a una configuración: los de su perfil o, si aún no tiene, los valores por defecto. */
+export function driversEfectivos(perfil: PerfilDrivers | undefined, raiz: Nodo): DriversConfig {
+  return perfil && Object.keys(perfil.drivers).length ? perfil : driversIniciales(raiz);
 }
 
 /** Adapta unos drivers a la estructura actual: los huecos nuevos tienen los drivers de su padre y los heredan de él. */
@@ -254,11 +256,11 @@ export function unidadesTerminadas(c: Configuracion, raiz: Nodo | undefined): nu
   return Math.round((c.unidades * cargadas) / ps.length);
 }
 
-/** Sincroniza plantillas y drivers de una configuración con la estructura actual (tras un cambio en el catálogo). */
-export function sincronizarConEstructura(c: Configuracion, raiz: Nodo): Pick<Configuracion, "plantillas" | "drivers" | "heredables"> {
+/** Sincroniza las plantillas de una configuración con la estructura actual (tras un cambio en el catálogo). */
+export function sincronizarConEstructura(c: Configuracion, raiz: Nodo): Pick<Configuracion, "plantillas"> {
   const plantillas: Record<string, EstadoPlantilla> = {};
   categoriasDe(raiz).forEach(({ categoria }) => { plantillas[categoria] = c.plantillas[categoria] ?? "pendiente"; });
-  return { plantillas, ...sincronizarDrivers({ drivers: c.drivers, heredables: c.heredables }, raiz) };
+  return { plantillas };
 }
 
 /** Diferencia de huecos entre dos versiones de una estructura. */

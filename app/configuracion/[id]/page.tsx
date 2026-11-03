@@ -8,7 +8,7 @@ import { Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar
 import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
 import { Paso4, Paso5, Paso6 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
-import { PASOS, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
+import { PASOS, categoriasDe, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function AsistentePage() {
@@ -61,7 +61,6 @@ export default function AsistentePage() {
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
     const cambios: Partial<Configuracion> = { pasoActual: n, pasoMax: Math.max(c.pasoMax, n) };
-    if (n === 3 && !Object.keys(c.drivers).length && raiz) Object.assign(cambios, driversIniciales(raiz));
     if (n === 7 && raiz && !Object.keys(c.plantillas).length) cambios.plantillas = plantillasIniciales(raiz);
     set(cambios);
     setPaso(n);
@@ -77,7 +76,9 @@ export default function AsistentePage() {
       // Si se cambia de estructura, las plantillas se recalculan para sus categorías.
       const nuevas = plantillasIniciales(raiz);
       Object.keys(nuevas).forEach((k) => { if (c.plantillas[k]) nuevas[k] = c.plantillas[k]; });
-      set({ plantillas: nuevas, ...(Object.keys(c.drivers).length ? {} : driversIniciales(raiz)) });
+      // Un perfil de drivers de otra estructura deja de valer
+      const perfil = store.perfil(c.perfilDriversId);
+      set({ plantillas: nuevas, ...(perfil && perfil.estructuraId !== est?.id ? { perfilDriversId: null } : {}) });
     }
     if (p === 2 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });

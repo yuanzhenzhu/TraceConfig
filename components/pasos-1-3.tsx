@@ -4,11 +4,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Banner, Button, Field, Icon, Tag } from "./ds";
-import { ArbolFilas, ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
+import { Banner, Button, Field, Icon } from "./ds";
+import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
+import { EditorDrivers, ResumenDrivers } from "./drivers";
 import {
-  DRIVERS, buscar, categoriasDe, clonar, contarHuecos, driversEfectivos, driversIniciales, nodo, nuevoId, recorrer,
-  type Configuracion, type DriverId, type Drivers, type DriversConfig, type Estructura, type Flota, type Nodo,
+  clonar, contarHuecos, driversIniciales, nodo, nuevoId,
+  type Configuracion, type DriversConfig, type Estructura, type Flota, type Nodo, type PerfilDrivers,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -202,155 +203,98 @@ export function Paso2({ c, set, intentado, est }: PasoProps) {
 }
 
 /* ---------- Paso 3 ---------- */
-// Tener un driver y que sea heredable son dos marcas distintas:
-// - Tener: el hueco cuenta su vida con ese driver.
-// - Heredable: su valor viene del padre (no se registra aparte). La unidad no tiene padre, así que nunca hereda.
-export function Paso3({ c, set, est, flota, setFlota }: PasoProps) {
+// Los drivers son un catálogo común del cliente (Configuración › Drivers), como las estructuras:
+// aquí se elige un perfil de la estructura de la configuración o se crea uno nuevo.
+export function Paso3({ c, set, est }: PasoProps) {
   const store = useStore();
   const raiz: Nodo = est!.raiz;
-  const { drivers: d, heredables: h } = driversEfectivos(c, flota, raiz);
-  const [catSel, setCatSel] = useState("");
-  const compartida = c.driversModo === "flota";
-  // Otras configuraciones de la flota que comparten estos drivers (misma estructura y modo flota)
-  const companeras = store.configs.filter((x) => x.id !== c.id && x.guardada && x.flotaId === flota.id && x.estructuraId === c.estructuraId && x.driversModo === "flota");
+  const compatibles = store.perfiles.filter((p) => p.estructuraId === est!.id);
+  const actual = store.perfil(c.perfilDriversId);
+  const [modo, setModo] = useState<"existente" | "nuevo">(compatibles.length ? "existente" : "nuevo");
+  const [nuevo, setNuevo] = useState<DriversConfig & { nombre: string; descripcion: string }>(() => ({ nombre: "", descripcion: "", ...driversIniciales(raiz) }));
+  const [intentoNuevo, setIntentoNuevo] = useState(false);
+  const repetido = store.perfiles.some((p) => p.nombre.trim().toLowerCase() === nuevo.nombre.trim().toLowerCase());
+  const errNombre = intentoNuevo && !nuevo.nombre.trim() ? "Indica el nombre del perfil" : repetido ? "Ya existe un perfil con este nombre" : "";
 
-  /** Guarda en la flota o en la configuración, según lo que haya elegido el usuario. */
-  const guardar = (dc: DriversConfig) => {
-    if (compartida) setFlota({ driversCompartidos: { ...flota.driversCompartidos, [est!.id]: dc } });
-    else set(dc);
+  const crear = () => {
+    setIntentoNuevo(true);
+    if (!nuevo.nombre.trim() || repetido) return;
+    const p: PerfilDrivers = { id: nuevoId("drv"), estructuraId: est!.id, ...nuevo };
+    store.guardarPerfil(p);
+    set({ perfilDriversId: p.id });
+    setModo("existente");
   };
-  const elegirModo = (modo: "flota" | "propios") => {
-    if (modo === c.driversModo) return;
-    if (modo === "propios") set({ driversModo: "propios", drivers: d, heredables: h }); // parte de los valores compartidos
-    else {
-      if (!flota.driversCompartidos?.[est!.id]) setFlota({ driversCompartidos: { ...flota.driversCompartidos, [est!.id]: { drivers: d, heredables: h } } });
-      set({ driversModo: "flota" });
-    }
-  };
-
-  const marcar = (n: Nodo, drv: DriverId, valor: boolean, tiene: Drivers, hereda: Drivers) => {
-    // Al marcar un driver en un hueco, también lo tienen todos sus hijos, que además lo heredan de él (el padre no).
-    recorrer(n, (x) => {
-      tiene[x.id] = { ...tiene[x.id], [drv]: valor };
-      // El hueco marcado conserva su heredable; sus hijos pasan a heredar de él. Al desmarcar, nadie lo hereda.
-      hereda[x.id] = { ...hereda[x.id], [drv]: !valor ? false : x.id === n.id ? !!hereda[x.id]?.[drv] : true };
-    });
-  };
-  const padreTiene = (id: string, tiene: Drivers, drv: DriverId) => {
-    let ok = false;
-    recorrer(raiz, (x, _l, p) => { if (x.id === id && p) ok = !!tiene[p.id]?.[drv]; });
-    return ok;
-  };
-  const cambiarTiene = (id: string, drv: DriverId, valor: boolean) => {
-    const tiene = { ...d }, hereda = { ...h };
-    marcar(buscar(raiz, id)!, drv, valor, tiene, hereda);
-    guardar({ drivers: tiene, heredables: hereda });
-  };
-  const cambiarHeredable = (id: string, drv: DriverId, valor: boolean) => {
-    guardar({ drivers: d, heredables: { ...h, [id]: { ...h[id], [drv]: valor } } });
-  };
-  const aplicarCategoria = (drv: DriverId, valor: boolean) => {
-    const tiene = { ...d }, hereda = { ...h };
-    recorrer(raiz, (n) => { if (n.categoria === catSel) marcar(n, drv, valor, tiene, hereda); });
-    guardar({ drivers: tiene, heredables: hereda });
-  };
-  const cuenta = (m: Drivers, drv: DriverId) => Object.values(m).filter((x) => x[drv]).length;
-  const COL = 88;
 
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
-      <div className="row gap-20">
-        <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Drivers</h2>
-        <Button variant="text" icon="restart_alt" onClick={() => guardar(driversIniciales(raiz))}>Restablecer por defecto</Button>
+      <h2 className="lm-title-medium" style={{ margin: 0 }}>Drivers</h2>
+      <p className="muted" style={{ margin: 0 }}>
+        Elige el perfil de drivers de esta configuración. Los perfiles son comunes a todo el cliente y van ligados a una estructura: aquí solo aparecen los de <strong>{est!.nombre}</strong>.
+      </p>
+      <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
+        <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => setModo("existente")}><Icon name="list" /> Usar un perfil existente</button>
+        <button role="tab" className="lm-tab" aria-selected={modo === "nuevo"} onClick={() => setModo("nuevo")}><Icon name="add" /> Crear un perfil nuevo</button>
       </div>
-      <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>¿De quién son estos drivers?</legend>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--lm-space-15)" }}>
-          {([
-            { modo: "flota", titulo: `Compartidos con la flota ${flota.codigo}`, desc: companeras.length
-              ? `También los usan: ${companeras.map((x) => x.nombre).join(", ")}. Un cambio aquí les afecta.`
-              : `Los usarán todas las configuraciones de ${flota.codigo} con ${est!.nombre} que elijan esta opción.` },
-            { modo: "propios", titulo: "Propios de esta configuración", desc: "Solo afectan a esta configuración. Se parte de los valores actuales." },
-          ] as const).map((o) => {
-            const sel = c.driversModo === o.modo;
-            return (
-              <label key={o.modo} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
-                <input type="radio" name="drivers-modo" checked={sel} onChange={() => elegirModo(o.modo)} aria-label={o.titulo} />
-                <span className="lm-radio__text gap-5">
-                  <span className="lm-title-small">{o.titulo}</span>
-                  <span className="lm-radio__support">{o.desc}</span>
-                </span>
-              </label>
-            );
-          })}
+
+      {modo === "existente" ? (
+        compatibles.length === 0 ? (
+          <EmptyStateSimple texto={`Todavía no hay perfiles de drivers para ${est!.nombre}`} accion={<Button variant="outlined" icon="add" onClick={() => setModo("nuevo")}>Crear un perfil nuevo</Button>} />
+        ) : (
+          <div className="stack gap-20">
+            <div role="radiogroup" aria-label="Perfiles de drivers" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "var(--lm-space-10)" }}>
+              {compatibles.map((p) => {
+                const sel = c.perfilDriversId === p.id;
+                const usos = store.usosDePerfil(p.id).filter((x) => x.id !== c.id);
+                return (
+                  <label key={p.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
+                    <input type="radio" name="perfil" checked={sel} onChange={() => set({ perfilDriversId: p.id })} aria-label={p.nombre} />
+                    <span className="lm-radio__text gap-5">
+                      <span className="lm-title-small">{p.nombre}</span>
+                      <span className="lm-radio__support">{p.descripcion}</span>
+                      <ResumenDrivers valor={p} />
+                      <span className="lm-body-small muted">{usos.length ? `También lo usan: ${usos.map((x) => x.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="stack gap-10">
+              {actual ? (
+                <>
+                  <div className="row gap-10">
+                    <span className="lm-title-small grow">Vista previa · {actual.nombre}</span>
+                    <Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/drivers/${actual.id}`}>Modificar en Drivers</Link>
+                  </div>
+                  <EditorDrivers soloLectura raiz={raiz} valor={actual} onChange={() => {}} />
+                </>
+              ) : (
+                <div className="lm-card lm-center"><Icon name="timelapse" size="xl" />Selecciona un perfil para ver sus drivers. Si omites el paso, se aplica el kilometraje por defecto.</div>
+              )}
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="stack gap-20">
+          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />El perfil se añadirá al catálogo común del cliente y podrán usarlo otras configuraciones con {est!.nombre}.</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
+            <Field label="Nombre del perfil" required htmlFor="dp-nombre" error={errNombre}>
+              <input id="dp-nombre" className="lm-input" value={nuevo.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Km y horas de motores"
+                onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
+            </Field>
+            <Field label="Descripción" htmlFor="dp-desc">
+              <input id="dp-desc" className="lm-input" value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} />
+            </Field>
+          </div>
+          <EditorDrivers raiz={raiz} valor={nuevo} onChange={(v) => setNuevo({ ...nuevo, ...v })} />
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <Button variant="tonal" icon="check" onClick={crear}>Crear y usar este perfil</Button>
+          </div>
         </div>
-      </fieldset>
-      <Banner type="info" title="Tener un driver y que sea heredable son cosas distintas">
-        <strong>Tener</strong>: el hueco cuenta su vida con ese driver (por defecto, el kilometraje lo tienen todos). <strong>Heredable</strong>: el valor viene del padre y no hay que registrarlo aparte (por defecto, todos menos la unidad). Al marcar un driver en un hueco, también lo tienen sus hijos y lo heredan de él.
-      </Banner>
-      <div className="row gap-10 wrap">
-        {DRIVERS.map((x) => (
-          <Tag key={x.id} tone="primary">{x.nombre}: {cuenta(d, x.id)} huecos · {cuenta(h, x.id)} heredables</Tag>
-        ))}
-      </div>
-      <div className="lm-card row gap-15 wrap">
-        <span className="lm-title-small">Aplicar a toda una categoría</span>
-        <select className="lm-select lm-select--dense" style={{ width: 220 }} aria-label="Categoría" value={catSel} onChange={(e) => setCatSel(e.target.value)}>
-          <option value="">Selecciona una categoría</option>
-          {categoriasDe(raiz).map((x) => <option key={x.categoria} value={x.categoria}>{x.categoria} ({x.huecos})</option>)}
-        </select>
-        {DRIVERS.map((x) => (
-          <span key={x.id} className="row gap-5">
-            <Button small variant="outlined" disabled={!catSel} onClick={() => aplicarCategoria(x.id, true)}>Marcar {x.corto}</Button>
-            <Button small variant="text" disabled={!catSel} onClick={() => aplicarCategoria(x.id, false)}>Quitar</Button>
-          </span>
-        ))}
-      </div>
-      <div className="lm-card">
-        <div className="row" style={{ height: "var(--lm-space-40)" }}>
-          <span className="grow" />
-          {DRIVERS.map((x) => (
-            <span key={x.id} className="lm-label-medium" style={{ width: COL * 2, textAlign: "center", borderBottom: "1px solid var(--lm-sys-outline-variant)", margin: "0 var(--lm-space-5)" }}>
-              {x.nombre.toUpperCase()}
-            </span>
-          ))}
-        </div>
-        <div className="row" style={{ height: "var(--lm-space-40)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
-          <span className="lm-label-medium grow" style={{ paddingLeft: "var(--lm-space-50)" }}>HUECO</span>
-          {DRIVERS.map((x) => (
-            <span key={x.id} className="row" style={{ margin: "0 var(--lm-space-5)" }}>
-              <span className="lm-label-small muted" style={{ width: COL, textAlign: "center" }}>TIENE</span>
-              <span className="lm-label-small muted" style={{ width: COL, textAlign: "center" }}>HEREDABLE</span>
-            </span>
-          ))}
-        </div>
-        <ArbolFilas raiz={raiz} abiertosIni={3} render={(n) => (
-          <>
-            <span className="grow row gap-10">
-              <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{n.nombre}</span>
-              {n.id === raiz.id && <Tag tone="neutral">Unidad</Tag>}
-            </span>
-            {DRIVERS.map((x) => {
-              const tiene = !!d[n.id]?.[x.id];
-              const puedeHeredar = tiene && n.id !== raiz.id && padreTiene(n.id, d, x.id);
-              return (
-                <span key={x.id} className="row" style={{ margin: "0 var(--lm-space-5)" }}>
-                  <span style={{ width: COL, display: "flex", justifyContent: "center" }}>
-                    <input type="checkbox" style={{ width: 18, height: 18, accentColor: "var(--lm-sys-primary)" }}
-                      aria-label={`${n.nombre} tiene ${x.nombre}`} checked={tiene} onChange={(e) => cambiarTiene(n.id, x.id, e.target.checked)} />
-                  </span>
-                  <span style={{ width: COL, display: "flex", justifyContent: "center" }}>
-                    <input type="checkbox" style={{ width: 18, height: 18, accentColor: "var(--lm-sys-primary)" }}
-                      aria-label={`${x.nombre} heredable en ${n.nombre}`} disabled={!puedeHeredar}
-                      title={n.id === raiz.id ? "La unidad no tiene padre del que heredar" : !tiene ? `Marca antes que tiene ${x.nombre}` : !puedeHeredar ? `El padre no tiene ${x.nombre}` : undefined}
-                      checked={puedeHeredar && !!h[n.id]?.[x.id]} onChange={(e) => cambiarHeredable(n.id, x.id, e.target.checked)} />
-                  </span>
-                </span>
-              );
-            })}
-          </>
-        )} />
-      </div>
+      )}
     </section>
   );
+}
+
+function EmptyStateSimple({ texto, accion }: { texto: string; accion: React.ReactNode }) {
+  return <div className="lm-card lm-center"><Icon name="timelapse" size="xl" /><span>{texto}</span>{accion}</div>;
 }
