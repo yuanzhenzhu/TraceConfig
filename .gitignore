@@ -10,6 +10,13 @@ desktop.ini
 # Claude Code (ajustes locales de cada persona)
 .claude/settings.local.json
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
 # Dependencias y temporales
 node_modules/
 *.log

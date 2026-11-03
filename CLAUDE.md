@@ -17,7 +17,7 @@ Librerías de Figma, que son la fuente de verdad. Si hay dudas, consúltalas con
 ## Flujo de trabajo
 1. **Historia**: cada historia de usuario va en `historias/HU-XX-nombre.md`, con su rol, objetivo, beneficio y criterios de aceptación. Si falta algo (estados de error, permisos, casos vacíos), pregunta antes de diseñar.
 2. **Flujo**: dibuja el flujo (pantallas, decisiones, errores y estados vacíos) en `flujos/` y pide validación **antes** de construir pantallas.
-3. **Prototipo**: construye en `prototipos/HU-XX-nombre/`, en HTML, CSS y JS sin build e importando `../../design-system/tokens.css`. Tiene que poder recorrerse con clics de principio a fin.
+3. **Prototipo**: construye en la app **Next.js** (App Router, TypeScript) de la raíz del repo, pensada para publicarse en Vercel. Cada módulo tiene su ruta (`app/configuracion/...`). Los componentes del sistema están en `components/ds.tsx` y sus estilos en `app/globals.css`, siempre con los tokens de `design-system/tokens.css`. Los datos de ejemplo van en `lib/` mientras `datos/` esté vacía. Tiene que poder recorrerse con clics de principio a fin. Arranque: `npm run dev`; antes de dar algo por bueno, `npm run build`.
 4. **Revisión**: comprueba cada criterio de aceptación y cada estado (vacío, cargando, error, éxito) antes de darlo por terminado.
 
 ## Reglas de diseño (obligatorias)
