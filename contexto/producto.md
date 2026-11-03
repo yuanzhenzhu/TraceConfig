@@ -19,7 +19,7 @@ Cliente
 
 ### Ejemplo de estructura: "Estructura 1"
 
-Cada nodo es un **hueco**, es decir, una posición donde se monta un activo. Los coches, bogies, ejes y puertas que tienen el mismo número repiten la misma composición.
+Cada nodo es un **hueco**, es decir, una posición donde se monta un activo, **incluidos "Tren" y cada "Coche"**. Los coches, bogies, ejes y puertas que tienen el mismo número repiten la misma composición.
 
 ```
 Estructura 1
