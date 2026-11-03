@@ -109,6 +109,12 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
 | Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
+| Configuración | Proceso, con su resultado, de dar de alta un grupo de trenes en una flota: estructura, unidades, drivers, propiedades y carga de datos. Una flota puede tener varias configuraciones, una por estructura |
+| Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
+| Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro |
+| Histórico | Marca de una propiedad de categoría que indica que se guarda la evolución de su valor en el tiempo |
+| Plantilla | Excel que genera la aplicación, por categoría, según la estructura, las propiedades y los drivers, para cargar los datos de los activos |
+| SMS | Herramienta hermana e independiente de Leadmind Trace para **planificar los mantenimientos**. Recibe datos de la configuración de la flota |
 | Recepción en almacén | Dar de alta activos en el almacén |
 | Recepción en unidad | Dar de alta activos directamente en una unidad |
 
