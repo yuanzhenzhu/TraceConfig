@@ -1,9 +1,9 @@
-# Contexto de la aplicación
+# Contexto de la aplicación: Leadmind Trace
 
 > Rellena cada sección con tus palabras; no hace falta que esté perfecto. Lo que quede vacío, Claude lo preguntará antes de asumirlo.
 
 ## Qué es
-<!-- Nombre del producto y en una o dos frases qué hace y qué problema resuelve. -->
+**Leadmind Trace** es una herramienta digital para controlar los **activos ferroviarios y su trazabilidad**: dónde está cada activo (en un almacén o montado en un hueco de una unidad) y su historial. También sirve para **gestionar el mantenimiento**.
 
 ## Modelo de dominio
 
@@ -63,12 +63,21 @@ Tipos de activo (categorías) que aparecen: Tren, Coche, Motor Coche, Puerta, Mo
 ## Para quién
 <!-- Tipos de usuario (rol, qué hacen en su día a día, nivel técnico) y qué puede hacer cada uno (permisos). -->
 
+Son perfiles técnicos de mantenimiento ferroviario. Conocen bien el tren y sus componentes, pero no tienen por qué ser expertos en informática.
+
 | Rol | Qué hace | Permisos |
 |---|---|---|
-|  |  |  |
+| Técnico de mantenimiento | Consulta activos y registra operaciones (recepciones, montajes…) | *por confirmar* |
+| Jefe de mantenimiento | Supervisa flotas y unidades y gestiona el mantenimiento | *por confirmar* (¿también configuración?) |
 
 ## Módulos o secciones principales
-<!-- Ej.: Configuración, Gestión de unidades, Planificador, Panel de negocio… y para qué sirve cada uno. -->
+De momento hay tres. La descripción de cada uno es provisional: *por confirmar*.
+
+| Módulo | Para qué sirve (provisional) |
+|---|---|
+| **Consulta** | Buscar y ver activos, unidades, estructuras y su trazabilidad (historial) |
+| **Operación** | Registrar acciones sobre los activos: recepción en almacén, recepción en unidad, montajes y desmontajes… |
+| **Configuración** | Definir clientes, flotas, grupos de trenes, estructuras, categorías y propiedades (de hueco, de activo y de categoría) |
 
 ## Nomenclatura acordada (obligatoria)
 Usa **siempre** el término acordado en textos de interfaz, datos, historias y flujos. Los términos anteriores **no deben aparecer** en ningún sitio.
