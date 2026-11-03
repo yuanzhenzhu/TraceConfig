@@ -25,13 +25,13 @@ Cliente
       └─ nº de unidades (trenes) en la flota
 ```
 
-Ejemplos de activos: coches, bogies, ejes, ruedas, motores, puertas, tarjetas electrónicas.
+Ejemplos de activos: coches, bogies, ejes, ruedas, motores, puertas, tarjetas electrónicas. (La jerarquía del diagrama es ilustrativa.)
 
-> ⚠️ Pendiente de confirmar:
-> - ¿Varios grupos de trenes (de la misma flota o de flotas distintas) pueden compartir la misma estructura?
-> - El nº de unidades, ¿se guarda por grupo de trenes o por estructura dentro de la flota?
-> - ¿Un **hueco** es cada posición de la estructura donde se monta un activo (por ejemplo "Coche 1 › Bogie delantero › Eje 2 › Rueda izquierda")?
-> - ¿Las unidades se identifican como `UT-xxx`?
+### Reglas
+- **Varios grupos de trenes pueden compartir la misma estructura.**
+- A cada grupo de trenes se le asigna un **número de unidades (trenes)**, que pertenecen a ese grupo y por tanto siguen su estructura.
+- Un **hueco** es cada posición de la estructura donde se monta un activo. Por ejemplo: "Coche 1 › Bogie delantero › Eje 2 › Rueda izquierda". Las *propiedades de hueco* describen esa posición y las *propiedades de activo* describen el activo montado en ella.
+- Cada **unidad** se identifica con un **número de serie de 4 dígitos**, por ejemplo `1001` o `3020`.
 
 ## Para quién
 <!-- Tipos de usuario (rol, qué hacen en su día a día, nivel técnico) y qué puede hacer cada uno (permisos). -->
@@ -54,10 +54,10 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Propiedad de categoría | Atributo de categoría |
 | Categoría | Tipo de componente |
 | Almacén | Taller |
-| Recepción en taller | Alta de componentes en taller |
+| Recepción en almacén | Alta de componentes en taller / Recepción en taller |
 | Recepción en unidad | Alta de componentes en unidad |
 
-> ⚠️ Pendiente de aclarar: "Taller" pasa a ser "Almacén", pero "Recepción en taller" mantiene la palabra "taller". ¿Es intencionado, o debería ser "Recepción en almacén"?
+> La palabra **"taller" no aparece en ningún sitio de la aplicación**: siempre es "almacén".
 
 ## Glosario del dominio
 <!-- Términos propios y su significado, para usarlos bien en textos y datos. -->
@@ -67,13 +67,13 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Cliente | Empresa operadora; tiene una o varias flotas |
 | Flota | Conjunto de trenes de un cliente; contiene uno o varios grupos de trenes |
 | Grupo de trenes | Conjunto de trenes de una flota que comparten la misma estructura |
-| Unidad | Un tren concreto de un grupo |
+| Unidad | Un tren concreto de un grupo; se identifica con un nº de serie de 4 dígitos (1001, 3020…) |
 | Estructura | Composición jerárquica de activos que define cómo está formado un tren del grupo |
-| Hueco |  |
+| Hueco | Cada posición de la estructura donde se monta un activo |
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría |  |
 | Almacén |  |
-| Recepción en taller |  |
+| Recepción en almacén |  |
 | Recepción en unidad |  |
 
 ## Formatos y convenciones
@@ -83,4 +83,4 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 - Unidades:
 
 ## Restricciones y contexto técnico
-<!-- Ej.: aplicación de escritorio, uso en taller, integraciones con otros sistemas, cosas que no se pueden cambiar. -->
+<!-- Ej.: aplicación de escritorio, uso en almacén, integraciones con otros sistemas, cosas que no se pueden cambiar. -->
