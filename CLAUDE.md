@@ -27,7 +27,8 @@ Librerías de Figma, que son la fuente de verdad. Si hay dudas, consúltalas con
 - **Iconos**: solo los de la lista de `design-system.md` §7, en Material Symbols Outlined a 24 px.
 - **Tipografía**: Roboto con las clases `.lm-*`. El texto por defecto es `body/medium` (14/20).
 - **Estructura de página**: `navbar` → `header` (breadcrumb, título y acciones) → `matTabs` si hace falta → filtros → contenido → `matPaginator`. Escritorio a 1440 px.
-- **Textos**: siempre en español y con datos realistas del dominio (flotas, unidades UT-xxx, alarmas, revisiones, talleres), nunca lorem ipsum. Snackbar sin punto final.
+- **Nomenclatura**: usa solo los términos de la tabla "Nomenclatura acordada" de `contexto/producto.md`. Si una historia, un dato o una referencia de Figma trae un término anterior, sustitúyelo y avisa.
+- **Textos**: siempre en español y con datos realistas del dominio (flotas, unidades UT-xxx, alarmas, revisiones, almacenes), nunca lorem ipsum. Snackbar sin punto final.
 - **Estados**: cada pantalla con datos tiene que mostrar los estados vacío (`empty-state`), cargando (`matProgressSpinner`) y error (`banner` o error de campo).
 - **Accesibilidad**: contraste AA, foco visible (capa de estado al 10%), labels en todos los campos y `aria-label` en los botones que solo tienen icono.
 

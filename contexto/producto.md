@@ -15,12 +15,34 @@
 ## Módulos o secciones principales
 <!-- Ej.: Configuración, Gestión de unidades, Planificador, Panel de negocio… y para qué sirve cada uno. -->
 
+## Nomenclatura acordada (obligatoria)
+Usa **siempre** el término acordado en textos de interfaz, datos, historias y flujos. Los términos anteriores **no deben aparecer** en ningún sitio.
+
+| Término acordado ✅ | Término anterior ❌ (no usar) |
+|---|---|
+| Estructura | Árbol / configuración |
+| Propiedad de hueco | Atributo de posición |
+| Propiedad de activo | Atributo de activo |
+| Propiedad de categoría | Atributo de categoría |
+| Categoría | Tipo de componente |
+| Almacén | Taller |
+| Recepción en taller | Alta de componentes en taller |
+| Recepción en unidad | Alta de componentes en unidad |
+
+> ⚠️ Pendiente de aclarar: "Taller" pasa a ser "Almacén", pero "Recepción en taller" mantiene la palabra "taller". ¿Es intencionado, o debería ser "Recepción en almacén"?
+
 ## Glosario del dominio
 <!-- Términos propios y su significado, para usarlos bien en textos y datos. -->
 
 | Término | Significado |
 |---|---|
-|  |  |
+| Estructura |  |
+| Hueco |  |
+| Activo |  |
+| Categoría |  |
+| Almacén |  |
+| Recepción en taller |  |
+| Recepción en unidad |  |
 
 ## Formatos y convenciones
 <!-- Fechas, horas, números, unidades de medida, idioma, mayúsculas… -->
