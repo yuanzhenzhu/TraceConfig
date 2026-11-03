@@ -3,8 +3,10 @@
 Prototipos navegables construidos a partir de historias de usuario y flujos, sin diseñador, usando **solo** el sistema de diseño Leadmind (basado en Material 3 y Angular Material, en español).
 
 ## Antes de prototipar, lee siempre
+- `contexto/producto.md`: qué es la aplicación, sus usuarios, módulos, glosario y formatos. Úsalo para los textos y la lógica.
 - `design-system/design-system.md`: componentes, cuándo usar cada uno, patrones de pantalla y reglas del equipo.
 - `design-system/tokens.css`: tokens en CSS. Impórtalo en cada prototipo.
+- `datos/`: datos que muestra el front. Si hay datos para la historia, úsalos tal cual. Si no hay, invéntalos coherentes con `contexto/producto.md` y avisa de que son ficticios.
 
 Librerías de Figma, que son la fuente de verdad. Si hay dudas, consúltalas con las herramientas de Figma:
 - Foundations: `M48RxxqGH7oNXYCO5iO45q`
