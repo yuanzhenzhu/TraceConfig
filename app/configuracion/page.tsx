@@ -7,7 +7,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, Loading, Menu, Tag, useSnackbar,
 } from "@/components/ds";
-import { ESTRUCTURAS, fecha, unidadesTerminadas, type Configuracion, type Flota } from "@/lib/model";
+import { fecha, unidadesTerminadas, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 type Demo = "normal" | "vacio" | "error" | "cargando";
@@ -48,7 +48,7 @@ export default function ListadoPage() {
     return store.flotas
       .map((f) => {
         const cs = configs.filter((c) => c.flotaId === f.id)
-          .filter((c) => !fEstructura || c.estructura?.nombre === fEstructura)
+          .filter((c) => !fEstructura || c.estructuraId === fEstructura)
           .filter((c) => !fEstado || c.estado === fEstado);
         return { f, cs };
       })
@@ -94,8 +94,7 @@ export default function ListadoPage() {
           <Field label="Estructura" htmlFor="f-est">
             <select id="f-est" className="lm-select lm-select--dense" value={fEstructura} onChange={(e) => { setFEstructura(e.target.value); setPagina(0); }}>
               <option value="">Todas</option>
-              {[...new Set([...ESTRUCTURAS.map((e) => e.nombre), ...configs.map((c) => c.estructura?.nombre).filter(Boolean) as string[]])]
-                .map((n) => <option key={n} value={n}>{n}</option>)}
+              {store.estructuras.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
             </select>
           </Field>
           <Field label="Estado" htmlFor="f-estado">
@@ -161,7 +160,7 @@ export default function ListadoPage() {
                         </td>
                         <td className="emph">{f.codigo}</td>
                         <td>{f.nombre}</td>
-                        <td className="muted">{todas.length === 0 ? "—" : todas.length === 1 ? todas[0].estructura?.nombre : `${todas.length} configuraciones`}</td>
+                        <td className="muted">{todas.length === 0 ? "—" : todas.length === 1 ? store.estructura(todas[0].estructuraId)?.nombre : `${todas.length} configuraciones`}</td>
                         <td className="num">{total || "—"}</td>
                         <td>
                           <span className="row gap-5 wrap">
@@ -182,7 +181,9 @@ export default function ListadoPage() {
                         </td>
                       </tr>
                       {abierta && cs.map((c) => {
-                        const term = unidadesTerminadas(c);
+                        const est = store.estructura(c.estructuraId);
+                        const term = unidadesTerminadas(c, est?.raiz);
+                        const incompletas = (c.unidades ?? 0) - term;
                         return (
                           <tr key={c.id} className="is-child">
                             <td />
@@ -193,7 +194,7 @@ export default function ListadoPage() {
                               </span>
                             </td>
                             <td />
-                            <td>{c.estructura?.nombre ?? "—"}</td>
+                            <td>{est?.nombre ?? "—"}</td>
                             <td className="num">{c.unidades ?? "—"}</td>
                             <td>
                               <span className="row gap-10">
@@ -203,6 +204,7 @@ export default function ListadoPage() {
                                 {c.estado === "en-configuracion" && (
                                   <span className="lm-body-small muted">{term}/{c.unidades} unidades terminadas</span>
                                 )}
+                                {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                               </span>
                             </td>
                             <td className="muted">{fecha(c.actualizada)}</td>

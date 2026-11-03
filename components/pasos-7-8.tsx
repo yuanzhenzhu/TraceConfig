@@ -7,7 +7,7 @@ import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag, useSnackbar } f
 import { iconoCategoria } from "./arbol";
 import {
   DRIVERS, FORMAS_CALCULO, PASOS, PROPS_CATEGORIA, categoriasDe, contarHuecos, primerNivelCargado, recorrer,
-  rutaDe, unidadesTerminadas, type Configuracion, type EstadoPlantilla, type Flota,
+  rutaDe, unidadesTerminadas, type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo,
 } from "@/lib/model";
 import type { PasoProps } from "./pasos-1-3";
 
@@ -18,17 +18,16 @@ const ESTADO: Record<EstadoPlantilla, { tone: "neutral" | "success" | "error"; t
 };
 
 /** Genera la plantilla CSV (separador ;) de una categoría y la descarga. */
-function descargarPlantilla(c: Configuracion, categoria: string) {
-  const raiz = c.estructura!.raiz;
+function descargarPlantilla(c: Configuracion, raiz: Nodo, flota: Flota, categoria: string) {
   const huecos: { id: string; ruta: string }[] = [];
   recorrer(raiz, (n) => { if (n.categoria === categoria) huecos.push({ id: n.id, ruta: rutaDe(raiz, n.id).join(" > ") || n.nombre }); });
   const drvs = DRIVERS.filter((d) => huecos.some((h) => c.drivers[h.id]?.[d.id]));
-  const props = (c.propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
+  const props = (flota.propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
   const esRaiz = categoria === raiz.categoria;
   const cab = esRaiz
     ? ["Nº de serie de la unidad", "Fecha de alta", ...drvs.map((d) => `${d.nombre} inicial`), ...props]
     : ["Nº de serie de la unidad", "Hueco", "Nº de serie del activo", "Fecha de montaje", ...drvs.map((d) => `${d.nombre} inicial`), ...props];
-  const unidades = Array.from({ length: c.unidades ?? 0 }, (_, i) => (primerNivelCargado(c) ? String(1001 + i) : ""));
+  const unidades = Array.from({ length: c.unidades ?? 0 }, (_, i) => (primerNivelCargado(c, raiz) ? String(1001 + i) : ""));
   const filas = esRaiz
     ? unidades.map(() => cab.map(() => ""))
     : unidades.flatMap((u) => huecos.map((h) => [u, h.ruta, ...cab.slice(2).map(() => "")]));
@@ -39,16 +38,16 @@ function descargarPlantilla(c: Configuracion, categoria: string) {
   a.click(); URL.revokeObjectURL(url);
 }
 
-export function Paso7({ c, set }: PasoProps) {
+export function Paso7({ c, set, est, flota }: PasoProps) {
   const snack = useSnackbar();
-  const raiz = c.estructura!.raiz;
+  const raiz = est!.raiz;
   const cats = categoriasDe(raiz);
   const [subiendo, setSubiendo] = useState<string | null>(null);
   const [errores, setErrores] = useState<string | null>(null);
 
   const habilitada = (nivel: number) => cats.filter((x) => x.nivel < nivel).every((x) => c.plantillas[x.categoria] === "cargada");
   const cargadas = cats.filter((x) => c.plantillas[x.categoria] === "cargada").length;
-  const term = unidadesTerminadas(c);
+  const term = unidadesTerminadas(c, raiz);
 
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
@@ -56,7 +55,7 @@ export function Paso7({ c, set }: PasoProps) {
       <p className="muted" style={{ margin: 0 }}>
         Descarga la plantilla de cada categoría, rellénala y súbela. Los niveles se habilitan a medida que cargas los anteriores. Puedes cargarlas poco a poco y salir cuando quieras.
       </p>
-      {!primerNivelCargado(c) ? (
+      {c.estado === "activa" ? null : !primerNivelCargado(c, raiz) ? (
         <Banner type="attention" title="Carga primero la plantilla de unidades (Tren)">
           Es la única obligatoria para finalizar: contiene el nº de serie y la fecha de alta de cada unidad.
         </Banner>
@@ -99,7 +98,7 @@ export function Paso7({ c, set }: PasoProps) {
                 <td className="actions">
                   <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                     <IconButton icon="file_download" label={`Descargar plantilla de ${x.categoria}`} disabled={!ok}
-                      onClick={() => { descargarPlantilla(c, x.categoria); snack(`Plantilla de ${x.categoria} descargada`); }} />
+                      onClick={() => { descargarPlantilla(c, raiz, flota, x.categoria); snack(`Plantilla de ${x.categoria} descargada`); }} />
                     <Button variant={est === "cargada" ? "text" : "outlined"} small icon="file_upload" disabled={!ok} onClick={() => setSubiendo(x.categoria)}>
                       {est === "cargada" ? "Reemplazar" : "Subir"}
                     </Button>
@@ -180,30 +179,38 @@ function DialogSubida({ categoria, c, onClose, onResultado }: {
 }
 
 /* ---------- Paso 8 ---------- */
-export function Paso8({ c, flota, irA, soloLectura }: { c: Configuracion; flota: Flota; irA: (n: number) => void; soloLectura?: boolean }) {
-  const raiz = c.estructura!.raiz;
+export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; flota: Flota; est: Estructura; irA: (n: number) => void; soloLectura?: boolean }) {
+  const raiz = est.raiz;
   const cats = categoriasDe(raiz);
+  const enEstructura = new Set(cats.map((x) => x.categoria));
   const pendientes = cats.filter((x) => c.plantillas[x.categoria] !== "cargada");
   const nDrivers = DRIVERS.map((d) => ({ d, n: Object.values(c.drivers).filter((x) => x[d.id]).length }));
-  const nPropsCat = Object.values(c.propsCategoria).reduce((s, l) => s + l.length, 0);
-  const nHuecosProps = Object.values(c.propsHueco).filter((p) => Object.keys(p).length).length;
+  const nPropsCat = Object.entries(flota.propsCategoria).filter(([k]) => enEstructura.has(k)).reduce((s, [, l]) => s + l.length, 0);
+  let nHuecosProps = 0; recorrer(raiz, (h) => { if (Object.keys(flota.propsHueco[h.id] ?? {}).length) nHuecosProps++; });
   const omitido = (n: number) => c.pasosOmitidos.includes(n);
+  const sms = flota.sms;
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
-    { n: 1, titulo: "Datos y estructura", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{c.estructura!.nombre}: {contarHuecos(raiz)} huecos por unidad</> },
+    { n: 1, titulo: "Datos y estructura", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad</> },
     { n: 2, titulo: "Unidades", contenido: <>{c.unidades} unidades</> },
     { n: 3, titulo: "Drivers", contenido: nDrivers.map(({ d, n }) => `${d.nombre}: ${n} huecos`).join(" · "), aviso: omitido(3) ? "Paso omitido: se aplican los drivers por defecto" : undefined },
-    { n: 4, titulo: "Propiedades de categoría", contenido: nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas", aviso: omitido(4) ? "Paso omitido" : undefined },
-    { n: 5, titulo: "Propiedades de hueco", contenido: nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco", aviso: omitido(5) ? "Paso omitido" : undefined },
-    ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS", contenido: c.sms ? `${c.sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === c.sms!.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === c.sms!.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),
-    { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },
+    { n: 4, titulo: "Propiedades de categoría (de la flota)", contenido: nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas", aviso: omitido(4) ? "Paso omitido" : undefined },
+    { n: 5, titulo: "Propiedades de hueco (de la flota)", contenido: nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco", aviso: omitido(5) ? "Paso omitido" : undefined },
+    ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS (de la flota)", contenido: sms ? `${sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === sms.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === sms.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),
+    { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c, raiz)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },
   ];
 
   return (
     <section className="stack gap-20">
       {soloLectura ? (
-        <Banner type="success" title="Configuración activa">Sus unidades están operativas. Para cambiarla usa "Modificar" desde el listado.</Banner>
-      ) : primerNivelCargado(c) ? (
+        pendientes.length ? (
+          <Banner type="attention" title={`${c.unidades} unidades incompletas`}>
+            La estructura {est.nombre} ha cambiado y faltan los datos de: {pendientes.map((p) => p.categoria).join(", ")}. Cárgalos más abajo.
+          </Banner>
+        ) : (
+          <Banner type="success" title="Configuración activa">Sus unidades están operativas y todos sus datos están cargados.</Banner>
+        )
+      ) : primerNivelCargado(c, raiz) ? (
         <Banner type="info" title="Todo listo para finalizar">
           Al finalizar, la configuración pasará a Activa y sus {c.unidades} unidades quedarán disponibles para operar.
           {pendientes.length > 0 && " Las plantillas pendientes se podrán cargar después."}

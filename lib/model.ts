@@ -2,7 +2,8 @@
 // Todos los datos de este archivo son FICTICIOS: la carpeta datos/ todavía está vacía.
 
 export type Nodo = { id: string; categoria: string; nombre: string; hijos: Nodo[] };
-export type Estructura = { id: string; nombre: string; descripcion: string; raiz: Nodo };
+/** Estructura del catálogo común del cliente. `borradorDe` marca una estructura que se está creando dentro de un asistente aún sin guardar. */
+export type Estructura = { id: string; nombre: string; descripcion: string; raiz: Nodo; actualizada?: string; borradorDe?: string };
 
 export type DriverId = "km" | "ciclos" | "horas";
 export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por id de hueco
@@ -17,12 +18,9 @@ export type Configuracion = {
   flotaId: string;
   nombre: string;
   descripcion: string;
-  estructura: Estructura | null;
+  estructuraId: string | null; // referencia al catálogo común
   unidades: number | null;
   drivers: Drivers;
-  propsCategoria: Record<string, PropAsignada[]>; // por categoría
-  propsHueco: Record<string, Record<string, string>>; // hueco -> propiedad -> valor ("" = sin valor)
-  sms: Sms | null;
   plantillas: Record<string, EstadoPlantilla>; // por categoría
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
@@ -33,7 +31,13 @@ export type Configuracion = {
   actualizada: string; // ISO
 };
 
-export type Flota = { id: string; codigo: string; nombre: string; descripcion: string; usaSms: boolean };
+/** Las propiedades y el SMS son de la flota: los comparten todas sus configuraciones. */
+export type Flota = {
+  id: string; codigo: string; nombre: string; descripcion: string; usaSms: boolean;
+  propsCategoria: Record<string, PropAsignada[]>; // por categoría
+  propsHueco: Record<string, Record<string, string>>; // hueco -> propiedad -> valor ("" = sin valor)
+  sms: Sms | null;
+};
 
 export const DRIVERS: { id: DriverId; nombre: string; corto: string }[] = [
   { id: "km", nombre: "Kilometraje", corto: "Km" },
@@ -202,18 +206,41 @@ export function plantillasIniciales(raiz: Nodo): Record<string, EstadoPlantilla>
   return Object.fromEntries(categoriasDe(raiz).map((c) => [c.categoria, "pendiente" as EstadoPlantilla]));
 }
 
-export function primerNivelCargado(c: Configuracion): boolean {
-  return !!c.estructura && c.plantillas[c.estructura.raiz.categoria] === "cargada";
+export function primerNivelCargado(c: Configuracion, raiz: Nodo | undefined): boolean {
+  return !!raiz && c.plantillas[raiz.categoria] === "cargada";
 }
 
 /** Unidades con todos sus datos cargados (aproximación del prototipo). */
-export function unidadesTerminadas(c: Configuracion): number {
-  if (!c.estructura || !c.unidades) return 0;
-  if (c.estado === "activa") return c.unidades;
+export function unidadesTerminadas(c: Configuracion, raiz: Nodo | undefined): number {
+  if (!raiz || !c.unidades) return 0;
   const ps = Object.values(c.plantillas);
-  if (!primerNivelCargado(c) || ps.length === 0) return 0;
+  if (ps.length && ps.every((p) => p === "cargada")) return c.unidades;
+  if (c.estado === "activa") return 0; // un cambio de estructura dejó plantillas pendientes: todas sus unidades están incompletas
+  if (!primerNivelCargado(c, raiz) || ps.length === 0) return 0;
   const cargadas = ps.filter((p) => p === "cargada").length;
   return Math.round((c.unidades * cargadas) / ps.length);
+}
+
+/** Sincroniza plantillas y drivers de una configuración con la estructura actual (tras un cambio en el catálogo). */
+export function sincronizarConEstructura(c: Configuracion, raiz: Nodo): Pick<Configuracion, "plantillas" | "drivers"> {
+  const plantillas: Record<string, EstadoPlantilla> = {};
+  categoriasDe(raiz).forEach(({ categoria }) => { plantillas[categoria] = c.plantillas[categoria] ?? "pendiente"; });
+  const drivers: Drivers = {};
+  recorrer(raiz, (n, _l, padre) => {
+    // Un hueco nuevo hereda los drivers de su padre
+    drivers[n.id] = c.drivers[n.id] ?? (padre ? { ...drivers[padre.id] } : {});
+  });
+  return { plantillas, drivers };
+}
+
+/** Diferencia de huecos entre dos versiones de una estructura. */
+export function diferencia(antes: Nodo, despues: Nodo) {
+  const a = new Map<string, Nodo>(); recorrer(antes, (n) => a.set(n.id, n));
+  const d = new Map<string, Nodo>(); recorrer(despues, (n) => d.set(n.id, n));
+  return {
+    anadidos: [...d.values()].filter((n) => !a.has(n.id)),
+    eliminados: [...a.values()].filter((n) => !d.has(n.id)),
+  };
 }
 
 export const PASOS = [

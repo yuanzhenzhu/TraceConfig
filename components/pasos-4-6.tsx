@@ -12,32 +12,41 @@ import {
 import type { PasoProps } from "./pasos-1-3";
 
 /* ---------- Paso 4 ---------- */
-export function Paso4({ c, set }: PasoProps) {
-  const cats = categoriasDe(c.estructura!.raiz);
+function AvisoFlota({ flota }: { flota: Flota }) {
+  return (
+    <Banner type="info" title={`Se aplica a toda la flota ${flota.codigo}`}>
+      Esta información es de la flota y la comparten todas sus configuraciones. Si cambias algo aquí, cambia para todas ellas.
+    </Banner>
+  );
+}
+
+export function Paso4({ est, flota, setFlota }: PasoProps) {
+  const cats = categoriasDe(est!.raiz);
   const [sel, setSel] = useState(cats[0]?.categoria ?? "");
   const [buscaCat, setBuscaCat] = useState("");
   const [buscaProp, setBuscaProp] = useState("");
-  const asignadas = c.propsCategoria[sel] ?? [];
+  const asignadas = flota.propsCategoria[sel] ?? [];
   const props = PROPS_CATEGORIA.filter((p) => p.nombre.toLowerCase().includes(buscaProp.toLowerCase()));
 
   const toggle = (propId: string, on: boolean) => {
     const lista = on ? [...asignadas, { propId, historico: false }] : asignadas.filter((a) => a.propId !== propId);
-    set({ propsCategoria: { ...c.propsCategoria, [sel]: lista } });
+    setFlota({ propsCategoria: { ...flota.propsCategoria, [sel]: lista } });
   };
   const historico = (propId: string, on: boolean) => {
-    set({ propsCategoria: { ...c.propsCategoria, [sel]: asignadas.map((a) => (a.propId === propId ? { ...a, historico: on } : a)) } });
+    setFlota({ propsCategoria: { ...flota.propsCategoria, [sel]: asignadas.map((a) => (a.propId === propId ? { ...a, historico: on } : a)) } });
   };
 
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Propiedades de categoría</h2>
       <p className="muted" style={{ margin: 0 }}>Elige qué propiedades se registran para cada categoría. Las propiedades asignadas aparecerán como columnas en su plantilla.</p>
+      <AvisoFlota flota={flota} />
       <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
         <aside className="lm-card stack gap-10" aria-label="Categorías de la estructura">
           <SearchInput label="Buscar categoría" placeholder="Buscar categoría" value={buscaCat} onChange={setBuscaCat} />
           <div className="stack" role="listbox" aria-label="Categorías">
             {cats.filter((x) => x.categoria.toLowerCase().includes(buscaCat.toLowerCase())).map((x) => {
-              const n = (c.propsCategoria[x.categoria] ?? []).length;
+              const n = (flota.propsCategoria[x.categoria] ?? []).length;
               return (
                 <button key={x.categoria} role="option" aria-selected={sel === x.categoria} onClick={() => setSel(x.categoria)}
                   className="lm-palette-item row gap-10" style={{ cursor: "pointer", background: sel === x.categoria ? "var(--lm-sys-secondary-container)" : undefined }}>
@@ -83,8 +92,9 @@ export function Paso4({ c, set }: PasoProps) {
 }
 
 /* ---------- Paso 5 ---------- */
-export function Paso5({ c, set }: PasoProps) {
-  const raiz = c.estructura!.raiz;
+export function Paso5({ est, flota, setFlota }: PasoProps) {
+  const raiz = est!.raiz;
+  const propsHueco = flota.propsHueco;
   const [sel, setSel] = useState<string[]>([]);
   const [cat, setCat] = useState("");
   const cats = categoriasDe(raiz);
@@ -98,7 +108,7 @@ export function Paso5({ c, set }: PasoProps) {
 
   // Estado de cada propiedad en la selección
   const estadoProp = (propId: string) => {
-    const vals = sel.map((id) => c.propsHueco[id]?.[propId]);
+    const vals = sel.map((id) => propsHueco[id]?.[propId]);
     const asign = vals.filter((v) => v !== undefined);
     const valores = new Set(asign);
     return {
@@ -109,20 +119,22 @@ export function Paso5({ c, set }: PasoProps) {
     };
   };
   const asignar = (propId: string, on: boolean) => {
-    const nuevo = { ...c.propsHueco };
+    const nuevo = { ...propsHueco };
     sel.forEach((id) => {
       const actual = { ...(nuevo[id] ?? {}) };
       if (on) actual[propId] = actual[propId] ?? ""; else delete actual[propId];
       nuevo[id] = actual;
     });
-    set({ propsHueco: nuevo });
+    setFlota({ propsHueco: nuevo });
   };
   const valor = (propId: string, v: string) => {
-    const nuevo = { ...c.propsHueco };
+    const nuevo = { ...propsHueco };
     sel.forEach((id) => { nuevo[id] = { ...(nuevo[id] ?? {}), [propId]: v }; });
-    set({ propsHueco: nuevo });
+    setFlota({ propsHueco: nuevo });
   };
-  const conProps = useMemo(() => Object.values(c.propsHueco).filter((p) => Object.keys(p).length).length, [c.propsHueco]);
+  const conProps = useMemo(() => {
+    let n = 0; recorrer(raiz, (h) => { if (Object.keys(propsHueco[h.id] ?? {}).length) n++; }); return n;
+  }, [propsHueco, raiz]);
 
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
@@ -130,6 +142,7 @@ export function Paso5({ c, set }: PasoProps) {
       <Banner type="info">
         Las propiedades de hueco describen la posición (por ejemplo, el lado de una rueda), no el activo montado. Sus valores se pueden rellenar ahora o más adelante y <strong>no aparecen en las plantillas</strong>.
       </Banner>
+      <AvisoFlota flota={flota} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 440px", gap: "var(--lm-space-20)", alignItems: "start" }}>
         <div className="lm-card stack gap-10">
           <div className="row gap-10 wrap">
@@ -144,7 +157,7 @@ export function Paso5({ c, set }: PasoProps) {
           <div style={{ maxHeight: 520, overflow: "auto" }}>
             <ArbolFilas raiz={raiz} abiertosIni={3} render={(n) => {
               const marcado = sel.includes(n.id);
-              const np = Object.keys(c.propsHueco[n.id] ?? {}).length;
+              const np = Object.keys(propsHueco[n.id] ?? {}).length;
               return (
                 <label className="lm-check grow" style={{ minHeight: "var(--lm-space-50)" }}>
                   <input type="checkbox" checked={marcado} onChange={(e) => { setCat(""); toggleHueco(n.id, e.target.checked); }} aria-label={`Seleccionar ${n.nombre}`} />
@@ -191,7 +204,7 @@ export function Paso5({ c, set }: PasoProps) {
 }
 
 /* ---------- Paso 6 ---------- */
-export function Paso6({ c, set, flota }: PasoProps & { flota: Flota }) {
+export function Paso6({ flota, setFlota }: PasoProps) {
   if (!flota.usaSms) {
     return (
       <section className="lm-surface lm-surface--p24">
@@ -199,12 +212,13 @@ export function Paso6({ c, set, flota }: PasoProps & { flota: Flota }) {
       </section>
     );
   }
-  const sms = c.sms ?? { ambito: "flota" as const, driver: "km" as DriverId, calculo: "real" };
-  const upd = (x: Partial<typeof sms>) => set({ sms: { ...sms, ...x } });
+  const sms = flota.sms ?? { ambito: "flota" as const, driver: "km" as DriverId, calculo: "real" };
+  const upd = (x: Partial<typeof sms>) => setFlota({ sms: { ...sms, ...x } });
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20" style={{ maxWidth: 820 }}>
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Cálculos en SMS</h2>
-      <p className="muted" style={{ margin: 0 }}>SMS es la herramienta de planificación de mantenimientos. Indica con qué datos de esta configuración debe calcular. Podrás cambiarlo más adelante.</p>
+      <p className="muted" style={{ margin: 0 }}>SMS es la herramienta de planificación de mantenimientos. Indica con qué datos de la flota debe calcular. Podrás cambiarlo más adelante.</p>
+      <AvisoFlota flota={flota} />
       <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>Ámbito del cálculo</legend>
         <label className="lm-radio"><input type="radio" name="ambito" checked={sms.ambito === "flota"} onChange={() => upd({ ambito: "flota" })} />Flota {flota.codigo} completa</label>

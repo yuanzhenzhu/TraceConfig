@@ -67,11 +67,22 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 | HU-28 | Finalizar la configuración para que la flota quede activa y lista para usar | T |
 | HU-29 | Descartar una configuración que está en configuración y que ya no se necesita | N |
 
+## Épica E: Catálogo de estructuras (nuevo apartado)
+La estructura es común a todo el cliente: modificarla afecta a todas las configuraciones que la usan. No hay versiones ni variantes.
+
+| ID | Historia | Origen |
+|---|---|---|
+| HU-39 | Ver el catálogo de estructuras del cliente, con cuántas configuraciones y unidades usan cada una | N |
+| HU-40 | Crear una estructura nueva en el catálogo, desde cero o partiendo de otra | N |
+| HU-41 | Modificar una estructura en uso por los extremos, viendo antes qué configuraciones y unidades se verán afectadas | N |
+| HU-42 | Ver qué unidades han quedado incompletas por un cambio de estructura, para cargar sus datos | N |
+| HU-43 | Eliminar una estructura que no usa ninguna configuración | N |
+
 ## Épica B: Modificación de una configuración activa
 | ID | Historia | Origen |
 |---|---|---|
-| HU-30 | Añadir una categoría nueva en los extremos de la estructura de una configuración activa | T |
-| HU-31 | Borrar extremos de la estructura | T |
+| HU-30 | Añadir una categoría nueva en los extremos de la estructura (desde el catálogo de estructuras, ver HU-41) | T |
+| HU-31 | Borrar extremos de la estructura (desde el catálogo de estructuras, ver HU-41) | T |
 | HU-32 | Añadir unidades nuevas a una configuración existente | T |
 | HU-33 | Asignar propiedades al nuevo componente justo después de modificar la estructura | T |
 | HU-34 | Cargar una plantilla con los datos de los activos nuevos para todas las unidades afectadas | T |
@@ -87,5 +98,6 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 ## Preguntas abiertas
 - ¿Se puede crear un hueco y finalizar la configuración sin datos, y cargar el dato después fuera de configuración?
 - ¿Conviene separar los drivers de las propiedades de activo? (nota del equipo)
-- Las propiedades de hueco dependen de la estructura y no de una flota: ¿cómo evitar confusiones?
+- ~~Las propiedades de hueco dependen de la estructura y no de una flota~~ → **Resuelto:** las propiedades de categoría, las de hueco y el SMS son **de la flota**. Las comparten todas sus configuraciones.
+- ¿Los **drivers** también son de la flota, o de cada configuración? (de momento: de cada configuración)
 - ¿La épica C pertenece a Configuración o a Operación?

@@ -11,11 +11,25 @@ Un **cliente** tiene una o varias **flotas**. Cada flota contiene uno o varios *
 
 ```
 Cliente
-└─ Flota (1..n)
-   └─ Grupo de trenes (1..n)
+├─ Estructuras (catálogo común del cliente)
+└─ Flota (1..n)  ← propiedades de categoría, propiedades de hueco y cálculos en SMS
+   └─ Configuración / grupo de trenes (1..n)
       ├─ usa → Estructura (1)  → jerarquía de huecos (ver ejemplo)
+      ├─ drivers
       └─ nº de unidades (trenes) asignadas
 ```
+
+### Qué pertenece a cada nivel
+| Nivel | Qué tiene |
+|---|---|
+| **Cliente** | El **catálogo de estructuras**. Una estructura es común y la pueden usar varias configuraciones de distintas flotas |
+| **Flota** | Nombre, descripción, **propiedades de categoría**, **propiedades de hueco** y **cálculos en SMS** |
+| **Configuración** | Nombre, descripción, la estructura que usa, el nº de unidades, los drivers y la carga de datos (plantillas) |
+
+### Reglas de las estructuras
+- **Una sola versión**: no hay versiones ni variantes. Modificar una estructura **afecta a todas las configuraciones que la usan**.
+- Una estructura en uso solo se modifica **por los extremos** (añadir o eliminar extremos).
+- Antes de guardar un cambio se muestra su **impacto**: qué configuraciones y cuántas unidades se ven afectadas. Las unidades afectadas quedan **incompletas** hasta que se cargan los datos de los activos nuevos.
 
 ### Ejemplo de estructura: "Estructura 1"
 
@@ -109,7 +123,7 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
 | Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
-| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, drivers, propiedades y datos cargados. Tiene nombre y descripción. La **flota es el paraguas** y puede tener varias configuraciones |
+| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. Tiene nombre y descripción. La **flota es el paraguas** y puede tener varias configuraciones; las propiedades y el SMS son de la flota |
 | Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
 | Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro |
 | Histórico | Marca de una propiedad de categoría que indica que se guarda la evolución de su valor en el tiempo |

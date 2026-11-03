@@ -121,7 +121,7 @@ export function EditorEstructura({
     <div className="stack gap-15">
       {soloExtremos ? (
         <Banner type="attention" title="Solo se puede modificar por los extremos">
-          Esta configuración ya tiene unidades. Puedes añadir elementos nuevos y eliminar extremos, pero no mover ni eliminar niveles intermedios.
+          La estructura ya está en uso. Puedes añadir elementos nuevos y eliminar extremos, pero no mover ni eliminar niveles intermedios.
         </Banner>
       ) : (
         <Banner type="info">
@@ -194,12 +194,15 @@ export function EditorEstructura({
   );
 }
 
-export function ResumenArbol({ raiz }: { raiz: Nodo }) {
+export function ResumenArbol({ raiz, max }: { raiz: Nodo; max?: number }) {
   const c: Record<string, number> = {};
   recorrer(raiz, (n) => { c[n.categoria] = (c[n.categoria] ?? 0) + 1; });
+  const todas = Object.entries(c).filter(([k]) => k !== raiz.categoria);
+  const vis = max ? todas.slice(0, max) : todas;
   return (
     <span className="row gap-5 wrap">
-      {Object.entries(c).map(([k, v]) => <Tag key={k} tone="neutral" num={v}>{k}</Tag>)}
+      {vis.map(([k, v]) => <Tag key={k} tone="neutral" num={v}>{k}</Tag>)}
+      {max && todas.length > max && <span className="lm-body-small muted">+{todas.length - max} más</span>}
     </span>
   );
 }

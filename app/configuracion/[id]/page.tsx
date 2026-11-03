@@ -5,10 +5,10 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
-import { Paso1, Paso2, Paso3, paso1Valido } from "@/components/pasos-1-3";
+import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
 import { Paso4, Paso5, Paso6 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
-import { PASOS, driversPorDefecto, plantillasIniciales, primerNivelCargado, type Configuracion } from "@/lib/model";
+import { PASOS, categoriasDe, driversPorDefecto, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function AsistentePage() {
@@ -18,6 +18,7 @@ export default function AsistentePage() {
   const snack = useSnackbar();
   const c = store.configs.find((x) => x.id === id);
   const flota = c && store.flotas.find((f) => f.id === c.flotaId);
+  const est = c ? store.estructura(c.estructuraId) : undefined;
 
   const [paso, setPaso] = useState<number | null>(null);
   const [intentado, setIntentado] = useState(false);
@@ -41,23 +42,27 @@ export default function AsistentePage() {
 
   const p = paso!;
   const set = (cambios: Partial<Configuracion>) => store.actualizarConfig(c.id, cambios);
+  const setFlota = (cambios: Partial<Flota>) => store.actualizarFlota(flota.id, cambios);
+  const props: PasoProps = { c, set, intentado, est, flota, setFlota };
   const visibles = PASOS.filter((x) => x.n !== 6 || flota.usaSms);
   const idx = visibles.findIndex((x) => x.n === p);
   const actual = visibles[idx] ?? visibles[0];
   const siguiente = visibles[idx + 1];
   const anterior = visibles[idx - 1];
   const soloLectura = c.estado === "activa";
+  const raiz = est?.raiz;
 
-  const v1 = paso1Valido(c);
+  const ocupados = store.estructuras.filter((e) => e.id !== est?.id).map((e) => e.nombre.trim().toLowerCase());
+  const v1 = paso1Valido(c, est, ocupados);
   const v2 = !!c.unidades && c.guardada;
   const alcanzable = (n: number) => n === 1 || (n === 2 ? v1 : v1 && v2);
-  const valido = (n: number) => (n === 1 ? v1 : n === 2 ? !!c.unidades : n === 7 || n === 8 ? primerNivelCargado(c) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 2 ? !!c.unidades : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
     const cambios: Partial<Configuracion> = { pasoActual: n, pasoMax: Math.max(c.pasoMax, n) };
-    if (n === 3 && !Object.keys(c.drivers).length && c.estructura) cambios.drivers = driversPorDefecto(c.estructura.raiz);
-    if (n === 7 && c.estructura && !Object.keys(c.plantillas).length) cambios.plantillas = plantillasIniciales(c.estructura.raiz);
+    if (n === 3 && !Object.keys(c.drivers).length && raiz) cambios.drivers = driversPorDefecto(raiz);
+    if (n === 7 && raiz && !Object.keys(c.plantillas).length) cambios.plantillas = plantillasIniciales(raiz);
     set(cambios);
     setPaso(n);
     setIntentado(false);
@@ -68,17 +73,17 @@ export default function AsistentePage() {
   const avanzar = () => {
     setIntentado(true);
     if (!valido(p)) return;
-    if (p === 1 && c.estructura) {
-      // Si la estructura cambia, las plantillas se recalculan para sus categorías.
-      const nuevas = plantillasIniciales(c.estructura.raiz);
+    if (p === 1 && raiz) {
+      // Si se cambia de estructura, las plantillas se recalculan para sus categorías.
+      const nuevas = plantillasIniciales(raiz);
       Object.keys(nuevas).forEach((k) => { if (c.plantillas[k]) nuevas[k] = c.plantillas[k]; });
-      set({ plantillas: nuevas });
+      set({ plantillas: nuevas, ...(Object.keys(c.drivers).length ? {} : { drivers: driversPorDefecto(raiz) }) });
     }
     if (p === 2 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });
       snack(`Configuración "${c.nombre}" guardada como En configuración`);
     }
-    if (p === 6 && !c.sms) set({ sms: { ambito: "flota", driver: "km", calculo: "real" } }); // los valores por defecto que muestra el paso
+    if (p === 6 && !flota.sms) setFlota({ sms: { ambito: "flota", driver: "km", calculo: "real" } }); // los valores por defecto que muestra el paso
     if (c.pasosOmitidos.includes(p)) set({ pasosOmitidos: c.pasosOmitidos.filter((x) => x !== p) });
     // Tras validar el paso actual, el siguiente es alcanzable aunque el estado aún no se haya refrescado.
     if (siguiente) irA(siguiente.n, true);
@@ -97,6 +102,7 @@ export default function AsistentePage() {
     snack(`Configuración "${c.nombre}" guardada`);
     router.push("/configuracion");
   };
+  const pendientesActiva = soloLectura && raiz ? categoriasDe(raiz).some((x) => c.plantillas[x.categoria] !== "cargada") : false;
 
   return (
     <main className="lm-page" style={{ paddingBottom: 120 }}>
@@ -113,8 +119,11 @@ export default function AsistentePage() {
         </div>
       </div>
 
-      {soloLectura ? (
-        <Paso8 c={c} flota={flota} irA={irA} soloLectura />
+      {soloLectura && est ? (
+        <div className="stack gap-30">
+          <Paso8 c={c} flota={flota} est={est} irA={irA} soloLectura />
+          {pendientesActiva && <Paso7 {...props} />}
+        </div>
       ) : (
         <>
           <nav aria-label="Pasos de la configuración" className="lm-surface" style={{ marginBottom: "var(--lm-space-20)" }}>
@@ -139,16 +148,16 @@ export default function AsistentePage() {
             </ol>
           </nav>
 
-          {p === 1 && <Paso1 c={c} set={set} intentado={intentado} />}
-          {p === 2 && <Paso2 c={c} set={set} intentado={intentado} />}
-          {p === 3 && <Paso3 c={c} set={set} intentado={intentado} />}
-          {p === 4 && <Paso4 c={c} set={set} intentado={intentado} />}
-          {p === 5 && <Paso5 c={c} set={set} intentado={intentado} />}
-          {p === 6 && <Paso6 c={c} set={set} intentado={intentado} flota={flota} />}
-          {p === 7 && <Paso7 c={c} set={set} intentado={intentado} />}
-          {p === 8 && <Paso8 c={c} flota={flota} irA={irA} />}
+          {p === 1 && <Paso1 {...props} />}
+          {p === 2 && <Paso2 {...props} />}
+          {p === 3 && est && <Paso3 {...props} />}
+          {p === 4 && est && <Paso4 {...props} />}
+          {p === 5 && est && <Paso5 {...props} />}
+          {p === 6 && <Paso6 {...props} />}
+          {p === 7 && est && <Paso7 {...props} />}
+          {p === 8 && est && <Paso8 c={c} flota={flota} est={est} irA={irA} />}
 
-          <footer style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 15, background: "var(--lm-sys-surface-container-lowest)", boxShadow: "var(--lm-elevation-2)" }}>
+          <footer className="lm-footer-bar">
             <div className="row gap-10" style={{ maxWidth: 1360, margin: "0 auto", padding: "var(--lm-space-15) var(--lm-space-30)" }}>
               <Button variant="text" icon={c.guardada ? undefined : "close"} onClick={guardarYSalir}>{c.guardada ? "Guardar y salir" : "Cancelar"}</Button>
               <span className="grow lm-body-small muted">
@@ -158,7 +167,7 @@ export default function AsistentePage() {
               {anterior && <Button variant="outlined" onClick={() => irA(anterior.n)}>Anterior</Button>}
               {!actual.obligatorio && siguiente && <Button variant="text" onClick={omitir}>Omitir paso</Button>}
               {p === 8
-                ? <Button icon="check" disabled={!primerNivelCargado(c)} onClick={finalizar}>Finalizar configuración</Button>
+                ? <Button icon="check" disabled={!primerNivelCargado(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
                 : <Button onClick={avanzar}>Siguiente</Button>}
             </div>
           </footer>
