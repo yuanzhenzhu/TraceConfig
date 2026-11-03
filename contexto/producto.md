@@ -109,7 +109,7 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
 | Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
-| Configuración | Proceso, con su resultado, de dar de alta un grupo de trenes en una flota: estructura, unidades, drivers, propiedades y carga de datos. Una flota puede tener varias configuraciones, una por estructura |
+| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, drivers, propiedades y datos cargados. Tiene nombre y descripción. La **flota es el paraguas** y puede tener varias configuraciones |
 | Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
 | Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro |
 | Histórico | Marca de una propiedad de categoría que indica que se guarda la evolución de su valor en el tiempo |

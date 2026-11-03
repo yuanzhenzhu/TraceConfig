@@ -12,7 +12,7 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 | HU-01 | Ver el listado de configuraciones de una flota con su estado (En configuración / Activa), para saber qué hay y por dónde seguir | N |
 | HU-02 | Iniciar una configuración en una flota nueva, con nombre y descripción, para identificarla | T |
 | HU-03 | Iniciar una nueva configuración en una flota existente, para gestionar varias estructuras dentro de la misma flota | T |
-| HU-04 | Indicar el número de unidades y sus números de serie, para generar las unidades que comparten la estructura | T |
+| HU-04 | Indicar el número de unidades de la configuración, para generar las unidades que comparten la estructura (los nº de serie llegan en la plantilla de primer nivel) | T |
 
 ### A2. Estructura
 | ID | Historia | Origen |
@@ -88,5 +88,4 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 - ¿Se puede crear un hueco y finalizar la configuración sin datos, y cargar el dato después fuera de configuración?
 - ¿Conviene separar los drivers de las propiedades de activo? (nota del equipo)
 - Las propiedades de hueco dependen de la estructura y no de una flota: ¿cómo evitar confusiones?
-- En la plantilla, ¿solo es obligatorio el primer nivel?
 - ¿La épica C pertenece a Configuración o a Operación?
