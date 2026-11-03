@@ -5,39 +5,36 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
-  type Configuracion, type Estructura, type Flota, type PerfilDrivers,
+  type Configuracion, type Estructura, type Flota, type PerfilDrivers, type PerfilPropiedades,
 } from "./model";
 
-type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[] };
-const CLAVE = "lm-trace-prototipo-v5";
+type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[]; perfilesProps: PerfilPropiedades[] };
+const CLAVE = "lm-trace-prototipo-v6";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
-    perfilDriversId: null, plantillas: {}, intentosPlantilla: {},
+    perfilDriversId: null, perfilPropiedadesId: null, plantillas: {}, intentosPlantilla: {},
     pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
   };
 }
 
-const flota = (f: Omit<Flota, "propsCategoria" | "propsHueco" | "sms"> & Partial<Flota>): Flota =>
-  ({ propsCategoria: {}, propsHueco: {}, sms: null, ...f });
+const flota = (f: Omit<Flota, "sms"> & Partial<Flota>): Flota => ({ sms: null, ...f });
 
 function semilla(): Estado {
   const estructuras = ESTRUCTURAS.map((e) => ({ ...e, actualizada: "2026-05-20T08:00:00Z" }));
   const [e1, e2, e3] = estructuras;
   const todas = (raiz: typeof e1.raiz) => Object.fromEntries(categoriasDe(raiz).map((c) => [c.categoria, "cargada" as const]));
 
-  // Perfil con ciclos en las puertas: cada puerta tiene ciclos y sus piezas lo heredan de ella.
+  // Perfil con ciclos en las puertas: la categoría Puerta tiene ciclos y sus categorías hijas lo heredan de ella.
   const conCiclos = driversIniciales(e2.raiz);
-  recorrer(e2.raiz, (n) => {
-    if (n.categoria !== "Puerta") return;
-    recorrer(n, (x) => {
-      conCiclos.drivers[x.id] = { ...conCiclos.drivers[x.id], ciclos: true };
-      conCiclos.heredables[x.id] = { ...conCiclos.heredables[x.id], ciclos: x.id !== n.id };
-    });
-  });
+  conCiclos.drivers["Puerta"] = { ...conCiclos.drivers["Puerta"], ciclos: true };
+  for (const hija of ["Motor Puerta", "Tarjeta Electrónica"]) {
+    conCiclos.drivers[hija] = { ...conCiclos.drivers[hija], ciclos: true };
+    conCiclos.heredables[hija] = { ...conCiclos.heredables[hija], ciclos: true };
+  }
   const fecha = "2026-05-22T08:00:00Z";
   const perfiles: PerfilDrivers[] = [
     { id: "drv-1", nombre: "Km estándar · Estructura 1", descripcion: "Kilometraje en todo, heredable salvo la unidad", estructuraId: e1.id, ...driversIniciales(e1.raiz), actualizada: fecha },
@@ -48,7 +45,6 @@ function semilla(): Estado {
   const flotas: Flota[] = [
     flota({
       id: "f1000", codigo: "F1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
-      propsCategoria: { Rueda: [{ propId: "diametro", historico: true }, { propId: "fabricante", historico: false }] },
       sms: { ambito: "flota", driver: "km", calculo: "real" },
     }),
     flota({ id: "f2000", codigo: "F2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: false }),
@@ -59,21 +55,32 @@ function semilla(): Estado {
   const configs: Configuracion[] = [
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "Unidades de 3 coches", estructuraId: e1.id, unidades: 16,
-      perfilDriversId: "drv-1", plantillas: todas(e1.raiz), pasoActual: 8,
+      perfilDriversId: "drv-1", perfilPropiedadesId: "prop-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "Unidades de 2 coches, ampliación 2026", estructuraId: e2.id, unidades: 8,
-      perfilDriversId: "drv-2", plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
+      perfilDriversId: "drv-2", perfilPropiedadesId: "prop-2", plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
       id: "cfg-tranvia", nombre: "Serie única", descripcion: "Todas las unidades del tranvía", estructuraId: e1.id, unidades: 12,
-      perfilDriversId: "drv-1", plantillas: todas(e1.raiz), pasoActual: 8,
+      perfilDriversId: "drv-1", perfilPropiedadesId: "prop-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
     }),
   ];
-  return { flotas, configs, estructuras, perfiles };
+  // Propiedades de ejemplo: en las ruedas, diámetro (con histórico) y fabricante; y el lado de cada rueda como propiedad de hueco.
+  const ladoRuedas = (raiz: typeof e1.raiz) => {
+    const m: Record<string, Record<string, string>> = {};
+    recorrer(raiz, (n) => { if (n.categoria === "Rueda") m[n.id] = { lado: n.nombre === "Rueda 1" ? "Izquierdo" : "Derecho" }; });
+    return m;
+  };
+  const ruedas = { Rueda: [{ propId: "diametro", historico: true }, { propId: "fabricante", historico: false }] };
+  const perfilesProps: PerfilPropiedades[] = [
+    { id: "prop-1", nombre: "Propiedades estándar · Estructura 1", descripcion: "Diámetro y fabricante de ruedas, lado de cada rueda", estructuraId: e1.id, propsCategoria: ruedas, propsHueco: ladoRuedas(e1.raiz), actualizada: fecha },
+    { id: "prop-2", nombre: "Propiedades estándar · Estructura 2", descripcion: "Diámetro y fabricante de ruedas", estructuraId: e2.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
+  ];
+  return { flotas, configs, estructuras, perfiles, perfilesProps };
 }
 
 type Api = {
@@ -82,10 +89,13 @@ type Api = {
   configs: Configuracion[];
   estructuras: Estructura[]; // sin borradores de asistentes
   perfiles: PerfilDrivers[];
+  perfilesProps: PerfilPropiedades[];
   estructura: (id: string | null | undefined) => Estructura | undefined;
   perfil: (id: string | null | undefined) => PerfilDrivers | undefined;
+  perfilProps: (id: string | null | undefined) => PerfilPropiedades | undefined;
   usosDe: (estructuraId: string) => Configuracion[];
   usosDePerfil: (perfilId: string) => Configuracion[];
+  usosDePerfilProps: (perfilId: string) => Configuracion[];
   crearFlota: (f: Pick<Flota, "codigo" | "nombre" | "descripcion">) => Flota;
   actualizarFlota: (id: string, cambios: Partial<Flota>) => void;
   iniciarConfig: (flotaId: string) => string;
@@ -95,6 +105,8 @@ type Api = {
   eliminarEstructura: (id: string) => void;
   guardarPerfil: (p: PerfilDrivers) => void; // crea o modifica; afecta a todas las configuraciones que lo usan
   eliminarPerfil: (id: string) => void;
+  guardarPerfilProps: (p: PerfilPropiedades) => void; // crea o modifica; afecta a todas las configuraciones que lo usan
+  eliminarPerfilProps: (id: string) => void;
   restablecer: () => void;
 };
 
@@ -106,7 +118,7 @@ export const useStore = () => {
 };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], perfiles: [] });
+  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], perfiles: [], perfilesProps: [] });
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
@@ -187,18 +199,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEstado((s) => ({ ...s, perfiles: s.perfiles.filter((p) => p.id !== id) }));
   }, []);
 
+  const guardarPerfilProps = useCallback((p: PerfilPropiedades) => {
+    setEstado((s) => {
+      const nuevo = { ...p, actualizada: new Date().toISOString() };
+      const existe = s.perfilesProps.some((x) => x.id === p.id);
+      return { ...s, perfilesProps: existe ? s.perfilesProps.map((x) => (x.id === p.id ? nuevo : x)) : [...s.perfilesProps, nuevo] };
+    });
+  }, []);
+
+  const eliminarPerfilProps = useCallback((id: string) => {
+    setEstado((s) => ({ ...s, perfilesProps: s.perfilesProps.filter((p) => p.id !== id) }));
+  }, []);
+
   const restablecer = useCallback(() => setEstado(semilla()), []);
 
   const api = useMemo<Api>(() => ({
-    listo, flotas: estado.flotas, configs: estado.configs, perfiles: estado.perfiles,
+    listo, flotas: estado.flotas, configs: estado.configs, perfiles: estado.perfiles, perfilesProps: estado.perfilesProps,
     estructuras: estado.estructuras.filter((e) => !e.borradorDe),
     estructura: (id) => estado.estructuras.find((e) => e.id === id),
     perfil: (id) => estado.perfiles.find((p) => p.id === id),
+    perfilProps: (id) => estado.perfilesProps.find((p) => p.id === id),
     usosDe: (eid) => estado.configs.filter((c) => c.guardada && c.estructuraId === eid),
     usosDePerfil: (pid) => estado.configs.filter((c) => c.guardada && c.perfilDriversId === pid),
+    usosDePerfilProps: (pid) => estado.configs.filter((c) => c.guardada && c.perfilPropiedadesId === pid),
     crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig,
-    guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, restablecer,
-  }), [listo, estado, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, restablecer]);
+    guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer,
+  }), [listo, estado, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

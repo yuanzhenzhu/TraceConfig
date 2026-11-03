@@ -6,7 +6,7 @@ export type Nodo = { id: string; categoria: string; nombre: string; hijos: Nodo[
 export type Estructura = { id: string; nombre: string; descripcion: string; raiz: Nodo; actualizada?: string; borradorDe?: string };
 
 export type DriverId = "km" | "ciclos" | "horas";
-export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por id de hueco
+export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por categoría
 export type PropAsignada = { propId: string; historico: boolean };
 export type EstadoPlantilla = "pendiente" | "cargada" | "errores";
 export type Sms = { ambito: "flota" | "linea"; driver: DriverId; calculo: string };
@@ -21,6 +21,7 @@ export type Configuracion = {
   estructuraId: string | null; // referencia al catálogo común
   unidades: number | null;
   perfilDriversId: string | null; // referencia al catálogo común de drivers
+  perfilPropiedadesId: string | null; // referencia al catálogo común de propiedades
   plantillas: Record<string, EstadoPlantilla>; // por categoría
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
@@ -31,13 +32,25 @@ export type Configuracion = {
   actualizada: string; // ISO
 };
 
-/** Las propiedades y el SMS son de la flota: los comparten todas sus configuraciones. */
+/** El SMS es de la flota: lo comparten todas sus configuraciones. */
 export type Flota = {
   id: string; codigo: string; nombre: string; descripcion: string; usaSms: boolean;
-  propsCategoria: Record<string, PropAsignada[]>; // por categoría
-  propsHueco: Record<string, Record<string, string>>; // hueco -> propiedad -> valor ("" = sin valor)
   sms: Sms | null;
 };
+
+/** Propiedades de categoría (por categoría) y de hueco (por hueco: propiedad -> valor, "" = sin valor). */
+export type PropiedadesConfig = {
+  propsCategoria: Record<string, PropAsignada[]>;
+  propsHueco: Record<string, Record<string, string>>;
+};
+
+/**
+ * Perfil de propiedades del catálogo común del cliente, ligado a una estructura (sus categorías y huecos).
+ * Si varias configuraciones usan la misma estructura, normalmente comparten perfil; si hay diferencias, se crea otro.
+ */
+export type PerfilPropiedades = PropiedadesConfig & { id: string; nombre: string; descripcion: string; estructuraId: string; actualizada?: string };
+
+export const propiedadesVacias = (): PropiedadesConfig => ({ propsCategoria: {}, propsHueco: {} });
 
 /** Qué drivers tiene cada hueco y en cuáles es heredable (su valor viene del padre). */
 export type DriversConfig = { drivers: Drivers; heredables: Drivers };
@@ -165,18 +178,36 @@ export function categoriasDe(raiz: Nodo): { categoria: string; nivel: number; hu
   return [...m.entries()].map(([categoria, v]) => ({ categoria, ...v })).sort((a, b) => a.nivel - b.nivel);
 }
 
+/**
+ * Árbol de categorías de una estructura: cada categoría aparece una vez, colgando de la categoría de su padre.
+ * Los drivers se marcan por categoría, así que se editan sobre este árbol. El id de cada nodo es el nombre de la categoría.
+ */
+export function arbolCategorias(raiz: Nodo): Nodo {
+  const nodos = new Map<string, Nodo>();
+  const top: Nodo = { id: raiz.categoria, categoria: raiz.categoria, nombre: raiz.categoria, hijos: [] };
+  nodos.set(raiz.categoria, top);
+  recorrer(raiz, (n, _l, padre) => {
+    if (!padre || nodos.has(n.categoria)) return;
+    const nuevo: Nodo = { id: n.categoria, categoria: n.categoria, nombre: n.categoria, hijos: [] };
+    nodos.set(n.categoria, nuevo);
+    nodos.get(padre.categoria)?.hijos.push(nuevo);
+  });
+  return top;
+}
+
 /* ---------- Drivers por defecto ---------- */
-/** Tener un driver y que sea heredable son cosas distintas. Por defecto, el km lo tienen todos los huecos. */
+// Los drivers dependen de la categoría: se guardan por nombre de categoría.
+/** Tener un driver y que sea heredable son cosas distintas. Por defecto, el km lo tienen todas las categorías. */
 export function driversPorDefecto(raiz: Nodo): Drivers {
   const d: Drivers = {};
-  recorrer(raiz, (n) => { d[n.id] = { km: true }; });
+  recorrer(arbolCategorias(raiz), (n) => { d[n.id] = { km: true }; });
   return d;
 }
 
-/** Por defecto, el km es heredable en todos los huecos menos en la unidad (raíz), que no tiene padre del que heredar. */
+/** Por defecto, el km es heredable en todas las categorías menos en la unidad (raíz), que no tiene padre del que heredar. */
 export function heredablesPorDefecto(raiz: Nodo): Drivers {
   const d: Drivers = {};
-  recorrer(raiz, (n, nivel) => { d[n.id] = { km: nivel > 1 }; });
+  recorrer(arbolCategorias(raiz), (n, nivel) => { d[n.id] = { km: nivel > 1 }; });
   return d;
 }
 
@@ -188,11 +219,11 @@ export function driversEfectivos(perfil: PerfilDrivers | undefined, raiz: Nodo):
   return perfil && Object.keys(perfil.drivers).length ? perfil : driversIniciales(raiz);
 }
 
-/** Adapta unos drivers a la estructura actual: los huecos nuevos tienen los drivers de su padre y los heredan de él. */
+/** Adapta unos drivers a la estructura actual: las categorías nuevas tienen los drivers de su categoría padre y los heredan de ella. */
 export function sincronizarDrivers(d: DriversConfig, raiz: Nodo): DriversConfig {
   const drivers: Drivers = {};
   const heredables: Drivers = {};
-  recorrer(raiz, (n, _l, padre) => {
+  recorrer(arbolCategorias(raiz), (n, _l, padre) => {
     drivers[n.id] = d.drivers[n.id] ?? (padre ? { ...drivers[padre.id] } : {});
     heredables[n.id] = d.heredables?.[n.id] ?? (padre ? { ...drivers[padre.id] } : {});
   });

@@ -10,6 +10,7 @@ const APARTADOS = [
   { href: "/configuracion", label: "Flotas y configuraciones", icon: "train", activo: (p: string) => p === "/configuracion" || (/^\/configuracion\/cfg/.test(p)) },
   { href: "/configuracion/estructuras", label: "Estructuras", icon: "table_rows", activo: (p: string) => p.startsWith("/configuracion/estructuras") },
   { href: "/configuracion/drivers", label: "Drivers", icon: "timelapse", activo: (p: string) => p.startsWith("/configuracion/drivers") },
+  { href: "/configuracion/propiedades", label: "Propiedades", icon: "list", activo: (p: string) => p.startsWith("/configuracion/propiedades") },
 ];
 
 export default function ConfiguracionLayout({ children }: { children: React.ReactNode }) {
