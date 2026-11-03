@@ -1,0 +1,181 @@
+/*
+ * Leadmind — tokens del sistema de diseño
+ * Fuente: Figma "Foundations" (M48RxxqGH7oNXYCO5iO45q), colecciones "Leadmind" y "Typescale".
+ * Extraído el 2026-11-03. Si cambia Foundations en Figma, regenerar este archivo.
+ * Usar SIEMPRE los roles (--lm-sys-*, --lm-semantic-*), nunca la paleta --lm-ref-* directamente.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0..1,0&display=swap");
+
+:root {
+  /* ---------- Color · roles de sistema ---------- */
+  --lm-sys-primary: #2b1c74;
+  --lm-sys-on-primary: #ffffff;
+  --lm-sys-primary-container: #b7adeb;
+  --lm-sys-on-primary-container: #201556;
+  --lm-sys-inverse-primary: #9384e1;
+  --lm-sys-surface-tint: #614ad3;
+
+  --lm-sys-secondary: #1e1452;
+  --lm-sys-on-secondary: #edeafa;
+  --lm-sys-secondary-container: #dfdaf6;
+  --lm-sys-on-secondary-container: #170f3e;
+
+  --lm-sys-error: #dc0d04;
+  --lm-sys-on-error: #ffffff;
+  --lm-sys-error-container: #fecac8;
+  --lm-sys-on-error-container: #a50a03;
+
+  --lm-sys-background: #ffffff;
+  --lm-sys-on-background: #000000;
+  --lm-sys-surface: #f9f9fb;
+  --lm-sys-on-surface: #18171c;
+  --lm-sys-surface-variant: #e4e2e8;
+  --lm-sys-on-surface-variant: #474554;
+  --lm-sys-surface-container-lowest: #ffffff;
+  --lm-sys-surface-container-low: #f9f9fb;
+  --lm-sys-surface-container: #f0f0f4;
+  --lm-sys-surface-container-high: #eeeef2;
+  --lm-sys-surface-container-highest: #e4e2e8;
+  --lm-sys-surface-bright: #f9f9fb;
+  --lm-sys-surface-dim: #c8c7d1;
+  --lm-sys-inverse-surface: #2f2e38;
+  --lm-sys-inverse-on-surface: #f1f1f4;
+  --lm-sys-outline: #77728d;
+  --lm-sys-outline-variant: #c8c7d1;
+  --lm-sys-shadow: #000000;
+  --lm-sys-scrim: #000000;
+
+  /* ---------- Color · semánticos ---------- */
+  --lm-danger: #dc0d04;
+  --lm-on-danger: #ffffff;
+  --lm-danger-container: #fee2e1;
+  --lm-danger-container-variant: #fecac8;
+  --lm-on-danger-container: #320301;
+
+  --lm-success: #1faf59;
+  --lm-on-success: #f9fffb;
+  --lm-success-container: #e9f9ef;
+  --lm-success-container-variant: #baebce;
+  --lm-on-success-container: #0e5129;
+
+  --lm-warning: #d68d00;
+  --lm-on-warning: #fffdf9;
+  --lm-warning-container: #fdf5e6;
+  --lm-warning-container-variant: #f9e0b0;
+  --lm-on-warning-container: #634100;
+
+  --lm-attention: #d9c125;
+  --lm-on-attention: #fffef9;
+  --lm-attention-container: #fdfaea;
+  --lm-attention-container-variant: #faf2bd;
+  --lm-on-attention-container: #645911;
+
+  --lm-info: #1c6ca4;
+  --lm-on-info: #f9fcff;
+  --lm-info-container: #e9f1f8;
+  --lm-info-container-variant: #bad5e8;
+  --lm-on-info-container: #0d324c;
+
+  /* ---------- Color · interfaz ---------- */
+  --lm-overlay: rgba(38, 38, 41, 0.8);
+  --lm-overlay-light: rgba(0, 0, 0, 0.32);
+  --lm-overlay-inverse: rgba(185, 185, 198, 0.8);
+  --lm-section-background: #f5f5f5;
+  --lm-placeholder-image: #ebe7e7;
+
+  /* Capas de estado (hover 8%, focus 10%, pressed/drag 16%), sobre el color "on-" del componente */
+  --lm-state-hover: 0.08;
+  --lm-state-focus: 0.10;
+  --lm-state-pressed: 0.16;
+  --lm-state-disabled-content: 0.38;   /* on-surface al 38% */
+  --lm-state-disabled-container: 0.12; /* on-surface al 12% */
+
+  /* ---------- Color · categorías (gráficas, etiquetas) ---------- */
+  --lm-pale-1: #fce7a2; --lm-pale-1-light: #fbf2d4;
+  --lm-pale-2: #abc7f5; --lm-pale-2-light: #daefff;
+  --lm-pale-3: #bae6a7; --lm-pale-3-light: #e7f6df;
+  --lm-pale-4: #e7c7ff; --lm-pale-4-light: #f5e9ff;
+  --lm-pale-5: #eeeeee; --lm-pale-5-light: #f6f3f3;
+  --lm-vibrant-1: #5cb9af; --lm-vibrant-2: #edc240; --lm-vibrant-3: #aae03e; --lm-vibrant-4: #ff6464;
+  --lm-vibrant-5: #8b5ed8; --lm-vibrant-6: #00c9e1; --lm-vibrant-7: #ed7c20; --lm-vibrant-8: #5aacf6;
+
+  /* ---------- Forma (radios) ---------- */
+  --lm-corner-0: 0px;
+  --lm-corner-20: 4px;
+  --lm-corner-30: 8px;
+  --lm-corner-40: 12px;
+  --lm-corner-50: 16px;
+  --lm-corner-60: 20px;
+  --lm-corner-70: 28px;
+  --lm-corner-80: 32px;
+  --lm-corner-90: 48px;
+  --lm-corner-full: 100px;
+
+  /* ---------- Espaciado ---------- */
+  --lm-space-0: 0px;
+  --lm-space-5: 4px;
+  --lm-space-10: 8px;
+  --lm-space-15: 12px;
+  --lm-space-20: 16px;
+  --lm-space-30: 24px;
+  --lm-space-40: 32px;
+  --lm-space-50: 40px;
+  --lm-space-55: 48px;
+  --lm-space-60: 56px;
+  --lm-space-70: 64px;
+  --lm-space-80: 72px;
+  --lm-space-90: 80px;
+  --lm-space-95: 88px;
+  --lm-space-100: 96px;
+
+  /* ---------- Tamaño de iconos ---------- */
+  --lm-icon-s: 12px;
+  --lm-icon-m: 18px;
+  --lm-icon-l: 24px; /* por defecto */
+  --lm-icon-xl: 48px;
+  --lm-icon-2xl: 60px;
+
+  /* ---------- Elevación ---------- */
+  --lm-elevation-1: 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px 0 rgba(0,0,0,.30);
+  --lm-elevation-2: 0 2px 6px 2px rgba(0,0,0,.15), 0 1px 2px 0 rgba(0,0,0,.30);
+  --lm-elevation-3: 0 1px 3px 0 rgba(0,0,0,.30), 0 4px 8px 3px rgba(0,0,0,.15);
+  --lm-elevation-4: 0 2px 3px 0 rgba(0,0,0,.30), 0 6px 10px 4px rgba(0,0,0,.15);
+  --lm-elevation-5: 0 4px 4px 0 rgba(0,0,0,.30), 0 8px 12px 6px rgba(0,0,0,.15);
+
+  /* ---------- Componentes ---------- */
+  --lm-dialog-width-s: 568px;
+  --lm-dialog-width-l: 864px;
+  --lm-dialog-table-height-l: 320px;
+  --lm-chart-tooltip-min: 120px;
+  --lm-chart-tooltip-max: 232px;
+
+  /* ---------- Tipografía ---------- */
+  --lm-font-family: "Roboto", system-ui, sans-serif;
+}
+
+/* Escala tipográfica: tamaño/interlineado, peso, tracking (px) */
+.lm-display-large   { font: 400 56px/64px var(--lm-font-family); letter-spacing: -0.25px; }
+.lm-display-medium  { font: 400 48px/52px var(--lm-font-family); letter-spacing: 0; }
+.lm-display-small   { font: 400 36px/44px var(--lm-font-family); letter-spacing: 0; }
+.lm-headline-large  { font: 400 32px/40px var(--lm-font-family); letter-spacing: 0; }
+.lm-headline-medium { font: 400 28px/36px var(--lm-font-family); letter-spacing: 0; }
+.lm-headline-small  { font: 400 24px/32px var(--lm-font-family); letter-spacing: 0; }
+.lm-title-large     { font: 400 22px/28px var(--lm-font-family); letter-spacing: 0; }
+.lm-title-medium    { font: 500 16px/24px var(--lm-font-family); letter-spacing: 0.15px; }
+.lm-title-small     { font: 500 14px/20px var(--lm-font-family); letter-spacing: 0.1px; }
+.lm-label-large     { font: 500 14px/20px var(--lm-font-family); letter-spacing: 0.1px; }
+.lm-label-medium    { font: 500 12px/16px var(--lm-font-family); letter-spacing: 0.5px; }
+.lm-label-small     { font: 500 10px/16px var(--lm-font-family); letter-spacing: 0.5px; }
+.lm-body-large      { font: 400 16px/24px var(--lm-font-family); letter-spacing: 0.5px; }
+.lm-body-medium     { font: 400 14px/20px var(--lm-font-family); letter-spacing: 0.25px; }
+.lm-body-small      { font: 400 12px/16px var(--lm-font-family); letter-spacing: 0.4px; }
+/* Variante "emphasized": subir un peso (400→500, 500→600). Variante "italic": font-style: italic. */
+
+.lm-icon {
+  font-family: "Material Symbols Outlined";
+  font-size: var(--lm-icon-l);
+  line-height: 1;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+.lm-icon--filled { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
