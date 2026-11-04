@@ -8,8 +8,8 @@ import { Banner, Button, Field, Icon, Tag, useSnackbar } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import { EditorDrivers, ResumenDrivers } from "./drivers";
 import {
-  clonar, contarHuecos, driversIniciales, nodo, nombreLibre, nuevoId,
-  type Configuracion, type DriversConfig, type Estructura, type Flota, type Nodo, type PerfilDrivers,
+  clonar, contarHuecos, driversIniciales, erroresFilas, filaVacia, nodo, nombreLibre, nuevoId,
+  type Configuracion, type FilaConfig, type DriversConfig, type Estructura, type Flota, type Nodo, type PerfilDrivers,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -33,6 +33,10 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   const unidadesOk = Number.isInteger(nUnidades) && nUnidades >= 1 && nUnidades <= 999;
   const errUnidades = intentado && !unidadesOk ? "Indica un número entero entre 1 y 999" : "";
   const huecos = est ? contarHuecos(est.raiz) : 0;
+  // (Prueba) varias estructuras: una fila por configuración
+  const varias = preguntar && !c.unica ? c.varias ?? null : null;
+  const [textoN, setTextoN] = useState(String(c.varias?.length ?? 2));
+  const ocupadosFlota = otrasDeFlota.map((x) => x.nombre.trim().toLowerCase());
   const esBorrador = est?.borradorDe === c.id; // estructura nueva creada en este asistente
   const [modo, setModo] = useState<"existente" | "nueva">(esBorrador ? "nueva" : "existente");
   const [origen, setOrigen] = useState<"existente" | "cero">("cero");
@@ -67,12 +71,12 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
             <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
               <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>¿La flota {flota.nombre} tiene una sola estructura? <span aria-hidden="true" style={{ color: "var(--lm-sys-error)" }}>*</span></legend>
               <label className="lm-radio" style={{ alignItems: "flex-start" }}>
-                <input type="radio" name="unica" checked={c.unica} onChange={() => set({ unica: true })} />
+                <input type="radio" name="unica" checked={c.unica} onChange={() => set({ unica: true, varias: null })} />
                 <span className="lm-radio__text"><span>Sí, todas sus unidades tienen la misma estructura</span><span className="lm-radio__support">La configuración se llamará como la flota: {flota.nombre}</span></span>
               </label>
               <label className="lm-radio" style={{ alignItems: "flex-start" }}>
-                <input type="radio" name="unica" checked={!c.unica} onChange={() => set({ unica: false })} />
-                <span className="lm-radio__text"><span>No, tiene varias estructuras</span><span className="lm-radio__support">Cada estructura será una configuración con su propio nombre</span></span>
+                <input type="radio" name="unica" checked={!c.unica} onChange={() => set({ unica: false, varias: c.varias ?? [filaVacia(), filaVacia()] })} />
+                <span className="lm-radio__text"><span>No, tiene varias estructuras</span><span className="lm-radio__support">Cada estructura será una configuración con su propio nombre, su estructura y sus unidades</span></span>
               </label>
             </fieldset>
           ) : c.unica ? (
@@ -87,12 +91,63 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
               </Field>
             </div>
           )}
-          <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades} support="Entre 1 y 999. Los nº de serie se cargan después, en la plantilla de primer nivel">
-            <input id="u-num" className="lm-input" inputMode="numeric" value={texto} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
-              onChange={(e) => { setTexto(e.target.value); const v = Number(e.target.value); set({ unidades: Number.isInteger(v) && v >= 1 && v <= 999 ? v : null }); }} />
-          </Field>
+          {varias ? (
+            <Field label="¿Cuántas estructuras tiene?" required htmlFor="n-est" support="Entre 2 y 10. Una configuración por estructura">
+              <input id="n-est" className="lm-input" inputMode="numeric" value={textoN}
+                onChange={(e) => {
+                  setTextoN(e.target.value);
+                  const n = Number(e.target.value);
+                  if (Number.isInteger(n) && n >= 2 && n <= 10) set({ varias: Array.from({ length: n }, (_, i) => varias[i] ?? filaVacia()) });
+                }} />
+            </Field>
+          ) : (
+            <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades} support="Entre 1 y 999. Los nº de serie se cargan después, en la plantilla de primer nivel">
+              <input id="u-num" className="lm-input" inputMode="numeric" value={texto} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
+                onChange={(e) => { setTexto(e.target.value); const v = Number(e.target.value); set({ unidades: Number.isInteger(v) && v >= 1 && v <= 999 ? v : null }); }} />
+            </Field>
+          )}
         </div>
-        {preguntar && !c.unica && (
+
+        {varias && (
+          <div className="stack gap-10">
+            <span className="lm-title-small">Configuraciones de {flota.nombre}</span>
+            <table className="lm-table">
+              <thead><tr><th style={{ width: 40 }}>Nº</th><th>Nombre *</th><th>Descripción</th><th>Estructura *</th><th style={{ width: 160 }}>Nº de unidades *</th></tr></thead>
+              <tbody>
+                {varias.map((fila, i) => {
+                  const err = intentado ? erroresFilas(varias, ocupadosFlota)[i] : { nombre: "", estructura: "", unidades: "" };
+                  const upd = (x: Partial<FilaConfig>) => set({ varias: varias.map((g, j) => (j === i ? { ...g, ...x } : g)) });
+                  const e = store.estructura(fila.estructuraId);
+                  return (
+                    <tr key={i}>
+                      <td className="muted">{i + 1}</td>
+                      <td>
+                        <input className="lm-input lm-input--dense" aria-label={`Nombre de la configuración ${i + 1}`} aria-invalid={!!err.nombre} value={fila.nombre} placeholder={`Por ejemplo: Serie ${String.fromCharCode(65 + i)}`} onChange={(ev) => upd({ nombre: ev.target.value })} />
+                        {err.nombre && <span className="lm-body-small" style={{ color: "var(--lm-sys-error)" }}>{err.nombre}</span>}
+                      </td>
+                      <td><input className="lm-input lm-input--dense" aria-label={`Descripción de la configuración ${i + 1}`} value={fila.descripcion} onChange={(ev) => upd({ descripcion: ev.target.value })} /></td>
+                      <td>
+                        <select className="lm-select lm-select--dense" aria-label={`Estructura de la configuración ${i + 1}`} aria-invalid={!!err.estructura} value={fila.estructuraId ?? ""} onChange={(ev) => upd({ estructuraId: ev.target.value || null })}>
+                          <option value="">Elige una estructura…</option>
+                          {store.estructuras.map((x) => <option key={x.id} value={x.id}>{x.nombre} · {contarHuecos(x.raiz)} huecos</option>)}
+                        </select>
+                        {err.estructura ? <span className="lm-body-small" style={{ color: "var(--lm-sys-error)" }}>{err.estructura}</span> : e && <span className="lm-body-small muted">{e.descripcion}</span>}
+                      </td>
+                      <td>
+                        <input className="lm-input lm-input--dense" inputMode="numeric" aria-label={`Unidades de la configuración ${i + 1}`} aria-invalid={!!err.unidades} defaultValue={fila.unidades ?? ""} placeholder="1 a 999"
+                          onChange={(ev) => { const v = Number(ev.target.value); upd({ unidades: Number.isInteger(v) && v >= 1 && v <= 999 ? v : null }); }} />
+                        {err.unidades && <span className="lm-body-small" style={{ color: "var(--lm-sys-error)" }}>{err.unidades}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Si falta una estructura, créala antes en <Link href="/configuracion/estructuras/nueva">Configuración › Estructuras</Link>. Al continuar se crearán las {varias.length} configuraciones y seguirás con la primera; las demás quedarán En configuración en el listado.</span>
+          </div>
+        )}
+
+        {preguntar && !c.unica && !varias && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
             <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
               <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
@@ -102,115 +157,120 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
             </Field>
           </div>
         )}
-        {unidadesOk && est && (
+        {!varias && unidadesOk && est && (
           <span className="lm-body-small muted">{nUnidades} unidades × {huecos} huecos por unidad = {(nUnidades * huecos).toLocaleString("es-ES")} huecos en total</span>
         )}
-        {!c.guardada && (
+        {!c.guardada && !varias && (
           <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Al continuar, la configuración se guardará con el estado En configuración y podrás retomarla cuando quieras.</span>
         )}
       </section>
 
-      <section className="lm-surface lm-surface--p24 stack gap-20">
-        <h2 className="lm-title-medium" style={{ margin: 0 }}>Estructura</h2>
-        {c.guardada && est ? (
-          <>
-            <Banner type="info" title="La estructura es común a todo el cliente"
-              actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est.id}`}>Modificar en Estructuras</Link>}>
-              Esta configuración ya tiene unidades. Para cambiar la estructura, modifícala desde el apartado Estructuras: el cambio afectará a todas las configuraciones que la usan.
-            </Banner>
-            <div className="lm-card">
-              <div className="stack gap-10" style={{ marginBottom: "var(--lm-space-10)" }}>
-                <span className="lm-title-small">{est.nombre}</span>
-                <ResumenArbol raiz={est.raiz} />
-              </div>
-              <ArbolVista raiz={est.raiz} />
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
-              <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => { setModo("existente"); if (esBorrador) { quitarBorrador(); set({ estructuraId: null }); } }}>
-                <Icon name="list" /> Usar una estructura existente
-              </button>
-              <button role="tab" className="lm-tab" aria-selected={modo === "nueva"} onClick={() => { setModo("nueva"); if (!esBorrador) crearNueva(origen); }}>
-                <Icon name="add" /> Crear una estructura nueva
-              </button>
-            </div>
-            {errEstructura && <Banner type="error">{errEstructura}</Banner>}
-
-            {modo === "existente" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
-                <div className="stack gap-10" role="radiogroup" aria-label="Estructuras existentes">
-                  {store.estructuras.map((e) => {
-                    const sel = c.estructuraId === e.id;
-                    const usos = store.usosDe(e.id).length;
-                    return (
-                      <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
-                        <input type="radio" name="estructura" checked={sel} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
-                        <span className="lm-radio__text gap-5">
-                          <span className="lm-title-small">{e.nombre}</span>
-                          <span className="lm-radio__support">{e.descripcion}</span>
-                          <span className="lm-body-small muted">{contarHuecos(e.raiz)} huecos por unidad · {usos ? `usada en ${usos} configuraciones` : "sin usar"}</span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+      {!varias && (
+        <>
+          <section className="lm-surface lm-surface--p24 stack gap-20">
+            <h2 className="lm-title-medium" style={{ margin: 0 }}>Estructura</h2>
+            {c.guardada && est ? (
+              <>
+                <Banner type="info" title="La estructura es común a todo el cliente"
+                  actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est.id}`}>Modificar en Estructuras</Link>}>
+                  Esta configuración ya tiene unidades. Para cambiar la estructura, modifícala desde el apartado Estructuras: el cambio afectará a todas las configuraciones que la usan.
+                </Banner>
                 <div className="lm-card">
-                  {est ? (
-                    <>
-                      <div className="stack gap-10" style={{ marginBottom: "var(--lm-space-10)" }}>
-                        <span className="lm-title-small">Vista previa · {est.nombre}</span>
-                        <ResumenArbol raiz={est.raiz} />
-                      </div>
-                      <ArbolVista raiz={est.raiz} />
-                    </>
-                  ) : (
-                    <div className="lm-center"><Icon name="find_in_page" size="xl" />Selecciona una estructura para ver su composición</div>
-                  )}
+                  <div className="stack gap-10" style={{ marginBottom: "var(--lm-space-10)" }}>
+                    <span className="lm-title-small">{est.nombre}</span>
+                    <ResumenArbol raiz={est.raiz} />
+                  </div>
+                  <ArbolVista raiz={est.raiz} />
                 </div>
-              </div>
-            ) : est && esBorrador ? (
-              <div className="stack gap-20">
-                <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />La estructura se añadirá al catálogo común del cliente cuando guardes las unidades.</span>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
-                  <Field label="Nombre de la estructura" required htmlFor="e-nombre" error={errNombreEst}>
-                    <input id="e-nombre" className="lm-input" value={est.nombre} aria-invalid={!!errNombreEst} placeholder="Por ejemplo: Estructura 4"
-                      onChange={(e) => editarBorrador({ nombre: e.target.value })} />
-                  </Field>
-                  <Field label="Descripción de la estructura" htmlFor="e-desc">
-                    <input id="e-desc" className="lm-input" value={est.descripcion} onChange={(e) => editarBorrador({ descripcion: e.target.value })} />
-                  </Field>
+              </>
+            ) : (
+              <>
+                <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
+                  <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => { setModo("existente"); if (esBorrador) { quitarBorrador(); set({ estructuraId: null }); } }}>
+                    <Icon name="list" /> Usar una estructura existente
+                  </button>
+                  <button role="tab" className="lm-tab" aria-selected={modo === "nueva"} onClick={() => { setModo("nueva"); if (!esBorrador) crearNueva(origen); }}>
+                    <Icon name="add" /> Crear una estructura nueva
+                  </button>
                 </div>
-                <fieldset className="row gap-30" style={{ border: 0, padding: 0, margin: 0 }}>
-                  <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>Punto de partida</legend>
-                  <label className="lm-radio">
-                    <input type="radio" name="origen" checked={origen === "cero"} onChange={() => { setOrigen("cero"); crearNueva("cero"); }} />
-                    Desde cero
-                  </label>
-                  <label className="lm-radio">
-                    <input type="radio" name="origen" checked={origen === "existente"} onChange={() => { setOrigen("existente"); crearNueva("existente"); }} />
-                    Copiar una estructura existente
-                  </label>
-                  {origen === "existente" && (
-                    <select className="lm-select lm-select--dense" style={{ width: 240 }} aria-label="Estructura de partida" value={base}
-                      onChange={(e) => { setBase(e.target.value); crearNueva("existente", e.target.value); }}>
-                      {store.estructuras.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                    </select>
-                  )}
-                </fieldset>
-                {errVacia && <Banner type="error">{errVacia}</Banner>}
-                <EditorEstructura raiz={est.raiz} onChange={(raiz) => editarBorrador({ raiz })} />
-              </div>
-            ) : null}
-          </>
-        )}
-      </section>
+                {errEstructura && <Banner type="error">{errEstructura}</Banner>}
+
+                {modo === "existente" ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
+                    <div className="stack gap-10" role="radiogroup" aria-label="Estructuras existentes">
+                      {store.estructuras.map((e) => {
+                        const sel = c.estructuraId === e.id;
+                        const usos = store.usosDe(e.id).length;
+                        return (
+                          <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
+                            <input type="radio" name="estructura" checked={sel} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
+                            <span className="lm-radio__text gap-5">
+                              <span className="lm-title-small">{e.nombre}</span>
+                              <span className="lm-radio__support">{e.descripcion}</span>
+                              <span className="lm-body-small muted">{contarHuecos(e.raiz)} huecos por unidad · {usos ? `usada en ${usos} configuraciones` : "sin usar"}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="lm-card">
+                      {est ? (
+                        <>
+                          <div className="stack gap-10" style={{ marginBottom: "var(--lm-space-10)" }}>
+                            <span className="lm-title-small">Vista previa · {est.nombre}</span>
+                            <ResumenArbol raiz={est.raiz} />
+                          </div>
+                          <ArbolVista raiz={est.raiz} />
+                        </>
+                      ) : (
+                        <div className="lm-center"><Icon name="find_in_page" size="xl" />Selecciona una estructura para ver su composición</div>
+                      )}
+                    </div>
+                  </div>
+                ) : est && esBorrador ? (
+                  <div className="stack gap-20">
+                    <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />La estructura se añadirá al catálogo común del cliente cuando guardes las unidades.</span>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
+                      <Field label="Nombre de la estructura" required htmlFor="e-nombre" error={errNombreEst}>
+                        <input id="e-nombre" className="lm-input" value={est.nombre} aria-invalid={!!errNombreEst} placeholder="Por ejemplo: Estructura 4"
+                          onChange={(e) => editarBorrador({ nombre: e.target.value })} />
+                      </Field>
+                      <Field label="Descripción de la estructura" htmlFor="e-desc">
+                        <input id="e-desc" className="lm-input" value={est.descripcion} onChange={(e) => editarBorrador({ descripcion: e.target.value })} />
+                      </Field>
+                    </div>
+                    <fieldset className="row gap-30" style={{ border: 0, padding: 0, margin: 0 }}>
+                      <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>Punto de partida</legend>
+                      <label className="lm-radio">
+                        <input type="radio" name="origen" checked={origen === "cero"} onChange={() => { setOrigen("cero"); crearNueva("cero"); }} />
+                        Desde cero
+                      </label>
+                      <label className="lm-radio">
+                        <input type="radio" name="origen" checked={origen === "existente"} onChange={() => { setOrigen("existente"); crearNueva("existente"); }} />
+                        Copiar una estructura existente
+                      </label>
+                      {origen === "existente" && (
+                        <select className="lm-select lm-select--dense" style={{ width: 240 }} aria-label="Estructura de partida" value={base}
+                          onChange={(e) => { setBase(e.target.value); crearNueva("existente", e.target.value); }}>
+                          {store.estructuras.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                        </select>
+                      )}
+                    </fieldset>
+                    {errVacia && <Banner type="error">{errVacia}</Banner>}
+                    <EditorEstructura raiz={est.raiz} onChange={(raiz) => editarBorrador({ raiz })} />
+                  </div>
+                ) : null}
+              </>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
 export function paso1Valido(c: Configuracion, est: Estructura | undefined, nombresOcupados: string[] = []) {
+  if (!c.unica && c.varias && !c.guardada) return erroresFilas(c.varias).every((e) => !e.nombre && !e.estructura && !e.unidades);
   if ((!c.unica && !c.nombre.trim()) || !c.unidades || !est || est.raiz.hijos.length === 0) return false;
   if (est.borradorDe && (!est.nombre.trim() || nombresOcupados.includes(est.nombre.trim().toLowerCase()))) return false;
   return true;

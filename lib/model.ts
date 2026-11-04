@@ -31,8 +31,26 @@ export type Configuracion = {
   estado: EstadoConfig;
   guardada: boolean; // se guarda al completar el paso Estructura y unidades
   unica: boolean; // la flota tiene una sola estructura: la configuración se llama como la flota
+  varias?: FilaConfig[] | null; // (prueba) la flota tiene varias estructuras: una fila por configuración hasta guardar el paso 1
   actualizada: string; // ISO
 };
+
+/** (Prueba) Datos de cada configuración cuando, en el paso 1, la flota tiene varias estructuras. */
+export type FilaConfig = { nombre: string; descripcion: string; estructuraId: string | null; unidades: number | null };
+export const filaVacia = (): FilaConfig => ({ nombre: "", descripcion: "", estructuraId: null, unidades: null });
+
+/** Errores de las filas de varias estructuras (vacío si todo está bien). */
+export function erroresFilas(filas: FilaConfig[], nombresOcupados: string[] = []) {
+  return filas.map((f, i) => {
+    const nom = f.nombre.trim().toLowerCase();
+    const repetido = !!nom && (nombresOcupados.includes(nom) || filas.some((g, j) => j !== i && g.nombre.trim().toLowerCase() === nom));
+    return {
+      nombre: !nom ? "Indica el nombre" : repetido ? "Nombre repetido" : "",
+      estructura: !f.estructuraId ? "Elige una estructura" : "",
+      unidades: !f.unidades ? "Entre 1 y 999" : "",
+    };
+  });
+}
 
 /** El SMS es de la flota: lo comparten todas sus configuraciones. */
 export type Flota = {

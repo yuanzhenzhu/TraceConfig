@@ -51,6 +51,7 @@ export default function AsistentePage() {
   const siguiente = visibles[idx + 1];
   const anterior = visibles[idx - 1];
   const soloLectura = c.estado === "activa";
+  const hermanas = c.guardada ? store.configs.filter((x) => x.flotaId === c.flotaId && x.id !== c.id && x.guardada && x.estado !== "activa") : [];
   const raiz = est?.raiz;
 
   const ocupados = store.estructuras.filter((e) => e.id !== est?.id).map((e) => e.nombre.trim().toLowerCase());
@@ -72,6 +73,20 @@ export default function AsistentePage() {
   const avanzar = () => {
     setIntentado(true);
     if (!valido(p)) return;
+    // (Prueba) Varias estructuras: se crea una configuración por fila y se sigue con la primera.
+    if (p === 1 && !c.guardada && !c.unica && c.varias) {
+      const [primera, ...resto] = c.varias;
+      const e0 = store.estructura(primera.estructuraId)!;
+      set({ nombre: primera.nombre.trim(), descripcion: primera.descripcion.trim(), estructuraId: e0.id, unidades: primera.unidades, varias: null, plantillas: plantillasIniciales(e0.raiz), guardada: true });
+      resto.forEach((r) => {
+        const e = store.estructura(r.estructuraId)!;
+        const nueva = store.iniciarConfig(flota.id);
+        store.actualizarConfig(nueva, { nombre: r.nombre.trim(), descripcion: r.descripcion.trim(), estructuraId: e.id, unidades: r.unidades, unica: false, plantillas: plantillasIniciales(e.raiz), guardada: true, pasoActual: 3, pasoMax: 3 });
+      });
+      snack(`${c.varias.length} configuraciones de ${flota.nombre} creadas. Sigues con ${primera.nombre.trim()}`);
+      irA(3, true);
+      return;
+    }
     if (p === 1 && raiz) {
       // Si se cambia de estructura, las plantillas se recalculan para sus categorías.
       const nuevas = plantillasIniciales(raiz);
@@ -125,6 +140,15 @@ export default function AsistentePage() {
           {soloLectura && <Button variant="outlined" icon="arrow_back_ios_new" onClick={() => router.push("/configuracion")}>Volver al listado</Button>}
         </div>
       </div>
+
+      {!soloLectura && hermanas.length > 0 && (
+        <div className="row gap-10 wrap" style={{ marginBottom: "var(--lm-space-15)" }}>
+          <span className="lm-body-small muted">Otras configuraciones de {flota.nombre} en configuración:</span>
+          {hermanas.map((x) => (
+            <a key={x.id} className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/${x.id}`}>{x.nombre}</a>
+          ))}
+        </div>
+      )}
 
       {soloLectura && est ? (
         <div className="stack gap-30">

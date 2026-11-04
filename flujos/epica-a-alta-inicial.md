@@ -103,6 +103,7 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 ## En prueba (rama prueba/estructura-y-unidades)
 - **Pasos 1 y 2 juntos** (2026-11-04): un solo paso **Estructura y unidades**. La primera sección pregunta si la flota tiene **una sola estructura** y, al lado, pide el **nº de unidades**. Si la flota tiene una sola estructura, la configuración **se llama como la flota** y no se piden nombre ni descripción. Si tiene varias, se piden. La pregunta solo aparece en la primera configuración de la flota. La configuración se guarda al completar este paso.
+- **Varias estructuras** (2026-11-04): si la flota tiene varias, se pregunta **cuántas** (2 a 10) y aparece una fila por configuración con **nombre** (obligatorio y sin repetir), descripción, **estructura** (de las existentes) y **nº de unidades**. Al continuar se crean todas las configuraciones (En configuración) y se sigue con la primera; desde el asistente hay accesos a las demás. Si falta una estructura, hay que crearla antes en Configuración › Estructuras.
 
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
