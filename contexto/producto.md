@@ -31,7 +31,7 @@ Cliente
 ### De qué depende cada cosa
 - **Drivers**: de la **estructura y la flota**. Cada configuración marca los suyos sobre el árbol de categorías de su estructura. Por ejemplo, la flota 1 con la estructura B y la flota 2 con la estructura B pueden tener drivers distintos. No hay catálogo común de drivers: el apartado **Configuración › Drivers** lista cada configuración (flota + estructura) y permite modificar sus drivers sin afectar a las demás.
 - **Propiedades de categoría**: del **cliente**. Hay un solo juego, sin perfiles, y se aplica a todas las flotas. Se edita en **Configuración › Propiedades de categoría** o en el paso 4 del asistente, avisando de que afecta a todas las flotas.
-- **Propiedades de hueco**: de la **estructura**. Cada estructura tiene las suyas y se editan en **Configuración › Estructuras** (pestaña Propiedades de hueco). En el asistente solo se ven.
+- **Propiedades de hueco**: de la **estructura**. Cada estructura tiene las suyas y se editan en **Configuración › Estructuras** (pestaña Propiedades de hueco) y en el **paso 1 del asistente**, junto a la estructura, avisando si la usan otras configuraciones.
 - *Sustituye a los perfiles comunes de drivers y de propiedades (opción B) y a los perfiles por defecto.*
 
 ### Reglas de las estructuras

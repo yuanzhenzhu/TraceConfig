@@ -316,10 +316,9 @@ export function diferencia(antes: Nodo, despues: Nodo) {
 }
 
 export const PASOS = [
-  { n: 1, titulo: "Estructura y unidades", obligatorio: true }, // (prueba) antes eran dos pasos: Datos y estructura, y Unidades
+  { n: 1, titulo: "Estructura y unidades", obligatorio: true }, // (prueba) incluye el antiguo paso 2 (Unidades) y el 5 (Propiedades de hueco)
   { n: 3, titulo: "Drivers", obligatorio: true },
   { n: 4, titulo: "Propiedades de categoría", obligatorio: false },
-  { n: 5, titulo: "Propiedades de hueco", obligatorio: false },
   { n: 6, titulo: "Cálculos en SMS", obligatorio: false },
   { n: 7, titulo: "Carga de datos", obligatorio: true },
   { n: 8, titulo: "Resumen y finalizar", obligatorio: true },

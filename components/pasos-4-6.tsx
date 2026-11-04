@@ -1,12 +1,12 @@
 "use client";
 
-// Pasos 4 (Propiedades de categoría), 5 (Propiedades de hueco) y 6 (Cálculos en SMS).
+// Pasos 4 (Propiedades de categoría) y 6 (Cálculos en SMS).
 // - Propiedades de categoría: únicas para todo el cliente; se editan aquí o en su apartado.
-// - Propiedades de hueco: de cada estructura; aquí solo se ven.
+// - Propiedades de hueco: de cada estructura; se editan en el paso 1, junto a la estructura.
 
 import Link from "next/link";
 import { Banner, Field } from "./ds";
-import { EditorPropsCategoria, EditorPropsHueco } from "./propiedades";
+import { EditorPropsCategoria } from "./propiedades";
 import { DRIVERS, FORMAS_CALCULO, type DriverId, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import type { PasoProps } from "./pasos-1-3";
@@ -31,23 +31,6 @@ export function Paso4({ est }: PasoProps) {
         Lo que cambies aquí se aplica a todas las flotas ({flotas}). Aquí solo ves las categorías de {est!.nombre}; todas las categorías están en <Link href="/configuracion/propiedades-categoria">Configuración › Propiedades de categoría</Link>.
       </Banner>
       <EditorPropsCategoria raiz={est!.raiz} valor={store.propsCategoria} onChange={(v) => store.guardarPropsCategoria(v)} />
-    </section>
-  );
-}
-
-/* ---------- Paso 5 ---------- */
-/** Propiedades de hueco: son de la estructura. Aquí solo se ven; se modifican en Configuración › Estructuras. */
-export function Paso5({ est }: PasoProps) {
-  const store = useStore();
-  const usos = store.usosDe(est!.id).length;
-  return (
-    <section className="lm-surface lm-surface--p24 stack gap-20">
-      <h2 className="lm-title-medium" style={{ margin: 0 }}>Propiedades de hueco</h2>
-      <Banner type="info" title={`Son de la estructura ${est!.nombre}`}
-        actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est!.id}?pestana=huecos`}>Modificar en Estructuras</Link>}>
-        Describen cada posición (por ejemplo, el lado de una rueda) y las comparten todas las flotas que usan esta estructura{usos > 1 ? ` (${usos})` : ""}. Aquí solo se ven. Sus valores no aparecen en las plantillas.
-      </Banner>
-      <EditorPropsHueco soloLectura raiz={est!.raiz} valor={est!.propsHueco ?? {}} onChange={() => {}} />
     </section>
   );
 }

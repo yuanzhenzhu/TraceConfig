@@ -2,7 +2,7 @@
 
 // Editores de propiedades (HU-14 a HU-20).
 // - Propiedades de categoría: únicas para todo el cliente (Configuración › Propiedades de categoría y paso 4).
-// - Propiedades de hueco: de cada estructura (Configuración › Estructuras y, en solo lectura, paso 5).
+// - Propiedades de hueco: de cada estructura (Configuración › Estructuras y paso 1 del asistente).
 // - Propiedades de categoría: dependen de las categorías de la estructura.
 // - Propiedades de hueco: dependen de los huecos de la estructura.
 

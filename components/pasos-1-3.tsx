@@ -1,12 +1,14 @@
 "use client";
 
-// Pasos 1 (Estructura y unidades) y 3 (Drivers) del asistente. (Prueba: el antiguo paso 2, Unidades, va dentro del paso 1.)
+// Pasos 1 (Estructura y unidades) y 3 (Drivers) del asistente.
+// (Prueba: el paso 1 incluye el antiguo paso 2, Unidades, y el 5, Propiedades de hueco, que son de la estructura.)
 
 import Link from "next/link";
 import { useState } from "react";
 import { Banner, Field, Icon } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
+import { EditorPropsHueco, resumenPropiedades } from "./propiedades";
 import {
   clonar, contarHuecos, driversIniciales, nodo, nuevoId,
   type Configuracion, type Estructura, type Flota, type Nodo,
@@ -48,6 +50,8 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
     set({ estructuraId: borrador.id });
   };
   const editarBorrador = (cambios: Partial<Estructura>) => { if (est) store.guardarEstructura({ ...est, ...cambios }); };
+  const otrosUsos = est ? store.usosDe(est.id).filter((x) => x.id !== c.id) : [];
+  const huecosConProps = est ? resumenPropiedades(est.raiz, { propsCategoria: {}, propsHueco: est.propsHueco ?? {} }).nHuecos : 0;
 
   const errNombre = intentado && !c.unica && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
   const errEstructura = intentado && !est ? "Selecciona o crea una estructura" : "";
@@ -178,6 +182,24 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
           </>
         )}
       </section>
+
+      {est && est.raiz.hijos.length > 0 && (
+        <section className="lm-surface lm-surface--p24 stack gap-20">
+          <div className="row gap-10">
+            <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Propiedades de hueco{huecosConProps ? ` (${huecosConProps})` : ""}</h2>
+            <span className="lm-body-small muted">Opcional</span>
+          </div>
+          <p className="muted" style={{ margin: 0 }}>
+            Describen cada posición de {est.nombre || "la estructura"} (por ejemplo, el lado de una rueda). Son de la estructura y sus valores no aparecen en las plantillas. Puedes rellenarlas ahora o más adelante.
+          </p>
+          {otrosUsos.length > 0 && (
+            <Banner type="attention" title={`Son comunes a todas las configuraciones que usan ${est.nombre}`}>
+              Lo que cambies aquí también se aplica a {otrosUsos.map((x) => store.etiqueta(x)).join(", ")}.
+            </Banner>
+          )}
+          <EditorPropsHueco raiz={est.raiz} valor={est.propsHueco ?? {}} onChange={(v) => store.guardarEstructura({ ...est, propsHueco: v })} />
+        </section>
+      )}
     </div>
   );
 }

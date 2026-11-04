@@ -62,7 +62,7 @@ function semilla(): Estado {
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "", estructuraId: e2.id, unidades: 8,
       drivers: { ...conCiclos, estructuraId: e2.id }, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
-      pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
+      guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
       id: "cfg-tranvia", nombre: "", descripcion: "", unica: true, estructuraId: e1.id, unidades: 12,

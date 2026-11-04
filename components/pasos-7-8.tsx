@@ -198,10 +198,9 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const sms = flota.sms;
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
-    { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades</> },
+    { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</> },
     { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: undefined },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todo el cliente<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
-    { n: 5, titulo: "Propiedades de hueco", contenido: <>De la estructura {est.nombre}<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</>, aviso: omitido(5) ? "Paso omitido" : undefined },
     ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS (de la flota)", contenido: sms ? `${sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === sms.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === sms.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),
     { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c, raiz)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },
   ];
