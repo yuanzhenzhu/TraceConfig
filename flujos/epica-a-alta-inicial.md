@@ -109,8 +109,8 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 ## En prueba (rama prueba/estructura-y-unidades)
 - **Estructura y propiedades de hueco unidas** (2026-11-04):
   - La estructura define **qué propiedades** tiene cada hueco (Configuración › Estructuras).
-  - **Paso 1:** la estructura se ve en dos pestañas, *Estructura* y *Propiedades de hueco*, solo para consultar. Si se crea una estructura nueva en el asistente, sí se eligen sus propiedades.
-  - **Paso 2 (opcional): Valores de propiedades de hueco.** Se da valor a las propiedades que define la estructura; los valores son de la configuración y se pueden dejar vacíos. Si la estructura no tiene propiedades, el paso muestra un estado vacío.
+  - **Paso 1:** la estructura se ve en dos pestañas, *Estructura* y *Propiedades de hueco*, solo para consultar: al elegir la estructura ya vienen sus propiedades de hueco seleccionadas. Una estructura nueva creada en el asistente empieza sin ellas (se seleccionan en Configuración › Estructuras).
+  - **Paso 2 (opcional): Valores de propiedades de hueco.** Lista de las propiedades de hueco de la estructura (propiedad, hueco y posición) con un campo para su valor. Los valores son únicos de la configuración y se pueden dejar vacíos. Ejemplo: Estructura 1 tiene el código de posición en todos los coches. Si la estructura no tiene propiedades, el paso muestra un estado vacío.
   - Desaparece el paso 5: el asistente queda en 7 pasos (6 si el cliente no usa SMS).
 - **Datos básicos en la flota** (2026-11-04): al crear la flota (**Nueva flota**) o al iniciar una flota sin configuraciones se piden sus datos básicos:
   - Nombre y descripción de la flota (solo al crearla).

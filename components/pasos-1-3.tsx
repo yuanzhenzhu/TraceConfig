@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Banner, EmptyState, Field, Icon } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
-import { EditorPropsHueco, TablaValoresHueco, resumenPropiedades } from "./propiedades";
+import { ListaPropsHueco, resumenPropiedades } from "./propiedades";
 import {
   clonar, contarHuecos, driversIniciales, nodo, nuevoId,
   type Configuracion, type Estructura, type Flota, type Nodo,
@@ -38,7 +38,6 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   const [modo, setModo] = useState<"existente" | "nueva">(esBorrador ? "nueva" : "existente");
   const [origen, setOrigen] = useState<"existente" | "cero">("cero");
   const [base, setBase] = useState(store.estructuras[0]?.id ?? "");
-  const [pestBorrador, setPestBorrador] = useState<"estructura" | "huecos">("estructura");
 
   const quitarBorrador = () => { if (esBorrador && est) store.eliminarEstructura(est.id); };
   const elegir = (e: Estructura) => { quitarBorrador(); set({ estructuraId: e.id }); };
@@ -159,18 +158,9 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
                     </select>
                   )}
                 </fieldset>
-                <Pestanas n={contarConProps(est)} valor={pestBorrador} onChange={setPestBorrador} />
-                {pestBorrador === "estructura" ? (
-                  <>
-                    {errVacia && <Banner type="error">{errVacia}</Banner>}
-                    <EditorEstructura raiz={est.raiz} onChange={(raiz) => editarBorrador({ raiz })} />
-                  </>
-                ) : (
-                  <>
-                    <span className="muted">Elige qué propiedades tiene cada hueco de la estructura nueva. Sus valores se dan en el paso siguiente.</span>
-                    <EditorPropsHueco raiz={est.raiz} valor={est.propsHueco ?? {}} onChange={(v) => editarBorrador({ propsHueco: v })} />
-                  </>
-                )}
+                {errVacia && <Banner type="error">{errVacia}</Banner>}
+                <EditorEstructura raiz={est.raiz} onChange={(raiz) => editarBorrador({ raiz })} />
+                <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Una estructura nueva empieza sin propiedades de hueco. Se seleccionan después en Configuración › Estructuras.</span>
               </div>
             ) : null}
           </>
@@ -211,8 +201,8 @@ function VistaEstructura({ est, titulo }: { est: Estructura; titulo: string }) {
         </div>
       ) : (
         <>
-          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Son de la estructura y aquí solo se consultan. Sus valores se dan en el paso siguiente.</span>
-          <EditorPropsHueco soloLectura raiz={est.raiz} valor={est.propsHueco ?? {}} onChange={() => {}} />
+          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Vienen seleccionadas con la estructura y aquí solo se consultan. Sus valores se dan en el paso siguiente.</span>
+          <ListaPropsHueco raiz={est.raiz} definicion={est.propsHueco ?? {}} />
         </>
       )}
     </div>
@@ -240,9 +230,9 @@ export function Paso2({ c, set, est }: PasoProps) {
       ) : (
         <>
           <p className="muted" style={{ margin: 0 }}>
-            {est!.nombre} define propiedades en {n} huecos. Escribe el valor de cada una: son de esta configuración y puedes dejarlas vacías.
+            Estas son las propiedades de hueco seleccionadas en {est!.nombre}. Escribe el valor de cada una: los valores son únicos de esta configuración y puedes dejarlos vacíos.
           </p>
-          <TablaValoresHueco raiz={est!.raiz} definicion={def} valor={c.valoresHueco ?? {}} onChange={(v) => set({ valoresHueco: v })} />
+          <ListaPropsHueco raiz={est!.raiz} definicion={def} valor={c.valoresHueco ?? {}} onChange={(v) => set({ valoresHueco: v })} />
         </>
       )}
     </section>
