@@ -90,6 +90,7 @@ La estructura es común a todo el cliente: modificarla afecta a todas las config
 | HU-56 | Editar en el asistente las propiedades de categoría de las categorías de la estructura, con aviso de que afectan a todas las flotas | N |
 | HU-57 | Editar las propiedades de hueco de una estructura desde el catálogo de estructuras, viendo a qué flotas afecta | N |
 | HU-58 | Ver en el asistente las propiedades de hueco de la estructura, con acceso para modificarlas en Estructuras | N |
+| HU-59 | Ver en el apartado Drivers los drivers de cada configuración (flota + estructura) y modificarlos sin afectar a otras flotas con la misma estructura | N |
 
 ## Épica B: Modificación de una configuración activa
 | ID | Historia | Origen |
