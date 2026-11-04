@@ -9,7 +9,7 @@ import {
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[]; perfilesProps: PerfilPropiedades[] };
-const CLAVE = "lm-trace-prototipo-v9b";
+const CLAVE = "lm-trace-prototipo-v9c";
 
 /**
  * Cada estructura del catálogo tiene siempre su perfil por defecto («Estándar · <estructura>») de drivers,
@@ -86,12 +86,12 @@ function semilla(): Estado {
   parcial["Tren"] = "cargada"; parcial["Coche"] = "cargada"; parcial["Puerta"] = "cargada"; parcial["Rueda"] = "errores";
   const configs: Configuracion[] = [
     base("f1000", {
-      id: "cfg-serie-a", nombre: "Serie A", descripcion: "Unidades de 3 coches", estructuraId: e1.id, unidades: 16,
+      id: "cfg-serie-a", nombre: "Serie A", descripcion: "", estructuraId: e1.id, unidades: 16,
       perfilDriversId: "drv-1", perfilPropsCategoriaId: "pc-1", perfilPropsHuecoId: "ph-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
-      id: "cfg-serie-b", nombre: "Serie B", descripcion: "Unidades de 2 coches, ampliación 2026", estructuraId: e2.id, unidades: 8,
+      id: "cfg-serie-b", nombre: "Serie B", descripcion: "", estructuraId: e2.id, unidades: 8,
       perfilDriversId: "drv-2", perfilPropsCategoriaId: "pc-2", perfilPropsHuecoId: null, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),

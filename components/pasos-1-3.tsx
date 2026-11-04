@@ -64,14 +64,9 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
           {c.unica ? (
             <div className="stack gap-5"><span className="lm-field__label">Nombre</span><span>{flota.nombre} <span className="muted lm-body-small">· la flota tiene una sola estructura</span></span></div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--lm-space-20)" }}>
-              <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
-                <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
-              </Field>
-              <Field label="Descripción" htmlFor="c-desc">
-                <input id="c-desc" className="lm-input" value={c.descripcion} placeholder="Por ejemplo: Unidades de 3 coches entregadas en 2026" onChange={(e) => set({ descripcion: e.target.value })} />
-              </Field>
-            </div>
+            <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
+              <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
+            </Field>
           )}
           <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades} support="Entre 1 y 999. Los nº de serie se cargan después, en la plantilla de primer nivel">
             <input id="u-num" className="lm-input" inputMode="numeric" value={texto} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
