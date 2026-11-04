@@ -71,7 +71,7 @@ export default function EditarPerfilPage() {
       <div className="stack gap-20">
         {borrador.porDefecto && (
           <Banner type="info" title={`Perfil por defecto de ${store.estructura(borrador.estructuraId)?.nombre ?? "la estructura"}`}>
-            Se crea solo con la estructura y es el que usan las configuraciones nuevas si no eligen otro. Se puede modificar, pero no eliminar.
+            Se crea solo con la estructura y es el que tienen elegido de inicio las configuraciones nuevas. Se puede modificar, pero no eliminar.
           </Banner>
         )}
         {enUso && (

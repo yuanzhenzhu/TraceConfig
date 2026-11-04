@@ -207,7 +207,7 @@ export function EditorPerfilProps({ tipo, id }: { tipo: TipoProps; id: string })
       <div className="stack gap-20">
         {borrador.porDefecto && (
           <Banner type="info" title={`Perfil por defecto de ${est?.nombre ?? "la estructura"}`}>
-            Se crea solo con la estructura y es el que usan las configuraciones nuevas si no eligen otro. Se puede modificar, pero no eliminar.
+            Se crea solo con la estructura y aparece el primero en el asistente. Se puede modificar, pero no eliminar.
           </Banner>
         )}
         {enUso && (

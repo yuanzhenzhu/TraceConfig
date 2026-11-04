@@ -329,7 +329,7 @@ export function diferencia(antes: Nodo, despues: Nodo) {
 export const PASOS = [
   { n: 1, titulo: "Datos y estructura", obligatorio: true },
   { n: 2, titulo: "Unidades", obligatorio: true },
-  { n: 3, titulo: "Drivers", obligatorio: false },
+  { n: 3, titulo: "Drivers", obligatorio: true },
   { n: 4, titulo: "Propiedades de categoría", obligatorio: false },
   { n: 5, titulo: "Propiedades de hueco", obligatorio: false },
   { n: 6, titulo: "Cálculos en SMS", obligatorio: false },

@@ -243,7 +243,7 @@ export function Paso3({ c, set, est }: PasoProps) {
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Drivers</h2>
       <p className="muted" style={{ margin: 0 }}>
-        Elige el perfil de drivers de esta configuración. Los perfiles son comunes a todo el cliente y van ligados a una estructura: aquí solo aparecen los de <strong>{est!.nombre}</strong>.
+        Elige el perfil de drivers de esta configuración (obligatorio; de inicio, el Estándar de la estructura). Los perfiles son comunes a todo el cliente y van ligados a una estructura: aquí solo aparecen los de <strong>{est!.nombre}</strong>.
       </p>
       <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
         <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => setModo("existente")}><Icon name="list" /> Usar un perfil existente</button>
@@ -276,10 +276,10 @@ export function Paso3({ c, set, est }: PasoProps) {
               {actual ? (
                 <>
                   <CabeceraPerfil nombre={actual.nombre} otras={otrasDe(actual.id)} apartado="Drivers" href={`/configuracion/drivers/${actual.id}`} onDuplicar={duplicar} />
-                  <EditorDrivers soloLectura={otrasDe(actual.id).length > 0} raiz={raiz} valor={actual} onChange={(v) => store.guardarPerfil({ ...actual, ...v })} />
+                  <EditorDrivers soloLectura raiz={raiz} valor={actual} onChange={() => {}} />
                 </>
               ) : (
-                <div className="lm-card lm-center"><Icon name="timelapse" size="xl" />Selecciona un perfil para ver sus drivers. Si omites el paso, se aplica el perfil por defecto de la estructura.</div>
+                <div className="lm-card lm-center"><Icon name="timelapse" size="xl" />Selecciona un perfil de drivers. Es obligatorio: toda configuración necesita uno.</div>
               )}
             </div>
           </div>
@@ -309,9 +309,8 @@ export function Paso3({ c, set, est }: PasoProps) {
 export { nombreLibre };
 
 /**
- * Misma regla para drivers y propiedades en el asistente:
- * - Si el perfil lo usan otras configuraciones, aquí solo se ve. Se modifica en su apartado (con aviso de impacto) o se duplica.
- * - Si solo lo usa esta configuración, se edita aquí mismo.
+ * Misma regla para drivers y propiedades en el asistente: un perfil existente solo se ve, no se marca ni desmarca.
+ * Para cambiarlo se modifica en su apartado (con aviso de impacto) o se duplica para esta configuración.
  */
 export function CabeceraPerfil({ nombre, otras, apartado, href, onDuplicar, titulo }: {
   nombre: string; otras: Configuracion[]; apartado: string; href: string; onDuplicar: () => void; titulo?: string;
@@ -321,17 +320,14 @@ export function CabeceraPerfil({ nombre, otras, apartado, href, onDuplicar, titu
   return (
     <div className="stack gap-10">
       <div className="row gap-10 wrap">
-        <span className="lm-title-small grow">{titulo ?? "Perfil"} · {nombre}</span>
-        {compartido && <Button variant="outlined" small icon="content_copy" onClick={onDuplicar}>Duplicar para esta configuración</Button>}
-        {compartido && <Link className="lm-btn lm-btn--text lm-btn--small" href={href}>Modificar en {apartado}</Link>}
+        <span className="lm-title-small grow">{titulo ?? "Vista previa"} · {nombre}</span>
+        <Button variant="outlined" small icon="content_copy" onClick={onDuplicar}>Duplicar para esta configuración</Button>
+        <Link className="lm-btn lm-btn--text lm-btn--small" href={href}>Modificar en {apartado}</Link>
       </div>
-      {compartido ? (
-        <Banner type="info" title={`Solo lectura: este perfil lo usan también ${otras.length} ${otras.length === 1 ? "configuración" : "configuraciones"}`}>
-          {otras.map((x) => `${store.flotas.find((f) => f.id === x.flotaId)?.codigo} · ${x.nombre}`).join(", ")}. Para cambiarlo para todas, modifícalo en {apartado}. Si esta configuración necesita algo distinto, duplícalo.
-        </Banner>
-      ) : (
-        <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Solo lo usa esta configuración, así que puedes editarlo aquí. También está en <Link href={href}>Configuración › {apartado}</Link>.</span>
-      )}
+      <Banner type="info" title={compartido ? `Solo lectura · lo usan también ${otras.length} ${otras.length === 1 ? "configuración" : "configuraciones"}` : "Solo lectura"}>
+        {compartido && <>{otras.map((x) => `${store.flotas.find((f) => f.id === x.flotaId)?.codigo} · ${x.nombre}`).join(", ")}. </>}
+        Para cambiar este perfil, modifícalo en {apartado}{compartido ? " (afecta a todas las configuraciones que lo usan)" : ""}. Si esta configuración necesita algo distinto, duplícalo.
+      </Banner>
     </div>
   );
 }

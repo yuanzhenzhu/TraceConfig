@@ -7,8 +7,8 @@
 La **flota** es el paraguas: tiene nombre y descripción. Dentro de ella hay una o varias **configuraciones**, cada una una parte de la flota con su propia estructura y su número de unidades, y con nombre y descripción propios. Por ejemplo, la flota F1000 puede tener "Serie A", que usa Estructura 1 con 16 unidades, y "Serie B", que usa Estructura 2 con 8 unidades.
 
 El alta inicial es un **asistente por pasos** (`stepper-horizontal`) que se abre desde el listado de flotas (HU-01).
-- Los pasos **obligatorios** son Estructura, Unidades y Carga de datos.
-- Los pasos **opcionales** (Drivers, Propiedades de categoría, Propiedades de hueco y SMS) se pueden **saltar** y completar más tarde.
+- Los pasos **obligatorios** son Estructura, Unidades, Drivers y Carga de datos.
+- Los pasos **opcionales** (Propiedades de categoría, Propiedades de hueco y SMS) se pueden **saltar** y completar más tarde.
 - A partir del paso Unidades, la configuración **se guarda sola** con estado **En configuración**. Se puede salir y volver con **Continuar**.
 
 ## Diagrama
@@ -35,7 +35,7 @@ flowchart TD
       P2[2 · Unidades · obligatorio<br/>solo el nº de unidades · HU-04]
       P2 -->|Se guarda como En configuración| P3
 
-      P3[3 · Drivers · opcional<br/>km por defecto · ciclos y horas · herencia · HU-10..13]
+      P3[3 · Drivers · obligatorio<br/>perfil Estándar elegido de inicio · km por defecto · ciclos y horas · herencia · HU-10..13]
       P3 --> P4[4 · Propiedades de categoría · opcional<br/>asignar · histórico · buscador · HU-14..17]
       P4 --> P5[5 · Propiedades de hueco · opcional<br/>selección múltiple · valores ahora o después · HU-18..20]
       P5 --> S{¿El cliente usa SMS?}
@@ -97,7 +97,9 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 11. **Propiedades de categoría y de hueco separadas** (2026-11-04): son dos catálogos con su propio apartado lateral (**Propiedades de categoría** y **Propiedades de hueco**). El paso 4 elige o crea un perfil de propiedades de categoría y el paso 5, uno de propiedades de hueco, de forma independiente y con la misma regla que los drivers.
 
-12. **Perfiles por defecto** (2026-11-04): cada estructura tiene un perfil «Estándar» de drivers, de propiedades de categoría y de propiedades de hueco, que se crea solo con la estructura. En los pasos 3, 4 y 5 aparece **seleccionado de inicio** y marcado como *Por defecto*; si se omite el paso, se queda ese. No se puede eliminar.
+12. **Perfiles por defecto** (2026-11-04): cada estructura tiene un perfil «Estándar» de drivers, de propiedades de categoría y de propiedades de hueco, que se crea solo con la estructura. Aparece el primero y marcado como *Por defecto*. No se puede eliminar.
+
+13. **Perfil existente en solo lectura; drivers obligatorio** (2026-11-04): en el asistente, un perfil existente (de drivers o de propiedades) **nunca se marca ni desmarca**: se ve en solo lectura y, para cambiarlo, se modifica en su apartado o se duplica. Solo se marca al **crear un perfil nuevo**. El paso **Drivers es obligatorio** y empieza con el perfil Estándar elegido. Los pasos de **propiedades de categoría y de hueco son opcionales**: la configuración puede quedarse **sin perfil** (opción *Sin propiedades*), y no hay nada elegido de inicio. Sustituye a la parte de la decisión 10 que permitía editar en el asistente un perfil que solo usaba esa configuración.
 
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.

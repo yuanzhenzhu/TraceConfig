@@ -3,8 +3,8 @@
 // Pasos 4 (Propiedades de categoría), 5 (Propiedades de hueco) y 6 (Cálculos en SMS).
 // Las propiedades son perfiles del catálogo común del cliente, ligados a una estructura (Configuración › Propiedades).
 // Las propiedades de categoría y las de hueco son dos catálogos separados (Configuración › Propiedades de categoría / de hueco).
-// Igual que los drivers: se elige o crea el perfil. Si lo usan otras configuraciones, se ve en solo lectura
-// (se modifica en su apartado o se duplica); si solo lo usa esta, se edita aquí.
+// Igual que los drivers: se elige o crea el perfil, y un perfil existente se ve en solo lectura (se modifica en su apartado o se duplica).
+// A diferencia de los drivers, son opcionales: la configuración puede quedarse sin perfil.
 
 import { useEffect, useState } from "react";
 import { Banner, Button, Field, Icon, Tag, useSnackbar } from "./ds";
@@ -39,11 +39,10 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
   const delTipo = store.perfilesProps.filter((p) => p.tipo === tipo);
   const compatibles = delTipo.filter((p) => p.estructuraId === est!.id).sort((a, b) => Number(!!b.porDefecto) - Number(!!a.porDefecto));
   const actual = store.perfilProps(c[t.campo]);
-  // Sin perfil válido, se usa el perfil por defecto de la estructura.
-  const defecto = compatibles.find((p) => p.porDefecto);
+  // Las propiedades son opcionales: la configuración puede no tener ningún perfil. Uno de otra estructura deja de valer.
   useEffect(() => {
-    if ((!actual || actual.estructuraId !== est!.id) && defecto) set({ [t.campo]: defecto.id } as Partial<Configuracion>);
-  }, [actual, defecto, est, set, t.campo]);
+    if (actual && actual.estructuraId !== est!.id) set({ [t.campo]: null } as Partial<Configuracion>);
+  }, [actual, est, set, t.campo]);
   const otrasDe = (id: string) => store.usosDePerfilProps(id).filter((x) => x.id !== c.id);
   const [modo, setModo] = useState<"existente" | "nuevo">(compatibles.length ? "existente" : "nuevo");
   const [nuevo, setNuevo] = useState(() => ({ nombre: "", descripcion: "", ...propiedadesVacias() }));
@@ -83,7 +82,7 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
         </Banner>
       )}
       <p className="muted" style={{ margin: 0 }}>
-        Elige el perfil de propiedades {t.corto} de esta configuración. Los perfiles son comunes a todo el cliente y van ligados a una estructura: aquí solo aparecen los de <strong>{est!.nombre}</strong>.
+        Elige el perfil de propiedades {t.corto} de esta configuración, o déjala sin ellas (es opcional). Los perfiles son comunes a todo el cliente y van ligados a una estructura: aquí solo aparecen los de <strong>{est!.nombre}</strong>.
       </p>
       <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
         <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => setModo("existente")}><Icon name="list" /> Usar un perfil existente</button>
@@ -97,6 +96,13 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
         ) : (
           <div className="stack gap-20">
             <div role="radiogroup" aria-label={`Perfiles de propiedades ${t.corto}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "var(--lm-space-10)" }}>
+              <label className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: !actual ? "var(--lm-sys-primary)" : undefined, background: !actual ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
+                <input type="radio" name={`perfil-${tipo}`} checked={!actual} onChange={() => elegir(null)} aria-label={`Sin propiedades ${t.corto}`} />
+                <span className="lm-radio__text gap-5">
+                  <span className="lm-title-small">Sin propiedades {t.corto}</span>
+                  <span className="lm-radio__support">Esta configuración no registra propiedades {t.corto}. Podrás elegir un perfil más adelante.</span>
+                </span>
+              </label>
               {compatibles.map((p) => {
                 const sel = actual?.id === p.id;
                 const usos = otrasDe(p.id);
@@ -116,10 +122,10 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
             {actual ? (
               <div className="stack gap-10">
                 <CabeceraPerfil nombre={actual.nombre} otras={otrasDe(actual.id)} apartado={t.titulo} href={`${t.ruta}/${actual.id}`} onDuplicar={() => duplicar(actual)} />
-                {editor(actual, (v) => store.guardarPerfilProps({ ...actual, ...v }), otrasDe(actual.id).length > 0)}
+                {editor(actual, () => {}, true)}
               </div>
             ) : (
-              <div className="lm-card lm-center"><Icon name={t.icono} size="xl" />Selecciona un perfil para ver sus propiedades. Si omites el paso, se aplica el perfil por defecto de la estructura.</div>
+              <div className="lm-card lm-center"><Icon name={t.icono} size="xl" />Sin propiedades {t.corto}. Si las necesitas, elige un perfil o crea uno nuevo.</div>
             )}
           </div>
         )

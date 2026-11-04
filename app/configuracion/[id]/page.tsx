@@ -56,7 +56,7 @@ export default function AsistentePage() {
   const v1 = paso1Valido(c, est, ocupados);
   const v2 = !!c.unidades && c.guardada;
   const alcanzable = (n: number) => n === 1 || (n === 2 ? v1 : v1 && v2);
-  const valido = (n: number) => (n === 1 ? v1 : n === 2 ? !!c.unidades : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 2 ? !!c.unidades : n === 3 ? !!store.perfil(c.perfilDriversId) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
