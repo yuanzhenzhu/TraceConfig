@@ -105,9 +105,10 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 - **Datos básicos en la flota** (2026-11-04): al crear la flota (**Nueva flota**) o al iniciar una flota sin configuraciones se piden sus datos básicos:
   - Nombre y descripción de la flota (solo al crearla).
   - **¿Cuántas estructuras tiene?** *Una* o *Varias*.
-  - **Una:** estructura y nº de unidades. La configuración se llama como la flota.
-  - **Varias:** cuántas (2 a 10) y, por cada una, **nombre** (obligatorio y sin repetir), **estructura** y **nº de unidades**.
-  - Al crear, se crean la flota y todas sus configuraciones (En configuración) y se sigue por la primera en el paso **Drivers**. Si falta una estructura, hay que crearla antes en Configuración › Estructuras.
+  - **Una:** nº de unidades. La configuración se llama como la flota.
+  - **Varias:** cuántas (2 a 10) y, por cada una, **nombre** (obligatorio y sin repetir), descripción y **nº de unidades**.
+  - **La estructura no se elige aquí**, sino en el **primer paso** de cada configuración (elegir una existente o crearla).
+  - Al crear, se crean la flota y todas sus configuraciones (En configuración, con la estructura «Sin elegir») y se abre la primera en el paso 1.
 - **Pasos 1 y 2 juntos:** el asistente tiene un solo paso **Estructura y unidades**. Sirve para añadir una configuración a una flota que ya tiene otras (nombre, descripción, nº de unidades y estructura, que se puede crear aquí) y para revisar las ya creadas.
 
 ## Decisiones de Claude (siguen como propuesta)

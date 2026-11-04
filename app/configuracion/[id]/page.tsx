@@ -87,6 +87,7 @@ export default function AsistentePage() {
         ...(otraEst(c.perfilPropsHuecoId) ? { perfilPropsHuecoId: null } : {}),
       });
     }
+    if (p === 1 && c.guardada && est?.borradorDe) store.actualizarConfig(c.id, { guardada: true }); // la estructura nueva pasa al catálogo
     if (p === 1 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });
       snack(`Configuración "${c.nombre}" guardada como En configuración`);

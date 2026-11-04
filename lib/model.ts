@@ -38,14 +38,13 @@ export type Configuracion = {
 export type FilaConfig = { nombre: string; descripcion: string; estructuraId: string | null; unidades: number | null };
 export const filaVacia = (): FilaConfig => ({ nombre: "", descripcion: "", estructuraId: null, unidades: null });
 
-/** Errores de las filas de varias estructuras (vacío si todo está bien). */
+/** Errores de las filas de varias estructuras (vacío si todo está bien). La estructura se elige después, en el paso 1. */
 export function erroresFilas(filas: FilaConfig[], nombresOcupados: string[] = []) {
   return filas.map((f, i) => {
     const nom = f.nombre.trim().toLowerCase();
     const repetido = !!nom && (nombresOcupados.includes(nom) || filas.some((g, j) => j !== i && g.nombre.trim().toLowerCase() === nom));
     return {
       nombre: !nom ? "Indica el nombre" : repetido ? "Nombre repetido" : "",
-      estructura: !f.estructuraId ? "Elige una estructura" : "",
       unidades: !f.unidades ? "Entre 1 y 999" : "",
     };
   });
