@@ -30,7 +30,7 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 | HU-11 | Elegir otros drivers (ciclos, horas) para algunas categorías | T |
 | HU-12 | Que los drivers de ciclos y horas se marquen por defecto en los hijos y se hereden a todo salvo al padre | T |
 | HU-13 | Cambiar la asignación de drivers más adelante | T |
-| HU-44 | Elegir en el asistente un perfil de drivers del catálogo para la estructura de la configuración, o crear uno nuevo | N |
+| HU-44 | Elegir en el asistente un perfil de drivers del catálogo para la estructura de la configuración, o crear uno nuevo; si lo usan otras configuraciones, verlo en solo lectura y duplicarlo o modificarlo en Drivers | N |
 
 ### A4. Propiedades de categoría
 | ID | Historia | Origen |
@@ -97,7 +97,7 @@ Las propiedades de categoría y de hueco dependen de la estructura y se agrupan 
 | HU-49 | Ver el catálogo de perfiles de propiedades, con su estructura y cuántas configuraciones y unidades lo usan | N |
 | HU-50 | Crear un perfil de propiedades para una estructura | N |
 | HU-51 | Modificar un perfil en uso viendo antes a qué configuraciones afecta | N |
-| HU-52 | En el asistente, elegir un perfil, crear uno vacío o duplicar uno para esta configuración | N |
+| HU-52 | En el asistente, elegir un perfil o crear uno nuevo; si lo usan otras configuraciones, verlo en solo lectura y duplicarlo para esta configuración o modificarlo en Propiedades (misma regla que los drivers) | N |
 
 ## Épica B: Modificación de una configuración activa
 | ID | Historia | Origen |

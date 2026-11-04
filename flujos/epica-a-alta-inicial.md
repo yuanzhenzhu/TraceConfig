@@ -93,6 +93,8 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 9. **Drivers por categoría y propiedades comunes** (2026-11-03): los drivers se marcan por **categoría**. Las propiedades de categoría y de hueco pasan a **perfiles de propiedades** del catálogo del cliente (**Configuración › Propiedades**), ligados a una estructura. En el paso 4 se elige, se crea o se duplica el perfil, y los pasos 4 y 5 lo editan, avisando si lo usan otras configuraciones. La flota se queda solo con el SMS. **Opción B decidida (2026-11-04).**
 
+10. **Misma regla para drivers y propiedades en el asistente** (2026-11-04): en los pasos 3, 4 y 5 se **elige** un perfil existente o se **crea** uno nuevo. Si el perfil lo usan **otras configuraciones**, en el asistente se ve en **solo lectura**: para cambiarlo para todas se va a su apartado (con aviso de impacto) o se **duplica** para esta configuración. Si **solo lo usa esta configuración**, se edita en el mismo asistente.
+
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
 2. **Pasos opcionales** con el botón "Omitir paso". En el stepper se marcan como *pendiente* y no como *hecho*.

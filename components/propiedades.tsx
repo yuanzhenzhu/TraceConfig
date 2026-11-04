@@ -17,8 +17,8 @@ export function resumenPropiedades(raiz: Nodo, p: PropiedadesConfig) {
 }
 
 /* ---------- Propiedades de categoría ---------- */
-export function EditorPropsCategoria({ raiz, valor, onChange }: {
-  raiz: Nodo; valor: PropiedadesConfig["propsCategoria"]; onChange: (v: PropiedadesConfig["propsCategoria"]) => void;
+export function EditorPropsCategoria({ raiz, valor, onChange, soloLectura }: {
+  raiz: Nodo; valor: PropiedadesConfig["propsCategoria"]; onChange: (v: PropiedadesConfig["propsCategoria"]) => void; soloLectura?: boolean;
 }) {
   const cats = categoriasDe(raiz);
   const [sel, setSel] = useState(cats[0]?.categoria ?? "");
@@ -63,12 +63,12 @@ export function EditorPropsCategoria({ raiz, valor, onChange }: {
               const a = asignadas.find((x) => x.propId === p.id);
               return (
                 <tr key={p.id}>
-                  <td><label className="lm-check"><input type="checkbox" checked={!!a} onChange={(e) => toggle(p.id, e.target.checked)} aria-label={`Asignar ${p.nombre} a ${sel}`} /></label></td>
+                  <td><label className="lm-check"><input type="checkbox" checked={!!a} disabled={soloLectura} onChange={(e) => toggle(p.id, e.target.checked)} aria-label={`Asignar ${p.nombre} a ${sel}`} /></label></td>
                   <td className={a ? "emph" : ""}>{p.nombre}</td>
                   <td className="muted">{p.tipo}</td>
                   <td>
                     <label className="lm-toggle lm-toggle--small">
-                      <input type="checkbox" role="switch" disabled={!a} checked={!!a?.historico} onChange={(e) => historico(p.id, e.target.checked)} aria-label={`Guardar histórico de ${p.nombre}`} />
+                      <input type="checkbox" role="switch" disabled={soloLectura || !a} checked={!!a?.historico} onChange={(e) => historico(p.id, e.target.checked)} aria-label={`Guardar histórico de ${p.nombre}`} />
                       <span className={a ? "" : "muted"}>{a?.historico ? "Sí" : "No"}</span>
                     </label>
                   </td>
@@ -84,8 +84,8 @@ export function EditorPropsCategoria({ raiz, valor, onChange }: {
 }
 
 /* ---------- Propiedades de hueco ---------- */
-export function EditorPropsHueco({ raiz, valor, onChange }: {
-  raiz: Nodo; valor: PropiedadesConfig["propsHueco"]; onChange: (v: PropiedadesConfig["propsHueco"]) => void;
+export function EditorPropsHueco({ raiz, valor, onChange, soloLectura }: {
+  raiz: Nodo; valor: PropiedadesConfig["propsHueco"]; onChange: (v: PropiedadesConfig["propsHueco"]) => void; soloLectura?: boolean;
 }) {
   const [sel, setSel] = useState<string[]>([]);
   const [cat, setCat] = useState("");
@@ -155,7 +155,7 @@ export function EditorPropsHueco({ raiz, valor, onChange }: {
         {sel.length === 0 ? (
           <div className="lm-center" style={{ padding: "var(--lm-space-50) var(--lm-space-20)" }}>
             <Icon name="radio_button_checked" size="xl" />
-            <span>Selecciona uno o varios huecos para asignarles propiedades</span>
+            <span>{soloLectura ? "Selecciona uno o varios huecos para ver sus propiedades" : "Selecciona uno o varios huecos para asignarles propiedades"}</span>
             <span className="lm-body-small">Consejo: usa "Seleccionar por categoría" para elegir, por ejemplo, todas las ruedas a la vez</span>
           </div>
         ) : (
@@ -166,12 +166,12 @@ export function EditorPropsHueco({ raiz, valor, onChange }: {
               return (
                 <div key={p.id} className="stack gap-5" style={{ paddingBottom: "var(--lm-space-10)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
                   <label className="lm-check">
-                    <input type="checkbox" checked={e.todas} ref={(el) => { if (el) el.indeterminate = e.algunas; }} onChange={(ev) => asignar(p.id, ev.target.checked)} />
+                    <input type="checkbox" checked={e.todas} disabled={soloLectura} ref={(el) => { if (el) el.indeterminate = e.algunas; }} onChange={(ev) => asignar(p.id, ev.target.checked)} />
                     <span className="grow">{p.nombre}</span>
                     <span className="lm-body-small muted">{p.tipo}</span>
                   </label>
                   {e.todas && (
-                    <input className="lm-input lm-input--dense" aria-label={`Valor de ${p.nombre}`} value={e.valor}
+                    <input className="lm-input lm-input--dense" aria-label={`Valor de ${p.nombre}`} value={e.valor} readOnly={soloLectura}
                       placeholder={e.varios ? "Varios valores" : `Opcional, por ejemplo: ${p.ejemplo}`} onChange={(ev) => cambiarValor(p.id, ev.target.value)} />
                   )}
                 </div>

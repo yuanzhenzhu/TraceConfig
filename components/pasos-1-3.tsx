@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Banner, Button, Field, Icon } from "./ds";
+import { Banner, Button, Field, Icon, useSnackbar } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import { EditorDrivers, ResumenDrivers } from "./drivers";
 import {
@@ -206,6 +206,7 @@ export function Paso2({ c, set, intentado, est }: PasoProps) {
 // Los drivers son un catálogo común del cliente (Configuración › Drivers), como las estructuras:
 // aquí se elige un perfil de la estructura de la configuración o se crea uno nuevo.
 export function Paso3({ c, set, est }: PasoProps) {
+  const snack = useSnackbar();
   const store = useStore();
   const raiz: Nodo = est!.raiz;
   const compatibles = store.perfiles.filter((p) => p.estructuraId === est!.id);
@@ -223,6 +224,14 @@ export function Paso3({ c, set, est }: PasoProps) {
     store.guardarPerfil(p);
     set({ perfilDriversId: p.id });
     setModo("existente");
+  };
+  const otrasDe = (id: string) => store.usosDePerfil(id).filter((x) => x.id !== c.id);
+  const duplicar = () => {
+    if (!actual) return;
+    const p: PerfilDrivers = { ...structuredClone(actual), id: nuevoId("drv"), nombre: nombreLibre(`${actual.nombre} · ${c.nombre || "copia"}`, store.perfiles), descripcion: `Copia de ${actual.nombre}` };
+    store.guardarPerfil(p);
+    set({ perfilDriversId: p.id });
+    snack(`Perfil duplicado como "${p.nombre}"`);
   };
 
   return (
@@ -261,11 +270,8 @@ export function Paso3({ c, set, est }: PasoProps) {
             <div className="stack gap-10">
               {actual ? (
                 <>
-                  <div className="row gap-10">
-                    <span className="lm-title-small grow">Vista previa · {actual.nombre}</span>
-                    <Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/drivers/${actual.id}`}>Modificar en Drivers</Link>
-                  </div>
-                  <EditorDrivers soloLectura raiz={raiz} valor={actual} onChange={() => {}} />
+                  <CabeceraPerfil nombre={actual.nombre} otras={otrasDe(actual.id)} apartado="Drivers" href={`/configuracion/drivers/${actual.id}`} onDuplicar={duplicar} />
+                  <EditorDrivers soloLectura={otrasDe(actual.id).length > 0} raiz={raiz} valor={actual} onChange={(v) => store.guardarPerfil({ ...actual, ...v })} />
                 </>
               ) : (
                 <div className="lm-card lm-center"><Icon name="timelapse" size="xl" />Selecciona un perfil para ver sus drivers. Si omites el paso, se aplica el kilometraje por defecto.</div>
@@ -292,6 +298,42 @@ export function Paso3({ c, set, est }: PasoProps) {
         </div>
       )}
     </section>
+  );
+}
+
+/** Nombre que no repite ninguno del catálogo: añade (2), (3)… si hace falta. */
+export function nombreLibre(base: string, lista: { nombre: string }[]) {
+  const usado = (n: string) => lista.some((p) => p.nombre.trim().toLowerCase() === n.toLowerCase());
+  let n = base, i = 2;
+  while (usado(n)) n = `${base} (${i++})`;
+  return n;
+}
+
+/**
+ * Misma regla para drivers y propiedades en el asistente:
+ * - Si el perfil lo usan otras configuraciones, aquí solo se ve. Se modifica en su apartado (con aviso de impacto) o se duplica.
+ * - Si solo lo usa esta configuración, se edita aquí mismo.
+ */
+export function CabeceraPerfil({ nombre, otras, apartado, href, onDuplicar, titulo }: {
+  nombre: string; otras: Configuracion[]; apartado: string; href: string; onDuplicar: () => void; titulo?: string;
+}) {
+  const store = useStore();
+  const compartido = otras.length > 0;
+  return (
+    <div className="stack gap-10">
+      <div className="row gap-10 wrap">
+        <span className="lm-title-small grow">{titulo ?? "Perfil"} · {nombre}</span>
+        {compartido && <Button variant="outlined" small icon="content_copy" onClick={onDuplicar}>Duplicar para esta configuración</Button>}
+        {compartido && <Link className="lm-btn lm-btn--text lm-btn--small" href={href}>Modificar en {apartado}</Link>}
+      </div>
+      {compartido ? (
+        <Banner type="info" title={`Solo lectura: este perfil lo usan también ${otras.length} ${otras.length === 1 ? "configuración" : "configuraciones"}`}>
+          {otras.map((x) => `${store.flotas.find((f) => f.id === x.flotaId)?.codigo} · ${x.nombre}`).join(", ")}. Para cambiarlo para todas, modifícalo en {apartado}. Si esta configuración necesita algo distinto, duplícalo.
+        </Banner>
+      ) : (
+        <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Solo lo usa esta configuración, así que puedes editarlo aquí. También está en <Link href={href}>Configuración › {apartado}</Link>.</span>
+      )}
+    </div>
   );
 }
 
