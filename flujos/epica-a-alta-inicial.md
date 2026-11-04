@@ -70,7 +70,7 @@ flowchart TD
 | 1a | Datos y estructura: nombre y descripción de la configuración + elegir estructura existente | matFormField ×2, matRadioButton o matList, previsualización del árbol, matTabs (Existente / Nueva) |
 | 1b | Estructura: editor | paleta de categorías (matList + buscador), árbol editable, matMenu (copiar, pegar, eliminar), banner informativo "solo se podrá modificar por los extremos" |
 | 2 | Unidades | matFormField (nº de unidades). Los nº de serie llegan después en la plantilla de primer nivel |
-| 3 | Drivers | lista de categorías agrupadas por niveles (nivel 1: la unidad; nivel 2: sus hijas…), con la categoría de la que hereda y matCheckbox tiene / heredable para km, ciclos y horas |
+| 3 | Drivers | árbol de la estructura con matCheckbox km / ciclos / horas por categoría |
 | 4 | Propiedades de categoría | dos columnas: categorías · propiedades (matCheckbox + toggle de histórico), buscador |
 | 5 | Propiedades de hueco | árbol de huecos con selección múltiple, panel de propiedades y valores |
 | 6 | Cálculos en SMS | matSelect (flota o línea, driver), matRadioButton (forma de cálculo) |
