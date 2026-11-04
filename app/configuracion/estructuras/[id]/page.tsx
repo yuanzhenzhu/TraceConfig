@@ -2,6 +2,7 @@
 
 // HU-40 y HU-41: crear una estructura o modificarla viendo su impacto en las configuraciones que la usan.
 // Cada estructura tiene sus propiedades de hueco (pestaña Propiedades de hueco).
+// (Prueba) Con ?config=<id> se viene del asistente: al guardar, la estructura se asigna a esa configuración y se vuelve al paso 1.
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -25,7 +26,12 @@ export default function EditarEstructuraPage() {
   const [intentado, setIntentado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [pestana, setPestana] = useState<"estructura" | "huecos">("estructura");
-  useEffect(() => { if (new URLSearchParams(window.location.search).get("pestana") === "huecos") setPestana("huecos"); }, []);
+  const [cfgId, setCfgId] = useState<string | null>(null);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("pestana") === "huecos") setPestana("huecos");
+    setCfgId(q.get("config"));
+  }, []);
 
   useEffect(() => {
     if (!store.listo || borrador) return;
@@ -53,6 +59,10 @@ export default function EditarEstructuraPage() {
   const errVacia = intentado && borrador.raiz.hijos.length === 0;
   const nombreRepetido = store.estructuras.some((e) => e.id !== borrador.id && e.nombre.trim().toLowerCase() === borrador.nombre.trim().toLowerCase());
 
+  const cfg = cfgId ? store.configs.find((x) => x.id === cfgId) : undefined;
+  const volverA = cfg ? `/configuracion/${cfg.id}?paso=1` : "/configuracion/estructuras";
+  const nombreCfg = cfg ? store.etiqueta(cfg) || "la configuración" : "";
+
   const guardar = () => {
     setIntentado(true);
     if (!borrador.nombre.trim() || borrador.raiz.hijos.length === 0 || nombreRepetido) return;
@@ -61,7 +71,8 @@ export default function EditarEstructuraPage() {
     snack(esNueva ? `Estructura "${borrador.nombre}" creada` : enUso && (hayCambiosArbol || hayCambiosHuecos)
       ? `Estructura "${borrador.nombre}" modificada en ${usos.length} configuraciones`
       : `Estructura "${borrador.nombre}" guardada`);
-    router.push("/configuracion/estructuras");
+    if (cfg && esNueva) store.actualizarConfig(cfg.id, { estructuraId: borrador.id, estructuraNueva: true });
+    router.push(volverA);
   };
 
   const partirDe = (o: "cero" | "copia", baseId: string) => {
@@ -73,7 +84,9 @@ export default function EditarEstructuraPage() {
     <main className="lm-page" style={{ paddingBottom: 120 }}>
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Estructuras", href: "/configuracion/estructuras" }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]} />
+          <Breadcrumb items={cfg
+            ? [{ label: "Configuración", href: "/configuracion" }, { label: nombreCfg, href: volverA }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]
+            : [{ label: "Configuración", href: "/configuracion" }, { label: "Estructuras", href: "/configuracion/estructuras" }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{esNueva ? "Nueva estructura" : `Modificar ${original!.nombre}`}</h1>
             {!esNueva && (enUso ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>)}
@@ -82,6 +95,13 @@ export default function EditarEstructuraPage() {
       </div>
 
       <div className="stack gap-20">
+        {cfg && (
+          <Banner type="info" title={esNueva ? `Estás creando la estructura de ${nombreCfg}` : `Vienes del asistente de ${nombreCfg}`}>
+            {esNueva
+              ? "Al crearla, se añadirá al catálogo del cliente y volverás al asistente con esta estructura asignada. Si cancelas, volverás sin estructura."
+              : "Al guardar o cancelar, volverás al asistente."}
+          </Banner>
+        )}
         {enUso && (
           <Banner type="attention" title={`Esta estructura la usan ${usos.length} configuraciones (${unidades} unidades)`}>
             Los cambios se aplicarán a todas: {usos.map((c) => store.etiqueta(c)).join(", ")}. Solo se puede modificar por los extremos.
@@ -137,8 +157,8 @@ export default function EditarEstructuraPage() {
             {hayCambiosArbol && ` · ${dif.anadidos.length} añadidos · ${dif.eliminados.length} eliminados`}
             {hayCambiosHuecos && " · Propiedades de hueco modificadas"}
           </span>
-          <Button variant="outlined" onClick={() => router.push("/configuracion/estructuras")}>Cancelar</Button>
-          <Button onClick={guardar}>{esNueva ? "Crear estructura" : "Guardar cambios"}</Button>
+          <Button variant="outlined" onClick={() => router.push(volverA)}>{cfg ? "Cancelar y volver al asistente" : "Cancelar"}</Button>
+          <Button onClick={guardar}>{esNueva ? (cfg ? "Crear y volver al asistente" : "Crear estructura") : "Guardar cambios"}</Button>
         </div>
       </footer>
 

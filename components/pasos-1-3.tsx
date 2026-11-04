@@ -7,11 +7,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Banner, EmptyState, Field, Icon } from "./ds";
-import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
+import { useRouter } from "next/navigation";
+import { ArbolVista, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
 import { ListaPropsHueco, resumenPropiedades } from "./propiedades";
 import {
-  clonar, contarHuecos, driversIniciales, nodo, nuevoId,
+  contarHuecos, driversIniciales,
   type Configuracion, type Estructura, type Flota, type Nodo,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
@@ -34,29 +35,14 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   const unidadesOk = Number.isInteger(nUnidades) && nUnidades >= 1 && nUnidades <= 999;
   const errUnidades = intentado && !unidadesOk ? "Indica un número entero entre 1 y 999" : "";
   const huecos = est ? contarHuecos(est.raiz) : 0;
-  const esBorrador = est?.borradorDe === c.id; // estructura nueva creada en este asistente
-  const [modo, setModo] = useState<"existente" | "nueva">(esBorrador ? "nueva" : "existente");
-  const [origen, setOrigen] = useState<"existente" | "cero">("cero");
-  const [base, setBase] = useState(store.estructuras[0]?.id ?? "");
-
-  const quitarBorrador = () => { if (esBorrador && est) store.eliminarEstructura(est.id); };
-  const elegir = (e: Estructura) => { quitarBorrador(); set({ estructuraId: e.id }); };
-  const crearNueva = (o: "existente" | "cero", baseId = base) => {
-    const b = store.estructura(baseId);
-    const raiz = o === "existente" && b ? { ...clonar(b.raiz), nombre: "Tren" } : nodo("Tren", "Tren");
-    const borrador: Estructura = esBorrador && est
-      ? { ...est, raiz }
-      : { id: nuevoId("est"), nombre: "", descripcion: "", raiz, borradorDe: c.id };
-    store.guardarEstructura(borrador);
-    set({ estructuraId: borrador.id });
-  };
-  const editarBorrador = (cambios: Partial<Estructura>) => { if (est) store.guardarEstructura({ ...est, ...cambios }); };
+  const router = useRouter();
+  const fijada = !!c.estructuraNueva && !!est; // estructura nueva creada en Estructuras desde el asistente
+  const elegir = (e: Estructura) => set({ estructuraId: e.id });
+  // Crear una estructura nueva lleva a Estructuras; al crearla se vuelve aquí con ella asignada.
+  const crearNueva = () => router.push(`/configuracion/estructuras/nueva?config=${c.id}`);
 
   const errNombre = intentado && !c.unica && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
   const errEstructura = intentado && !est ? "Selecciona o crea una estructura" : "";
-  const nombreRepetido = esBorrador && !!est && store.estructuras.some((e) => e.nombre.trim().toLowerCase() === est.nombre.trim().toLowerCase());
-  const errNombreEst = intentado && esBorrador && est && !est.nombre.trim() ? "Indica el nombre de la estructura" : nombreRepetido ? "Ya existe una estructura con este nombre" : "";
-  const errVacia = intentado && est && est.raiz.hijos.length === 0 ? "La estructura está vacía: añade al menos un elemento" : "";
 
   return (
     <div className="stack gap-30">
@@ -95,74 +81,48 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
             </Banner>
             <VistaEstructura est={est} titulo={est.nombre} />
           </>
+        ) : fijada ? (
+          <>
+            <Banner type="success" title={`${est!.nombre} se ha creado para esta configuración`}
+              actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est!.id}?config=${c.id}`}>Modificar en Estructuras</Link>}>
+              La estructura nueva ya está asignada y forma parte del catálogo del cliente. Como has creado una estructura nueva, no se puede elegir una existente.
+            </Banner>
+            <VistaEstructura est={est!} titulo={est!.nombre} />
+          </>
         ) : (
           <>
             <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
-              <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => { setModo("existente"); if (esBorrador) { quitarBorrador(); set({ estructuraId: null }); } }}>
+              <button role="tab" className="lm-tab" aria-selected={true}>
                 <Icon name="list" /> Usar una estructura existente
               </button>
-              <button role="tab" className="lm-tab" aria-selected={modo === "nueva"} onClick={() => { setModo("nueva"); if (!esBorrador) crearNueva(origen); }}>
+              <button role="tab" className="lm-tab" aria-selected={false} onClick={crearNueva}>
                 <Icon name="add" /> Crear una estructura nueva
               </button>
             </div>
+            <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Si creas una estructura nueva, irás a Estructuras y, al crearla, volverás aquí con ella asignada.</span>
             {errEstructura && <Banner type="error">{errEstructura}</Banner>}
 
-            {modo === "existente" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
-                <div className="stack gap-10" role="radiogroup" aria-label="Estructuras existentes">
-                  {store.estructuras.map((e) => {
-                    const sel = c.estructuraId === e.id;
-                    const usos = store.usosDe(e.id).length;
-                    return (
-                      <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
-                        <input type="radio" name="estructura" checked={sel} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
-                        <span className="lm-radio__text gap-5">
-                          <span className="lm-title-small">{e.nombre}</span>
-                          <span className="lm-radio__support">{e.descripcion}</span>
-                          <span className="lm-body-small muted">{contarHuecos(e.raiz)} huecos por unidad · {usos ? `usada en ${usos} configuraciones` : "sin usar"}</span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-                {est ? <VistaEstructura est={est} titulo={`Vista previa · ${est.nombre}`} /> : (
-                  <div className="lm-card"><div className="lm-center"><Icon name="find_in_page" size="xl" />Selecciona una estructura para ver su composición</div></div>
-                )}
+            <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
+              <div className="stack gap-10" role="radiogroup" aria-label="Estructuras existentes">
+                {store.estructuras.map((e) => {
+                  const sel = c.estructuraId === e.id;
+                  const usos = store.usosDe(e.id).length;
+                  return (
+                    <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
+                      <input type="radio" name="estructura" checked={sel} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
+                      <span className="lm-radio__text gap-5">
+                        <span className="lm-title-small">{e.nombre}</span>
+                        <span className="lm-radio__support">{e.descripcion}</span>
+                        <span className="lm-body-small muted">{contarHuecos(e.raiz)} huecos por unidad · {usos ? `usada en ${usos} configuraciones` : "sin usar"}</span>
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
-            ) : est && esBorrador ? (
-              <div className="stack gap-20">
-                <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />La estructura se añadirá al catálogo común del cliente cuando guardes las unidades.</span>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
-                  <Field label="Nombre de la estructura" required htmlFor="e-nombre" error={errNombreEst}>
-                    <input id="e-nombre" className="lm-input" value={est.nombre} aria-invalid={!!errNombreEst} placeholder="Por ejemplo: Estructura 4"
-                      onChange={(e) => editarBorrador({ nombre: e.target.value })} />
-                  </Field>
-                  <Field label="Descripción de la estructura" htmlFor="e-desc">
-                    <input id="e-desc" className="lm-input" value={est.descripcion} onChange={(e) => editarBorrador({ descripcion: e.target.value })} />
-                  </Field>
-                </div>
-                <fieldset className="row gap-30" style={{ border: 0, padding: 0, margin: 0 }}>
-                  <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>Punto de partida</legend>
-                  <label className="lm-radio">
-                    <input type="radio" name="origen" checked={origen === "cero"} onChange={() => { setOrigen("cero"); crearNueva("cero"); }} />
-                    Desde cero
-                  </label>
-                  <label className="lm-radio">
-                    <input type="radio" name="origen" checked={origen === "existente"} onChange={() => { setOrigen("existente"); crearNueva("existente"); }} />
-                    Copiar una estructura existente
-                  </label>
-                  {origen === "existente" && (
-                    <select className="lm-select lm-select--dense" style={{ width: 240 }} aria-label="Estructura de partida" value={base}
-                      onChange={(e) => { setBase(e.target.value); crearNueva("existente", e.target.value); }}>
-                      {store.estructuras.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                    </select>
-                  )}
-                </fieldset>
-                {errVacia && <Banner type="error">{errVacia}</Banner>}
-                <EditorEstructura raiz={est.raiz} onChange={(raiz) => editarBorrador({ raiz })} />
-                <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Una estructura nueva empieza sin propiedades de hueco. Se seleccionan después en Configuración › Estructuras.</span>
-              </div>
-            ) : null}
+              {est ? <VistaEstructura est={est} titulo={`Vista previa · ${est.nombre}`} /> : (
+                <div className="lm-card"><div className="lm-center"><Icon name="find_in_page" size="xl" />Selecciona una estructura para ver su composición</div></div>
+              )}
+            </div>
           </>
         )}
       </section>
@@ -209,9 +169,8 @@ function VistaEstructura({ est, titulo }: { est: Estructura; titulo: string }) {
   );
 }
 
-export function paso1Valido(c: Configuracion, est: Estructura | undefined, nombresOcupados: string[] = []) {
+export function paso1Valido(c: Configuracion, est: Estructura | undefined) {
   if ((!c.unica && !c.nombre.trim()) || !c.unidades || !est || est.raiz.hijos.length === 0) return false;
-  if (est.borradorDe && (!est.nombre.trim() || nombresOcupados.includes(est.nombre.trim().toLowerCase()))) return false;
   return true;
 }
 

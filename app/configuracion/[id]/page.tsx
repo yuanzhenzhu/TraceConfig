@@ -54,8 +54,7 @@ export default function AsistentePage() {
   const hermanas = c.guardada ? store.configs.filter((x) => x.flotaId === c.flotaId && x.id !== c.id && x.guardada && x.estado !== "activa") : [];
   const raiz = est?.raiz;
 
-  const ocupados = store.estructuras.filter((e) => e.id !== est?.id).map((e) => e.nombre.trim().toLowerCase());
-  const v1 = paso1Valido(c, est, ocupados);
+  const v1 = paso1Valido(c, est);
   const alcanzable = (n: number) => n === 1 || (v1 && c.guardada);
   const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 

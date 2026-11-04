@@ -39,6 +39,8 @@ export type Configuracion = {
   estado: EstadoConfig;
   guardada: boolean; // se guarda al completar el paso Estructura y unidades
   unica: boolean; // la flota tiene una sola estructura: la configuración se llama como la flota
+  /** (Prueba) La estructura se creó en Estructuras desde el asistente: queda fijada y no se puede elegir una existente. */
+  estructuraNueva?: boolean;
   actualizada: string; // ISO
 };
 
