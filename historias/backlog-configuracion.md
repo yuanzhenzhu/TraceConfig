@@ -89,15 +89,15 @@ Los drivers son, como las estructuras, comunes a todo el cliente. Se agrupan en 
 | HU-47 | Modificar un perfil en uso viendo antes a qué configuraciones afecta | N |
 | HU-48 | Eliminar un perfil que no usa ninguna configuración | N |
 
-## Épica P: Catálogo de propiedades (nuevo apartado, opción B decidida)
-Las propiedades de categoría y de hueco dependen de la estructura y se agrupan en **perfiles de propiedades** comunes del cliente.
+## Épica P: Catálogos de propiedades (dos apartados, opción B decidida)
+Las propiedades dependen de la estructura y se agrupan en perfiles comunes del cliente, **separados por tipo**: **Configuración › Propiedades de categoría** (dependen de las categorías) y **Configuración › Propiedades de hueco** (dependen de los huecos). Cada historia aplica a los dos catálogos.
 
 | ID | Historia | Origen |
 |---|---|---|
-| HU-49 | Ver el catálogo de perfiles de propiedades, con su estructura y cuántas configuraciones y unidades lo usan | N |
-| HU-50 | Crear un perfil de propiedades para una estructura | N |
+| HU-49 | Ver el catálogo de perfiles de propiedades de categoría y el de propiedades de hueco, con su estructura y cuántas configuraciones y unidades usan cada perfil | N |
+| HU-50 | Crear un perfil de propiedades de categoría o de hueco para una estructura | N |
 | HU-51 | Modificar un perfil en uso viendo antes a qué configuraciones afecta | N |
-| HU-52 | En el asistente, elegir un perfil o crear uno nuevo; si lo usan otras configuraciones, verlo en solo lectura y duplicarlo para esta configuración o modificarlo en Propiedades (misma regla que los drivers) | N |
+| HU-52 | En el asistente, elegir (paso 4 de categoría, paso 5 de hueco, por separado) un perfil o crear uno nuevo; si lo usan otras configuraciones, verlo en solo lectura y duplicarlo para esta configuración o modificarlo en su apartado (misma regla que los drivers) | N |
 
 ## Épica B: Modificación de una configuración activa
 | ID | Historia | Origen |

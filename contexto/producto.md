@@ -22,15 +22,16 @@ Cliente
 ### Qué pertenece a cada nivel
 | Nivel | Qué tiene |
 |---|---|
-| **Cliente** | Los catálogos comunes de **estructuras**, **perfiles de drivers** y **perfiles de propiedades**. Los perfiles van ligados a una estructura y los pueden usar varias configuraciones de distintas flotas |
+| **Cliente** | Los catálogos comunes de **estructuras**, **perfiles de drivers**, **perfiles de propiedades de categoría** y **perfiles de propiedades de hueco**. Los perfiles van ligados a una estructura y los pueden usar varias configuraciones de distintas flotas |
 | **Flota** | Nombre, descripción y **cálculos en SMS** |
-| **Configuración** | Nombre, descripción, la estructura, el **perfil de drivers** y el **perfil de propiedades** que usa, el nº de unidades y la carga de datos (plantillas) |
+| **Configuración** | Nombre, descripción, la estructura, el **perfil de drivers**, el **perfil de propiedades de categoría** y el **perfil de propiedades de hueco** que usa, el nº de unidades y la carga de datos (plantillas) |
 
 ### De qué depende cada cosa
 - **Drivers**: de la **categoría**. Se marcan sobre el árbol de categorías de la estructura.
 - **Propiedades de categoría**: de las **categorías** de la estructura.
 - **Propiedades de hueco**: de los **huecos** de la estructura.
 - Si varias configuraciones usan la misma estructura, normalmente comparten propiedades. Si hay diferencias, se duplica el perfil. **Decidido (2026-11-04): opción B**, perfiles comunes del cliente. Se descarta guardar las propiedades por flota × estructura.
+- **Propiedades de categoría y de hueco van separadas** (2026-11-04): son dos catálogos distintos, cada uno con su apartado (**Configuración › Propiedades de categoría** y **Configuración › Propiedades de hueco**). Una configuración elige un perfil de cada tipo por separado.
 
 ### Reglas de las estructuras
 - **Una sola versión**: no hay versiones ni variantes. Modificar una estructura **afecta a todas las configuraciones que la usan**.
@@ -132,7 +133,8 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. Tiene nombre y descripción. La **flota es el paraguas** y puede tener varias configuraciones; las propiedades y el SMS son de la flota |
 | Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
 | Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro. Cada hueco tiene dos marcas por driver: **tenerlo** y que sea **heredable** |
-| Perfil de propiedades | Propiedades de categoría y de hueco de una estructura. Es común al cliente, se gestiona en **Configuración › Propiedades** y modificarlo afecta a todas las configuraciones que lo usan |
+| Perfil de propiedades de categoría | Qué propiedades se registran en cada categoría de una estructura (y si guardan histórico). Es común al cliente, se gestiona en **Configuración › Propiedades de categoría** y modificarlo afecta a todas las configuraciones que lo usan |
+| Perfil de propiedades de hueco | Qué propiedades describen cada hueco de una estructura y sus valores. Es común al cliente, se gestiona en **Configuración › Propiedades de hueco** y modificarlo afecta a todas las configuraciones que lo usan |
 | Perfil de drivers | Conjunto de drivers (tener y heredable) de cada categoría de una estructura. Es común al cliente, se gestiona en **Configuración › Drivers** y modificarlo afecta a todas las configuraciones que lo usan |
 | Heredable | Marca de un driver en un hueco: su valor viene del padre y no se registra aparte. Por defecto, el km lo **tienen** todos los huecos y es **heredable** en todos menos en la unidad, que no tiene padre |
 | Histórico | Marca de una propiedad de categoría que indica que se guarda la evolución de su valor en el tiempo |

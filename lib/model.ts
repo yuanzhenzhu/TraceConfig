@@ -21,7 +21,8 @@ export type Configuracion = {
   estructuraId: string | null; // referencia al catálogo común
   unidades: number | null;
   perfilDriversId: string | null; // referencia al catálogo común de drivers
-  perfilPropiedadesId: string | null; // referencia al catálogo común de propiedades
+  perfilPropsCategoriaId: string | null; // referencia al catálogo común de propiedades de categoría
+  perfilPropsHuecoId: string | null; // referencia al catálogo común de propiedades de hueco
   plantillas: Record<string, EstadoPlantilla>; // por categoría
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
@@ -44,11 +45,23 @@ export type PropiedadesConfig = {
   propsHueco: Record<string, Record<string, string>>;
 };
 
+/** Hay dos catálogos separados: propiedades de categoría (dependen de las categorías) y de hueco (dependen de los huecos). */
+export type TipoProps = "categoria" | "hueco";
+
+export const TIPOS_PROPS: Record<TipoProps, {
+  titulo: string; corto: string; ruta: string; icono: string; prefijo: string;
+  campo: "perfilPropsCategoriaId" | "perfilPropsHuecoId"; paso: number;
+}> = {
+  categoria: { titulo: "Propiedades de categoría", corto: "de categoría", ruta: "/configuracion/propiedades-categoria", icono: "list", prefijo: "pc", campo: "perfilPropsCategoriaId", paso: 4 },
+  hueco: { titulo: "Propiedades de hueco", corto: "de hueco", ruta: "/configuracion/propiedades-hueco", icono: "radio_button_checked", prefijo: "ph", campo: "perfilPropsHuecoId", paso: 5 },
+};
+
 /**
- * Perfil de propiedades del catálogo común del cliente, ligado a una estructura (sus categorías y huecos).
+ * Perfil de propiedades del catálogo común del cliente, ligado a una estructura. Es de un solo tipo:
+ * de categoría (solo usa propsCategoria) o de hueco (solo usa propsHueco).
  * Si varias configuraciones usan la misma estructura, normalmente comparten perfil; si hay diferencias, se crea otro.
  */
-export type PerfilPropiedades = PropiedadesConfig & { id: string; nombre: string; descripcion: string; estructuraId: string; actualizada?: string };
+export type PerfilPropiedades = PropiedadesConfig & { id: string; tipo: TipoProps; nombre: string; descripcion: string; estructuraId: string; actualizada?: string };
 
 export const propiedadesVacias = (): PropiedadesConfig => ({ propsCategoria: {}, propsHueco: {} });
 

@@ -46,7 +46,7 @@ export function Paso7({ c, set, est }: PasoProps) {
   const snack = useSnackbar();
   const store = useStore();
   const perfil = store.perfil(c.perfilDriversId);
-  const propiedades = store.perfilProps(c.perfilPropiedadesId);
+  const propiedades = store.perfilProps(c.perfilPropsCategoriaId);
   const raiz = est!.raiz;
   const cats = categoriasDe(raiz);
   const [subiendo, setSubiendo] = useState<string | null>(null);
@@ -192,12 +192,14 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const pendientes = cats.filter((x) => c.plantillas[x.categoria] !== "cargada");
   const store = useStore();
   const perfil = store.perfil(c.perfilDriversId);
-  const propiedades = store.perfilProps(c.perfilPropiedadesId);
+  const propiedades = store.perfilProps(c.perfilPropsCategoriaId);
+  const propsHueco = store.perfilProps(c.perfilPropsHuecoId);
   const ef = driversEfectivos(perfil, raiz);
   const nDrivers = DRIVERS.map((d) => ({
     d, n: Object.values(ef.drivers).filter((x) => x[d.id]).length, h: Object.values(ef.heredables).filter((x) => x[d.id]).length,
   }));
-  const { nCat: nPropsCat, nHuecos: nHuecosProps } = propiedades ? resumenPropiedades(raiz, propiedades) : { nCat: 0, nHuecos: 0 };
+  const nPropsCat = propiedades ? resumenPropiedades(raiz, propiedades).nCat : 0;
+  const nHuecosProps = propsHueco ? resumenPropiedades(raiz, propsHueco).nHuecos : 0;
   const omitido = (n: number) => c.pasosOmitidos.includes(n);
   const sms = flota.sms;
 
@@ -205,8 +207,8 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
     { n: 1, titulo: "Datos y estructura", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad</> },
     { n: 2, titulo: "Unidades", contenido: <>{c.unidades} unidades</> },
     { n: 3, titulo: "Drivers", contenido: <>{perfil ? `Perfil: ${perfil.nombre}` : "Sin perfil: kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: omitido(3) || !perfil ? "Paso omitido: se aplican los drivers por defecto" : undefined },
-    { n: 4, titulo: "Propiedades de categoría", contenido: <>{propiedades ? `Perfil: ${propiedades.nombre}` : "Sin perfil de propiedades"}<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
-    { n: 5, titulo: "Propiedades de hueco", contenido: nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco", aviso: omitido(5) ? "Paso omitido" : undefined },
+    { n: 4, titulo: "Propiedades de categoría", contenido: <>{propiedades ? `Perfil: ${propiedades.nombre}` : "Sin perfil de propiedades de categoría"}<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
+    { n: 5, titulo: "Propiedades de hueco", contenido: <>{propsHueco ? `Perfil: ${propsHueco.nombre}` : "Sin perfil de propiedades de hueco"}<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</>, aviso: omitido(5) ? "Paso omitido" : undefined },
     ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS (de la flota)", contenido: sms ? `${sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === sms.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === sms.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),
     { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c, raiz)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },
   ];

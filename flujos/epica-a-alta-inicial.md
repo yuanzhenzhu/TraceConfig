@@ -95,6 +95,8 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 10. **Misma regla para drivers y propiedades en el asistente** (2026-11-04): en los pasos 3, 4 y 5 se **elige** un perfil existente o se **crea** uno nuevo. Si el perfil lo usan **otras configuraciones**, en el asistente se ve en **solo lectura**: para cambiarlo para todas se va a su apartado (con aviso de impacto) o se **duplica** para esta configuración. Si **solo lo usa esta configuración**, se edita en el mismo asistente.
 
+11. **Propiedades de categoría y de hueco separadas** (2026-11-04): son dos catálogos con su propio apartado lateral (**Propiedades de categoría** y **Propiedades de hueco**). El paso 4 elige o crea un perfil de propiedades de categoría y el paso 5, uno de propiedades de hueco, de forma independiente y con la misma regla que los drivers.
+
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
 2. **Pasos opcionales** con el botón "Omitir paso". En el stepper se marcan como *pendiente* y no como *hecho*.

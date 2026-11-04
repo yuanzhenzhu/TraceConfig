@@ -78,7 +78,13 @@ export default function AsistentePage() {
       Object.keys(nuevas).forEach((k) => { if (c.plantillas[k]) nuevas[k] = c.plantillas[k]; });
       // Un perfil de drivers de otra estructura deja de valer
       const perfil = store.perfil(c.perfilDriversId);
-      set({ plantillas: nuevas, ...(perfil && perfil.estructuraId !== est?.id ? { perfilDriversId: null } : {}) });
+      const otraEst = (pid: string | null) => { const p = store.perfilProps(pid); return !!p && p.estructuraId !== est?.id; };
+      set({
+        plantillas: nuevas,
+        ...(perfil && perfil.estructuraId !== est?.id ? { perfilDriversId: null } : {}),
+        ...(otraEst(c.perfilPropsCategoriaId) ? { perfilPropsCategoriaId: null } : {}),
+        ...(otraEst(c.perfilPropsHuecoId) ? { perfilPropsHuecoId: null } : {}),
+      });
     }
     if (p === 2 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });

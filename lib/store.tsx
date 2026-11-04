@@ -9,12 +9,12 @@ import {
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[]; perfilesProps: PerfilPropiedades[] };
-const CLAVE = "lm-trace-prototipo-v6";
+const CLAVE = "lm-trace-prototipo-v7";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
-    perfilDriversId: null, perfilPropiedadesId: null, plantillas: {}, intentosPlantilla: {},
+    perfilDriversId: null, perfilPropsCategoriaId: null, perfilPropsHuecoId: null, plantillas: {}, intentosPlantilla: {},
     pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
@@ -55,17 +55,17 @@ function semilla(): Estado {
   const configs: Configuracion[] = [
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "Unidades de 3 coches", estructuraId: e1.id, unidades: 16,
-      perfilDriversId: "drv-1", perfilPropiedadesId: "prop-1", plantillas: todas(e1.raiz), pasoActual: 8,
+      perfilDriversId: "drv-1", perfilPropsCategoriaId: "pc-1", perfilPropsHuecoId: "ph-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "Unidades de 2 coches, ampliación 2026", estructuraId: e2.id, unidades: 8,
-      perfilDriversId: "drv-2", perfilPropiedadesId: "prop-2", plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
+      perfilDriversId: "drv-2", perfilPropsCategoriaId: "pc-2", perfilPropsHuecoId: null, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
       id: "cfg-tranvia", nombre: "Serie única", descripcion: "Todas las unidades del tranvía", estructuraId: e1.id, unidades: 12,
-      perfilDriversId: "drv-1", perfilPropiedadesId: "prop-1", plantillas: todas(e1.raiz), pasoActual: 8,
+      perfilDriversId: "drv-1", perfilPropsCategoriaId: "pc-1", perfilPropsHuecoId: "ph-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
     }),
   ];
@@ -77,8 +77,9 @@ function semilla(): Estado {
   };
   const ruedas = { Rueda: [{ propId: "diametro", historico: true }, { propId: "fabricante", historico: false }] };
   const perfilesProps: PerfilPropiedades[] = [
-    { id: "prop-1", nombre: "Propiedades estándar · Estructura 1", descripcion: "Diámetro y fabricante de ruedas, lado de cada rueda", estructuraId: e1.id, propsCategoria: ruedas, propsHueco: ladoRuedas(e1.raiz), actualizada: fecha },
-    { id: "prop-2", nombre: "Propiedades estándar · Estructura 2", descripcion: "Diámetro y fabricante de ruedas", estructuraId: e2.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
+    { id: "pc-1", tipo: "categoria", nombre: "Ruedas estándar · Estructura 1", descripcion: "Diámetro (con histórico) y fabricante de las ruedas", estructuraId: e1.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
+    { id: "pc-2", tipo: "categoria", nombre: "Ruedas estándar · Estructura 2", descripcion: "Diámetro (con histórico) y fabricante de las ruedas", estructuraId: e2.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
+    { id: "ph-1", tipo: "hueco", nombre: "Lado de ruedas · Estructura 1", descripcion: "Lado izquierdo o derecho de cada rueda", estructuraId: e1.id, propsCategoria: {}, propsHueco: ladoRuedas(e1.raiz), actualizada: fecha },
   ];
   return { flotas, configs, estructuras, perfiles, perfilesProps };
 }
@@ -221,7 +222,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     perfilProps: (id) => estado.perfilesProps.find((p) => p.id === id),
     usosDe: (eid) => estado.configs.filter((c) => c.guardada && c.estructuraId === eid),
     usosDePerfil: (pid) => estado.configs.filter((c) => c.guardada && c.perfilDriversId === pid),
-    usosDePerfilProps: (pid) => estado.configs.filter((c) => c.guardada && c.perfilPropiedadesId === pid),
+    usosDePerfilProps: (pid) => estado.configs.filter((c) => c.guardada && (c.perfilPropsCategoriaId === pid || c.perfilPropsHuecoId === pid)),
     crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig,
     guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer,
   }), [listo, estado, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer]);
