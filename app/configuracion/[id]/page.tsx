@@ -23,6 +23,7 @@ export default function AsistentePage() {
   const [paso, setPaso] = useState<number | null>(null);
   const [intentado, setIntentado] = useState(false);
   const [salir, setSalir] = useState(false);
+  const [confirmarEst, setConfirmarEst] = useState(false); // aviso al fijar la estructura (paso 1 → siguiente)
 
   useEffect(() => {
     if (!c || paso !== null) return;
@@ -55,7 +56,9 @@ export default function AsistentePage() {
   const raiz = est?.raiz;
 
   const v1 = paso1Valido(c, est);
-  const alcanzable = (n: number) => n === 1 || (v1 && c.guardada);
+  // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
+  const estructuraFijada = c.pasoMax > 1;
+  const alcanzable = (n: number) => n === 1 || (v1 && c.guardada && estructuraFijada);
   const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
@@ -69,9 +72,11 @@ export default function AsistentePage() {
     window.scrollTo({ top: 0 });
   };
 
-  const avanzar = () => {
+  const avanzar = (confirmado = false) => {
     setIntentado(true);
     if (!valido(p)) return;
+    if (p === 1 && !estructuraFijada && !confirmado) { setConfirmarEst(true); return; }
+    setConfirmarEst(false);
     if (p === 1 && raiz) {
       // Si se cambia de estructura, las plantillas se recalculan para sus categorías.
       const nuevas = plantillasIniciales(raiz);
@@ -180,10 +185,19 @@ export default function AsistentePage() {
               {!actual.obligatorio && siguiente && <Button variant="text" onClick={omitir}>Omitir paso</Button>}
               {p === 8
                 ? <Button icon="check" disabled={!primerNivelCargado(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
-                : <Button onClick={avanzar}>Siguiente</Button>}
+                : <Button onClick={() => avanzar()}>Siguiente</Button>}
             </div>
           </footer>
         </>
+      )}
+
+      {confirmarEst && est && (
+        <Dialog title={`¿Usar ${est.nombre} en esta configuración?`} onClose={() => setConfirmarEst(false)}
+          message={`Los pasos siguientes (valores de propiedades de hueco, drivers, propiedades de categoría y carga de datos) se basan en la estructura ${est.nombre}. Una vez confirmada, no se podrá cambiar. Si después necesitas otra estructura, tendrás que crear de nuevo la configuración.`}
+          footer={<>
+            <Button variant="outlined" onClick={() => setConfirmarEst(false)}>Revisar estructura</Button>
+            <Button onClick={() => avanzar(true)}>Confirmar y continuar</Button>
+          </>} />
       )}
 
       {salir && (

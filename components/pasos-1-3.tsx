@@ -76,9 +76,9 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
         <h2 className="lm-title-medium" style={{ margin: 0 }}>Estructura</h2>
         {c.guardada && est && c.pasoMax > 1 ? ( // la estructura queda fijada al pasar del paso 1
           <>
-            <Banner type="info" title="La estructura es común a todo el cliente"
+            <Banner type="info" title="La estructura de esta configuración está confirmada"
               actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est.id}`}>Modificar en Estructuras</Link>}>
-              Esta configuración ya tiene unidades. Para cambiar la estructura, modifícala desde el apartado Estructuras: el cambio afectará a todas las configuraciones que la usan.
+              Los pasos siguientes se basan en ella, así que no se puede cambiar por otra: si necesitas otra estructura, crea de nuevo la configuración. La propia estructura sí se puede modificar desde el apartado Estructuras, y el cambio afectará a todas las configuraciones que la usan.
             </Banner>
             <VistaEstructura est={est} titulo={est.nombre} />
           </>
