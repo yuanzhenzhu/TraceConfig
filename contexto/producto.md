@@ -11,28 +11,28 @@ Un **cliente** tiene una o varias **flotas**. Cada flota contiene uno o varios *
 
 ```
 Cliente
-├─ Estructuras (catálogo común del cliente)
-└─ Flota (1..n)  ← propiedades de categoría, propiedades de hueco y cálculos en SMS
+├─ Estructuras (catálogo común del cliente) ← cada una con sus propiedades de hueco
+├─ Propiedades de categoría (un único juego para todo el cliente)
+└─ Flota (1..n)  ← cálculos en SMS
    └─ Configuración / grupo de trenes (1..n)
       ├─ usa → Estructura (1)  → jerarquía de huecos (ver ejemplo)
-      ├─ drivers
+      ├─ drivers (propios de esta flota + estructura)
       └─ nº de unidades (trenes) asignadas
 ```
 
-### Qué pertenece a cada nivel
+### Qué pertenece a cada nivel (decidido 2026-11-04)
 | Nivel | Qué tiene |
 |---|---|
-| **Cliente** | Los catálogos comunes de **estructuras**, **perfiles de drivers**, **perfiles de propiedades de categoría** y **perfiles de propiedades de hueco**. Los perfiles van ligados a una estructura y los pueden usar varias configuraciones de distintas flotas |
+| **Cliente** | El catálogo de **estructuras**, que puede usar cualquier flota, y un **único juego de propiedades de categoría**, que se aplica a todas las flotas |
+| **Estructura** | Su composición de huecos y **sus propiedades de hueco** (una sola definición por estructura) |
 | **Flota** | Nombre, descripción y **cálculos en SMS** |
-| **Configuración** | Nombre, descripción, la estructura, el **perfil de drivers**, el **perfil de propiedades de categoría** y el **perfil de propiedades de hueco** que usa, el nº de unidades y la carga de datos (plantillas) |
+| **Configuración** (flota + estructura) | Nombre, la estructura, el nº de unidades, **sus drivers** y la carga de datos (plantillas) |
 
 ### De qué depende cada cosa
-- **Drivers**: de la **categoría**. Se marcan sobre el árbol de categorías de la estructura.
-- **Propiedades de categoría**: de las **categorías** de la estructura.
-- **Propiedades de hueco**: de los **huecos** de la estructura.
-- Si varias configuraciones usan la misma estructura, normalmente comparten propiedades. Si hay diferencias, se duplica el perfil. **Decidido (2026-11-04): opción B**, perfiles comunes del cliente. Se descarta guardar las propiedades por flota × estructura.
-- **Propiedades de categoría y de hueco van separadas** (2026-11-04): son dos catálogos distintos, cada uno con su apartado (**Configuración › Propiedades de categoría** y **Configuración › Propiedades de hueco**). Una configuración elige un perfil de cada tipo por separado.
-- **Perfiles por defecto** (2026-11-04): cada estructura tiene siempre un perfil **«Estándar · <estructura>»** de drivers, otro de propiedades de categoría y otro de propiedades de hueco. Se crean solos al dar de alta la estructura El de drivers es el que tiene elegido de inicio una configuración nueva (toda configuración necesita un perfil de drivers). Las propiedades son opcionales: una configuración puede no tener perfil de propiedades de categoría ni de hueco. Se pueden modificar (con aviso de impacto), pero no eliminar. El de drivers parte del kilometraje en todo, heredable salvo en la unidad; los de propiedades parten vacíos.
+- **Drivers**: de la **estructura y la flota**. Cada configuración marca los suyos sobre el árbol de categorías de su estructura. Por ejemplo, la flota 1 con la estructura B y la flota 2 con la estructura B pueden tener drivers distintos. No hay catálogo común de drivers.
+- **Propiedades de categoría**: del **cliente**. Hay un solo juego, sin perfiles, y se aplica a todas las flotas. Se edita en **Configuración › Propiedades de categoría** o en el paso 4 del asistente, avisando de que afecta a todas las flotas.
+- **Propiedades de hueco**: de la **estructura**. Cada estructura tiene las suyas y se editan en **Configuración › Estructuras** (pestaña Propiedades de hueco). En el asistente solo se ven.
+- *Sustituye a los perfiles comunes de drivers y de propiedades (opción B) y a los perfiles por defecto.*
 
 ### Reglas de las estructuras
 - **Una sola versión**: no hay versiones ni variantes. Modificar una estructura **afecta a todas las configuraciones que la usan**.
@@ -131,12 +131,11 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
 | Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
-| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. Tiene nombre y descripción. La **flota es el paraguas** y puede tener varias configuraciones; las propiedades y el SMS son de la flota |
+| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. La **flota es el paraguas** y puede tener varias configuraciones; el SMS es de la flota |
 | Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
 | Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro. Cada hueco tiene dos marcas por driver: **tenerlo** y que sea **heredable** |
-| Perfil de propiedades de categoría | Qué propiedades se registran en cada categoría de una estructura (y si guardan histórico). Es común al cliente, se gestiona en **Configuración › Propiedades de categoría** y modificarlo afecta a todas las configuraciones que lo usan |
-| Perfil de propiedades de hueco | Qué propiedades describen cada hueco de una estructura y sus valores. Es común al cliente, se gestiona en **Configuración › Propiedades de hueco** y modificarlo afecta a todas las configuraciones que lo usan |
-| Perfil de drivers | Conjunto de drivers (tener y heredable) de cada categoría de una estructura. Es común al cliente, se gestiona en **Configuración › Drivers** y modificarlo afecta a todas las configuraciones que lo usan |
+| Propiedad de categoría | Propiedad que se registra para una categoría de activo (y si guarda histórico). Hay un único juego para todo el cliente |
+| Propiedad de hueco | Propiedad que describe una posición de la estructura, con su valor. Cada estructura tiene las suyas |
 | Heredable | Marca de un driver en un hueco: su valor viene del padre y no se registra aparte. Por defecto, el km lo **tienen** todos los huecos y es **heredable** en todos menos en la unidad, que no tiene padre |
 | Histórico | Marca de una propiedad de categoría que indica que se guarda la evolución de su valor en el tiempo |
 | Plantilla | Excel que genera la aplicación, por categoría, según la estructura, las propiedades y los drivers, para cargar los datos de los activos |

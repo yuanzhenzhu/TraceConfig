@@ -1,6 +1,8 @@
 "use client";
 
-// Editores de un perfil de propiedades (HU-14 a HU-20). Se usan en Configuración › Propiedades y en los pasos 4 y 5 del asistente.
+// Editores de propiedades (HU-14 a HU-20).
+// - Propiedades de categoría: únicas para todo el cliente (Configuración › Propiedades de categoría y paso 4).
+// - Propiedades de hueco: de cada estructura (Configuración › Estructuras y, en solo lectura, paso 5).
 // - Propiedades de categoría: dependen de las categorías de la estructura.
 // - Propiedades de hueco: dependen de los huecos de la estructura.
 
@@ -17,10 +19,12 @@ export function resumenPropiedades(raiz: Nodo, p: PropiedadesConfig) {
 }
 
 /* ---------- Propiedades de categoría ---------- */
-export function EditorPropsCategoria({ raiz, valor, onChange, soloLectura }: {
-  raiz: Nodo; valor: PropiedadesConfig["propsCategoria"]; onChange: (v: PropiedadesConfig["propsCategoria"]) => void; soloLectura?: boolean;
+export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLectura }: {
+  /** Las categorías salen de la estructura (raiz) o de una lista (todas las del cliente). */
+  raiz?: Nodo; categorias?: string[];
+  valor: PropiedadesConfig["propsCategoria"]; onChange: (v: PropiedadesConfig["propsCategoria"]) => void; soloLectura?: boolean;
 }) {
-  const cats = categoriasDe(raiz);
+  const cats = raiz ? categoriasDe(raiz) : (categorias ?? []).map((categoria) => ({ categoria }));
   const [sel, setSel] = useState(cats[0]?.categoria ?? "");
   const [buscaCat, setBuscaCat] = useState("");
   const [buscaProp, setBuscaProp] = useState("");

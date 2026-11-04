@@ -8,7 +8,7 @@ import { Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar
 import { Paso1, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
 import { Paso4, Paso5, Paso6 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
-import { PASOS, categoriasDe, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
+import { PASOS, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function AsistentePage() {
@@ -57,7 +57,7 @@ export default function AsistentePage() {
   const ocupados = store.estructuras.filter((e) => e.id !== est?.id).map((e) => e.nombre.trim().toLowerCase());
   const v1 = paso1Valido(c, est, ocupados);
   const alcanzable = (n: number) => n === 1 || (v1 && c.guardada);
-  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!store.perfil(c.perfilDriversId) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
@@ -77,14 +77,10 @@ export default function AsistentePage() {
       // Si se cambia de estructura, las plantillas se recalculan para sus categorías.
       const nuevas = plantillasIniciales(raiz);
       Object.keys(nuevas).forEach((k) => { if (c.plantillas[k]) nuevas[k] = c.plantillas[k]; });
-      // Un perfil de drivers de otra estructura deja de valer
-      const perfil = store.perfil(c.perfilDriversId);
-      const otraEst = (pid: string | null) => { const p = store.perfilProps(pid); return !!p && p.estructuraId !== est?.id; };
+      // Los drivers son de esta configuración y de su estructura: si cambia la estructura, se parte de los de por defecto.
       set({
         plantillas: nuevas,
-        ...(perfil && perfil.estructuraId !== est?.id ? { perfilDriversId: null } : {}),
-        ...(otraEst(c.perfilPropsCategoriaId) ? { perfilPropsCategoriaId: null } : {}),
-        ...(otraEst(c.perfilPropsHuecoId) ? { perfilPropsHuecoId: null } : {}),
+        ...(!c.drivers || c.drivers.estructuraId !== est?.id ? { drivers: { ...driversIniciales(raiz), estructuraId: est!.id } } : {}),
       });
     }
     if (p === 1 && c.guardada && est?.borradorDe) store.actualizarConfig(c.id, { guardada: true }); // la estructura nueva pasa al catálogo

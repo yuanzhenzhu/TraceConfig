@@ -30,7 +30,7 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 | HU-11 | Elegir otros drivers (ciclos, horas) para algunas categorías | T |
 | HU-12 | Que los drivers de ciclos y horas se marquen por defecto en los hijos y se hereden a todo salvo al padre | T |
 | HU-13 | Cambiar la asignación de drivers más adelante | T |
-| HU-44 | Elegir en el asistente un perfil de drivers del catálogo para la estructura de la configuración, o crear uno nuevo; si lo usan otras configuraciones, verlo en solo lectura y duplicarlo o modificarlo en Drivers | N |
+| HU-44 | Marcar en el asistente los drivers propios de la configuración (flota + estructura), partiendo del kilometraje por defecto | N |
 
 ### A4. Propiedades de categoría
 | ID | Historia | Origen |
@@ -79,27 +79,17 @@ La estructura es común a todo el cliente: modificarla afecta a todas las config
 | HU-42 | Ver qué unidades han quedado incompletas por un cambio de estructura, para cargar sus datos | N |
 | HU-43 | Eliminar una estructura que no usa ninguna configuración | N |
 
-## Épica D: Catálogo de drivers (nuevo apartado)
-Los drivers son, como las estructuras, comunes a todo el cliente. Se agrupan en **perfiles de drivers** ligados a una estructura.
+## Drivers y propiedades (decidido 2026-11-04)
+- **Drivers**: propios de cada configuración (flota + estructura). Sin catálogo común. Sustituye a la épica D (HU-45 a 48 y 53), que se descarta.
+- **Propiedades de categoría**: un único juego del cliente para todas las flotas. Sustituye a la épica P (HU-49 a 52 y 54).
+- **Propiedades de hueco**: de cada estructura, en el catálogo de estructuras.
 
 | ID | Historia | Origen |
 |---|---|---|
-| HU-45 | Ver el catálogo de perfiles de drivers, con su estructura y cuántas configuraciones y unidades lo usan | N |
-| HU-46 | Crear un perfil de drivers para una estructura | N |
-| HU-47 | Modificar un perfil en uso viendo antes a qué configuraciones afecta | N |
-| HU-48 | Eliminar un perfil que no usa ninguna configuración (salvo el perfil por defecto) | N |
-| HU-53 | Que cada estructura tenga un perfil de drivers por defecto («Estándar»), creado solo, que aparece elegido de inicio: toda configuración tiene que tener un perfil de drivers | N |
-
-## Épica P: Catálogos de propiedades (dos apartados, opción B decidida)
-Las propiedades dependen de la estructura y se agrupan en perfiles comunes del cliente, **separados por tipo**: **Configuración › Propiedades de categoría** (dependen de las categorías) y **Configuración › Propiedades de hueco** (dependen de los huecos). Cada historia aplica a los dos catálogos.
-
-| ID | Historia | Origen |
-|---|---|---|
-| HU-49 | Ver el catálogo de perfiles de propiedades de categoría y el de propiedades de hueco, con su estructura y cuántas configuraciones y unidades usan cada perfil | N |
-| HU-50 | Crear un perfil de propiedades de categoría o de hueco para una estructura | N |
-| HU-51 | Modificar un perfil en uso viendo antes a qué configuraciones afecta | N |
-| HU-54 | Que cada estructura tenga un perfil por defecto («Estándar») de propiedades de categoría y otro de propiedades de hueco, creados solos. Las propiedades son opcionales: la configuración puede no tener ningún perfil elegido | N |
-| HU-52 | En el asistente, elegir (paso 4 de categoría, paso 5 de hueco, por separado) un perfil o crear uno nuevo; si lo usan otras configuraciones, verlo en solo lectura y duplicarlo para esta configuración o modificarlo en su apartado (misma regla que los drivers) | N |
+| HU-55 | Editar las propiedades de categoría del cliente en su apartado, sabiendo que se aplican a todas las flotas | N |
+| HU-56 | Editar en el asistente las propiedades de categoría de las categorías de la estructura, con aviso de que afectan a todas las flotas | N |
+| HU-57 | Editar las propiedades de hueco de una estructura desde el catálogo de estructuras, viendo a qué flotas afecta | N |
+| HU-58 | Ver en el asistente las propiedades de hueco de la estructura, con acceso para modificarlas en Estructuras | N |
 
 ## Épica B: Modificación de una configuración activa
 | ID | Historia | Origen |

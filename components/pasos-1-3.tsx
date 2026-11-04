@@ -3,13 +3,13 @@
 // Pasos 1 (Estructura y unidades) y 3 (Drivers) del asistente. (Prueba: el antiguo paso 2, Unidades, va dentro del paso 1.)
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Banner, Button, Field, Icon, Tag, useSnackbar } from "./ds";
+import { useState } from "react";
+import { Banner, Field, Icon } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
-import { EditorDrivers, ResumenDrivers } from "./drivers";
+import { EditorDrivers } from "./drivers";
 import {
-  clonar, contarHuecos, driversIniciales, nodo, nombreLibre, nuevoId,
-  type Configuracion, type DriversConfig, type Estructura, type Flota, type Nodo, type PerfilDrivers,
+  clonar, contarHuecos, driversIniciales, nodo, nuevoId,
+  type Configuracion, type Estructura, type Flota, type Nodo,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -189,135 +189,17 @@ export function paso1Valido(c: Configuracion, est: Estructura | undefined, nombr
 }
 
 /* ---------- Paso 3 ---------- */
-// Los drivers son un catálogo común del cliente (Configuración › Drivers), como las estructuras:
-// aquí se elige un perfil de la estructura de la configuración o se crea uno nuevo.
-export function Paso3({ c, set, est }: PasoProps) {
-  const snack = useSnackbar();
-  const store = useStore();
+/** Drivers propios de esta configuración (flota + estructura). Otra flota con la misma estructura puede tener otros. */
+export function Paso3({ c, set, est, flota }: PasoProps) {
   const raiz: Nodo = est!.raiz;
-  const compatibles = store.perfiles.filter((p) => p.estructuraId === est!.id).sort((a, b) => Number(!!b.porDefecto) - Number(!!a.porDefecto));
-  const actual = store.perfil(c.perfilDriversId);
-  // Sin perfil válido, se usa el perfil por defecto de la estructura.
-  const defecto = compatibles.find((p) => p.porDefecto);
-  useEffect(() => {
-    if ((!actual || actual.estructuraId !== est!.id) && defecto) set({ perfilDriversId: defecto.id });
-  }, [actual, defecto, est, set]);
-  const [modo, setModo] = useState<"existente" | "nuevo">(compatibles.length ? "existente" : "nuevo");
-  const [nuevo, setNuevo] = useState<DriversConfig & { nombre: string; descripcion: string }>(() => ({ nombre: "", descripcion: "", ...driversIniciales(raiz) }));
-  const [intentoNuevo, setIntentoNuevo] = useState(false);
-  const repetido = store.perfiles.some((p) => p.nombre.trim().toLowerCase() === nuevo.nombre.trim().toLowerCase());
-  const errNombre = intentoNuevo && !nuevo.nombre.trim() ? "Indica el nombre del perfil" : repetido ? "Ya existe un perfil con este nombre" : "";
-
-  const crear = () => {
-    setIntentoNuevo(true);
-    if (!nuevo.nombre.trim() || repetido) return;
-    const p: PerfilDrivers = { id: nuevoId("drv"), estructuraId: est!.id, ...nuevo };
-    store.guardarPerfil(p);
-    set({ perfilDriversId: p.id });
-    setModo("existente");
-  };
-  const otrasDe = (id: string) => store.usosDePerfil(id).filter((x) => x.id !== c.id);
-  const duplicar = () => {
-    if (!actual) return;
-    const p: PerfilDrivers = { ...structuredClone(actual), id: nuevoId("drv"), nombre: nombreLibre(`${actual.nombre} · ${c.nombre || "copia"}`, store.perfiles), descripcion: `Copia de ${actual.nombre}`, porDefecto: false };
-    store.guardarPerfil(p);
-    set({ perfilDriversId: p.id });
-    snack(`Perfil duplicado como "${p.nombre}"`);
-  };
-
+  const valor = c.drivers && c.drivers.estructuraId === est!.id ? c.drivers : { ...driversIniciales(raiz), estructuraId: est!.id };
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Drivers</h2>
       <p className="muted" style={{ margin: 0 }}>
-        Elige el perfil de drivers de esta configuración (obligatorio; de inicio, el Estándar de la estructura). Los perfiles son comunes a todo el cliente y van ligados a una estructura: aquí solo aparecen los de <strong>{est!.nombre}</strong>.
+        Los drivers son propios de esta configuración: de <strong>{flota.nombre}</strong> con <strong>{est!.nombre}</strong>. Otra flota que use {est!.nombre} puede tener otros. De inicio, el kilometraje en todas las categorías.
       </p>
-      <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
-        <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => setModo("existente")}><Icon name="list" /> Usar un perfil existente</button>
-        <button role="tab" className="lm-tab" aria-selected={modo === "nuevo"} onClick={() => setModo("nuevo")}><Icon name="add" /> Crear un perfil nuevo</button>
-      </div>
-
-      {modo === "existente" ? (
-        compatibles.length === 0 ? (
-          <EmptyStateSimple texto={`Todavía no hay perfiles de drivers para ${est!.nombre}`} accion={<Button variant="outlined" icon="add" onClick={() => setModo("nuevo")}>Crear un perfil nuevo</Button>} />
-        ) : (
-          <div className="stack gap-20">
-            <div role="radiogroup" aria-label="Perfiles de drivers" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "var(--lm-space-10)" }}>
-              {compatibles.map((p) => {
-                const sel = c.perfilDriversId === p.id;
-                const usos = store.usosDePerfil(p.id).filter((x) => x.id !== c.id);
-                return (
-                  <label key={p.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
-                    <input type="radio" name="perfil" checked={sel} onChange={() => set({ perfilDriversId: p.id })} aria-label={p.nombre} />
-                    <span className="lm-radio__text gap-5">
-                      <span className="row gap-10"><span className="lm-title-small">{p.nombre}</span>{p.porDefecto && <Tag tone="info">Por defecto</Tag>}</span>
-                      <span className="lm-radio__support">{p.descripcion}</span>
-                      <ResumenDrivers valor={p} />
-                      <span className="lm-body-small muted">{usos.length ? `También lo usan: ${usos.map((x) => x.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            <div className="stack gap-10">
-              {actual ? (
-                <>
-                  <CabeceraPerfil nombre={actual.nombre} otras={otrasDe(actual.id)} apartado="Drivers" href={`/configuracion/drivers/${actual.id}`} onDuplicar={duplicar} />
-                  <EditorDrivers soloLectura raiz={raiz} valor={actual} onChange={() => {}} />
-                </>
-              ) : (
-                <div className="lm-card lm-center"><Icon name="timelapse" size="xl" />Selecciona un perfil de drivers. Es obligatorio: toda configuración necesita uno.</div>
-              )}
-            </div>
-          </div>
-        )
-      ) : (
-        <div className="stack gap-20">
-          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />El perfil se añadirá al catálogo común del cliente y podrán usarlo otras configuraciones con {est!.nombre}.</span>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
-            <Field label="Nombre del perfil" required htmlFor="dp-nombre" error={errNombre}>
-              <input id="dp-nombre" className="lm-input" value={nuevo.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Km y horas de motores"
-                onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
-            </Field>
-            <Field label="Descripción" htmlFor="dp-desc">
-              <input id="dp-desc" className="lm-input" value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} />
-            </Field>
-          </div>
-          <EditorDrivers raiz={raiz} valor={nuevo} onChange={(v) => setNuevo({ ...nuevo, ...v })} />
-          <div className="row" style={{ justifyContent: "flex-end" }}>
-            <Button variant="tonal" icon="check" onClick={crear}>Crear y usar este perfil</Button>
-          </div>
-        </div>
-      )}
+      <EditorDrivers raiz={raiz} valor={valor} onChange={(v) => set({ drivers: { ...v, estructuraId: est!.id } })} />
     </section>
   );
-}
-
-export { nombreLibre };
-
-/**
- * Misma regla para drivers y propiedades en el asistente: un perfil existente solo se ve, no se marca ni desmarca.
- * Para cambiarlo se modifica en su apartado (con aviso de impacto) o se duplica para esta configuración.
- */
-export function CabeceraPerfil({ nombre, otras, apartado, href, onDuplicar, titulo }: {
-  nombre: string; otras: Configuracion[]; apartado: string; href: string; onDuplicar: () => void; titulo?: string;
-}) {
-  const store = useStore();
-  const compartido = otras.length > 0;
-  return (
-    <div className="stack gap-10">
-      <div className="row gap-10 wrap">
-        <span className="lm-title-small grow">{titulo ?? "Vista previa"} · {nombre}</span>
-        <Button variant="outlined" small icon="content_copy" onClick={onDuplicar}>Duplicar para esta configuración</Button>
-        <Link className="lm-btn lm-btn--text lm-btn--small" href={href}>Modificar en {apartado}</Link>
-      </div>
-      <Banner type="info" title={compartido ? `Solo lectura · lo usan también ${otras.length} ${otras.length === 1 ? "configuración" : "configuraciones"}` : "Solo lectura"}>
-        {compartido && <>{otras.map((x) => store.etiqueta(x)).join(", ")}. </>}
-        Para cambiar este perfil, modifícalo en {apartado}{compartido ? " (afecta a todas las configuraciones que lo usan)" : ""}. Si esta configuración necesita algo distinto, duplícalo.
-      </Banner>
-    </div>
-  );
-}
-
-function EmptyStateSimple({ texto, accion }: { texto: string; accion: React.ReactNode }) {
-  return <div className="lm-card lm-center"><Icon name="timelapse" size="xl" /><span>{texto}</span>{accion}</div>;
 }

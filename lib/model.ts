@@ -2,8 +2,15 @@
 // Todos los datos de este archivo son FICTICIOS: la carpeta datos/ todavía está vacía.
 
 export type Nodo = { id: string; categoria: string; nombre: string; hijos: Nodo[] };
-/** Estructura del catálogo común del cliente. `borradorDe` marca una estructura que se está creando dentro de un asistente aún sin guardar. */
-export type Estructura = { id: string; nombre: string; descripcion: string; raiz: Nodo; actualizada?: string; borradorDe?: string };
+/**
+ * Estructura del catálogo común del cliente: la puede usar cualquier flota.
+ * Cada estructura tiene sus propiedades de hueco (por hueco: propiedad -> valor, "" = sin valor).
+ * `borradorDe` marca una estructura que se está creando dentro de un asistente aún sin guardar.
+ */
+export type Estructura = { id: string; nombre: string; descripcion: string; raiz: Nodo; propsHueco?: PropsHueco; actualizada?: string; borradorDe?: string };
+export type PropsHueco = Record<string, Record<string, string>>;
+/** Propiedades de categoría: un único juego para todo el cliente, que se aplica a todas las flotas. */
+export type PropsCategoria = Record<string, PropAsignada[]>;
 
 export type DriverId = "km" | "ciclos" | "horas";
 export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por categoría
@@ -20,9 +27,8 @@ export type Configuracion = {
   descripcion: string;
   estructuraId: string | null; // referencia al catálogo común
   unidades: number | null;
-  perfilDriversId: string | null; // referencia al catálogo común de drivers
-  perfilPropsCategoriaId: string | null; // referencia al catálogo común de propiedades de categoría
-  perfilPropsHuecoId: string | null; // referencia al catálogo común de propiedades de hueco
+  /** Drivers propios de esta configuración (flota + estructura): otra flota con la misma estructura puede tener otros. */
+  drivers: DriversConfigEst | null;
   plantillas: Record<string, EstadoPlantilla>; // por categoría
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
@@ -56,48 +62,15 @@ export type Flota = {
 };
 
 /** Propiedades de categoría (por categoría) y de hueco (por hueco: propiedad -> valor, "" = sin valor). */
-export type PropiedadesConfig = {
-  propsCategoria: Record<string, PropAsignada[]>;
-  propsHueco: Record<string, Record<string, string>>;
-};
-
-/** Hay dos catálogos separados: propiedades de categoría (dependen de las categorías) y de hueco (dependen de los huecos). */
-export type TipoProps = "categoria" | "hueco";
-
-export const TIPOS_PROPS: Record<TipoProps, {
-  titulo: string; corto: string; ruta: string; icono: string; prefijo: string;
-  campo: "perfilPropsCategoriaId" | "perfilPropsHuecoId"; paso: number;
-}> = {
-  categoria: { titulo: "Propiedades de categoría", corto: "de categoría", ruta: "/configuracion/propiedades-categoria", icono: "list", prefijo: "pc", campo: "perfilPropsCategoriaId", paso: 4 },
-  hueco: { titulo: "Propiedades de hueco", corto: "de hueco", ruta: "/configuracion/propiedades-hueco", icono: "radio_button_checked", prefijo: "ph", campo: "perfilPropsHuecoId", paso: 5 },
-};
-
-/**
- * Perfil de propiedades del catálogo común del cliente, ligado a una estructura. Es de un solo tipo:
- * de categoría (solo usa propsCategoria) o de hueco (solo usa propsHueco).
- * Si varias configuraciones usan la misma estructura, normalmente comparten perfil; si hay diferencias, se crea otro.
- */
-export type PerfilPropiedades = PropiedadesConfig & { id: string; tipo: TipoProps; nombre: string; descripcion: string; estructuraId: string; porDefecto?: boolean; actualizada?: string };
+export type PropiedadesConfig = { propsCategoria: PropsCategoria; propsHueco: PropsHueco };
 
 export const propiedadesVacias = (): PropiedadesConfig => ({ propsCategoria: {}, propsHueco: {} });
 
 /** Qué drivers tiene cada hueco y en cuáles es heredable (su valor viene del padre). */
 export type DriversConfig = { drivers: Drivers; heredables: Drivers };
 
-/**
- * Perfil de drivers del catálogo común del cliente, como las estructuras.
- * Va ligado a una estructura (sus huecos) y lo pueden usar varias configuraciones: modificarlo les afecta a todas.
- */
-/** Cada estructura tiene un perfil por defecto («Estándar») de drivers, de propiedades de categoría y de propiedades de hueco. */
-export type PerfilDrivers = DriversConfig & { id: string; nombre: string; descripcion: string; estructuraId: string; porDefecto?: boolean; actualizada?: string };
-
-/** Nombre que no repite ninguno de la lista: añade (2), (3)… si hace falta. */
-export function nombreLibre(base: string, lista: { nombre: string }[]) {
-  const usado = (n: string) => lista.some((p) => p.nombre.trim().toLowerCase() === n.toLowerCase());
-  let n = base, i = 2;
-  while (usado(n)) n = `${base} (${i++})`;
-  return n;
-}
+/** Drivers de una configuración, con la estructura para la que se marcaron. */
+export type DriversConfigEst = DriversConfig & { estructuraId: string };
 
 export const DRIVERS: { id: DriverId; nombre: string; corto: string }[] = [
   { id: "km", nombre: "Kilometraje", corto: "Km" },
@@ -252,9 +225,9 @@ export function heredablesPorDefecto(raiz: Nodo): Drivers {
 /** Valores por defecto de los drivers de una configuración. */
 export const driversIniciales = (raiz: Nodo): DriversConfig => ({ drivers: driversPorDefecto(raiz), heredables: heredablesPorDefecto(raiz) });
 
-/** Drivers que aplican a una configuración: los de su perfil o, si aún no tiene, los valores por defecto. */
-export function driversEfectivos(perfil: PerfilDrivers | undefined, raiz: Nodo): DriversConfig {
-  return perfil && Object.keys(perfil.drivers).length ? perfil : driversIniciales(raiz);
+/** Drivers que aplican a una configuración: los suyos o, si aún no tiene, los valores por defecto. */
+export function driversEfectivos(d: DriversConfig | null | undefined, raiz: Nodo): DriversConfig {
+  return d && Object.keys(d.drivers).length ? d : driversIniciales(raiz);
 }
 
 /** Adapta unos drivers a la estructura actual: las categorías nuevas tienen los drivers de su categoría padre y los heredan de ella. */

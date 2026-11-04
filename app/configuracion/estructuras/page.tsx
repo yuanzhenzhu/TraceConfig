@@ -44,7 +44,7 @@ export default function EstructurasPage() {
             <thead>
               <tr>
                 <th style={{ width: 48 }}><span className="sr-only">Desplegar</span></th>
-                <th>Estructura</th><th>Composición</th><th className="num">Huecos por unidad</th>
+                <th>Estructura</th><th>Composición</th><th className="num">Huecos por unidad</th><th className="num">Huecos con prop.</th>
                 <th className="num">Configuraciones</th><th className="num">Unidades</th><th>Estado</th><th>Últ. modificación</th>
                 <th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
@@ -64,6 +64,7 @@ export default function EstructurasPage() {
                       <td><span className="stack"><span className="emph">{e.nombre}</span><span className="lm-body-small muted">{e.descripcion}</span></span></td>
                       <td className="muted">{categoriasDe(e.raiz).filter((x) => x.nivel > 1).slice(0, 3).map((x) => `${x.huecos} ${x.categoria}`).join(" · ")}…</td>
                       <td className="num">{contarHuecos(e.raiz)}</td>
+                      <td className="num">{Object.values(e.propsHueco ?? {}).filter((x) => Object.keys(x).length).length || "—"}</td>
                       <td className="num">{usos.length}</td>
                       <td className="num">{unidades || "—"}</td>
                       <td>{usos.length ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>}</td>
@@ -83,9 +84,8 @@ export default function EstructurasPage() {
                       return (
                         <tr key={c.id} className="is-child">
                           <td />
-                          <td colSpan={3} style={{ paddingLeft: "var(--lm-space-30)" }}>
+                          <td colSpan={4} style={{ paddingLeft: "var(--lm-space-30)" }}>
                             <Link href={`/configuracion/${c.id}`}>{store.etiqueta(c)}</Link>
-                            <span className="muted"> · {f?.nombre}</span>
                           </td>
                           <td />
                           <td className="num">{c.unidades}</td>

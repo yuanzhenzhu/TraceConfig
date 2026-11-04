@@ -7,7 +7,7 @@ import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag, useSnackbar } f
 import { iconoCategoria } from "./arbol";
 import {
   DRIVERS, FORMAS_CALCULO, PASOS, PROPS_CATEGORIA, categoriasDe, contarHuecos, driversEfectivos, primerNivelCargado, recorrer,
-  rutaDe, unidadesTerminadas, type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo, type PerfilDrivers, type PerfilPropiedades,
+  rutaDe, unidadesTerminadas, type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo, type DriversConfig, type PropsCategoria,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { resumenPropiedades } from "./propiedades";
@@ -20,13 +20,13 @@ const ESTADO: Record<EstadoPlantilla, { tone: "neutral" | "success" | "error"; t
 };
 
 /** Genera la plantilla CSV (separador ;) de una categoría y la descarga. */
-function descargarPlantilla(c: Configuracion, raiz: Nodo, perfil: PerfilDrivers | undefined, propiedades: PerfilPropiedades | undefined, categoria: string) {
+function descargarPlantilla(c: Configuracion, raiz: Nodo, drivers: DriversConfig | null, propsCategoria: PropsCategoria, categoria: string) {
   const huecos: { id: string; ruta: string }[] = [];
   recorrer(raiz, (n) => { if (n.categoria === categoria) huecos.push({ id: n.id, ruta: rutaDe(raiz, n.id).join(" > ") || n.nombre }); });
   // Solo se pide el valor inicial de los drivers propios: si el driver es heredable, el valor viene del padre.
-  const ef = driversEfectivos(perfil, raiz);
+  const ef = driversEfectivos(drivers, raiz);
   const drvs = DRIVERS.filter((d) => ef.drivers[categoria]?.[d.id] && !ef.heredables[categoria]?.[d.id]); // los drivers son por categoría
-  const props = (propiedades?.propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
+  const props = (propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
   const esRaiz = categoria === raiz.categoria;
   const cab = esRaiz
     ? ["Nº de serie de la unidad", "Fecha de alta", ...drvs.map((d) => `${d.nombre} inicial`), ...props]
@@ -45,8 +45,6 @@ function descargarPlantilla(c: Configuracion, raiz: Nodo, perfil: PerfilDrivers 
 export function Paso7({ c, set, est }: PasoProps) {
   const snack = useSnackbar();
   const store = useStore();
-  const perfil = store.perfil(c.perfilDriversId);
-  const propiedades = store.perfilProps(c.perfilPropsCategoriaId);
   const raiz = est!.raiz;
   const cats = categoriasDe(raiz);
   const [subiendo, setSubiendo] = useState<string | null>(null);
@@ -105,7 +103,7 @@ export function Paso7({ c, set, est }: PasoProps) {
                 <td className="actions">
                   <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                     <IconButton icon="file_download" label={`Descargar plantilla de ${x.categoria}`} disabled={!ok}
-                      onClick={() => { descargarPlantilla(c, raiz, perfil, propiedades, x.categoria); snack(`Plantilla de ${x.categoria} descargada`); }} />
+                      onClick={() => { descargarPlantilla(c, raiz, c.drivers, store.propsCategoria, x.categoria); snack(`Plantilla de ${x.categoria} descargada`); }} />
                     <Button variant={est === "cargada" ? "text" : "outlined"} small icon="file_upload" disabled={!ok} onClick={() => setSubiendo(x.categoria)}>
                       {est === "cargada" ? "Reemplazar" : "Subir"}
                     </Button>
@@ -191,23 +189,19 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const cats = categoriasDe(raiz);
   const pendientes = cats.filter((x) => c.plantillas[x.categoria] !== "cargada");
   const store = useStore();
-  const perfil = store.perfil(c.perfilDriversId);
-  const propiedades = store.perfilProps(c.perfilPropsCategoriaId);
-  const propsHueco = store.perfilProps(c.perfilPropsHuecoId);
-  const ef = driversEfectivos(perfil, raiz);
+  const ef = driversEfectivos(c.drivers, raiz);
   const nDrivers = DRIVERS.map((d) => ({
     d, n: Object.values(ef.drivers).filter((x) => x[d.id]).length, h: Object.values(ef.heredables).filter((x) => x[d.id]).length,
   }));
-  const nPropsCat = propiedades ? resumenPropiedades(raiz, propiedades).nCat : 0;
-  const nHuecosProps = propsHueco ? resumenPropiedades(raiz, propsHueco).nHuecos : 0;
+  const { nCat: nPropsCat, nHuecos: nHuecosProps } = resumenPropiedades(raiz, { propsCategoria: store.propsCategoria, propsHueco: est.propsHueco ?? {} });
   const omitido = (n: number) => c.pasosOmitidos.includes(n);
   const sms = flota.sms;
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
     { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades</> },
-    { n: 3, titulo: "Drivers", contenido: <>{perfil ? `Perfil: ${perfil.nombre}` : "Sin perfil: kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: !perfil ? "Falta elegir el perfil de drivers" : undefined },
-    { n: 4, titulo: "Propiedades de categoría", contenido: <>{propiedades ? `Perfil: ${propiedades.nombre}` : "Sin propiedades de categoría"}<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
-    { n: 5, titulo: "Propiedades de hueco", contenido: <>{propsHueco ? `Perfil: ${propsHueco.nombre}` : "Sin propiedades de hueco"}<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</>, aviso: omitido(5) ? "Paso omitido" : undefined },
+    { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: undefined },
+    { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todo el cliente<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
+    { n: 5, titulo: "Propiedades de hueco", contenido: <>De la estructura {est.nombre}<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</>, aviso: omitido(5) ? "Paso omitido" : undefined },
     ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS (de la flota)", contenido: sms ? `${sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === sms.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === sms.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),
     { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c, raiz)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },
   ];

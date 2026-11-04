@@ -1,11 +1,13 @@
 "use client";
 
 // HU-40 y HU-41: crear una estructura o modificarla viendo su impacto en las configuraciones que la usan.
+// Cada estructura tiene sus propiedades de hueco (pestaña Propiedades de hueco).
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Loading, Tag, useSnackbar } from "@/components/ds";
+import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
 import { EditorEstructura } from "@/components/arbol";
+import { EditorPropsHueco, resumenPropiedades } from "@/components/propiedades";
 import { clonar, contarHuecos, diferencia, nodo, nuevoId, type Estructura } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -22,10 +24,12 @@ export default function EditarEstructuraPage() {
   const [base, setBase] = useState("");
   const [intentado, setIntentado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const [pestana, setPestana] = useState<"estructura" | "huecos">("estructura");
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("pestana") === "huecos") setPestana("huecos"); }, []);
 
   useEffect(() => {
     if (!store.listo || borrador) return;
-    if (esNueva) setBorrador({ id: nuevoId("est"), nombre: "", descripcion: "", raiz: nodo("Tren", "Tren") });
+    if (esNueva) setBorrador({ id: nuevoId("est"), nombre: "", descripcion: "", raiz: nodo("Tren", "Tren"), propsHueco: {} });
     else if (original) setBorrador(structuredClone(original));
   }, [store.listo, esNueva, original, borrador]);
 
@@ -43,6 +47,8 @@ export default function EditarEstructuraPage() {
   const unidades = usos.reduce((s, c) => s + (c.unidades ?? 0), 0);
   const dif = original ? diferencia(original.raiz, borrador.raiz) : { anadidos: [], eliminados: [] };
   const hayCambiosArbol = dif.anadidos.length + dif.eliminados.length > 0;
+  const hayCambiosHuecos = !!original && JSON.stringify(original.propsHueco ?? {}) !== JSON.stringify(borrador.propsHueco ?? {});
+  const huecosConProps = resumenPropiedades(borrador.raiz, { propsCategoria: {}, propsHueco: borrador.propsHueco ?? {} }).nHuecos;
   const errNombre = intentado && !borrador.nombre.trim() ? "Indica el nombre de la estructura" : "";
   const errVacia = intentado && borrador.raiz.hijos.length === 0;
   const nombreRepetido = store.estructuras.some((e) => e.id !== borrador.id && e.nombre.trim().toLowerCase() === borrador.nombre.trim().toLowerCase());
@@ -50,9 +56,9 @@ export default function EditarEstructuraPage() {
   const guardar = () => {
     setIntentado(true);
     if (!borrador.nombre.trim() || borrador.raiz.hijos.length === 0 || nombreRepetido) return;
-    if (enUso && hayCambiosArbol && !confirmar) { setConfirmar(true); return; }
+    if (enUso && (hayCambiosArbol || hayCambiosHuecos) && !confirmar) { setConfirmar(true); return; }
     store.guardarEstructura(borrador);
-    snack(esNueva ? `Estructura "${borrador.nombre}" creada` : enUso && hayCambiosArbol
+    snack(esNueva ? `Estructura "${borrador.nombre}" creada` : enUso && (hayCambiosArbol || hayCambiosHuecos)
       ? `Estructura "${borrador.nombre}" modificada en ${usos.length} configuraciones`
       : `Estructura "${borrador.nombre}" guardada`);
     router.push("/configuracion/estructuras");
@@ -106,8 +112,21 @@ export default function EditarEstructuraPage() {
               )}
             </fieldset>
           )}
-          {errVacia && <Banner type="error">La estructura está vacía: añade al menos un elemento</Banner>}
-          <EditorEstructura soloExtremos={enUso} raiz={borrador.raiz} onChange={(raiz) => setBorrador({ ...borrador, raiz })} />
+          <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
+            <button role="tab" className="lm-tab" aria-selected={pestana === "estructura"} onClick={() => setPestana("estructura")}><Icon name="table_rows" /> Estructura</button>
+            <button role="tab" className="lm-tab" aria-selected={pestana === "huecos"} onClick={() => setPestana("huecos")}><Icon name="radio_button_checked" /> Propiedades de hueco{huecosConProps ? ` (${huecosConProps})` : ""}</button>
+          </div>
+          {pestana === "estructura" ? (
+            <>
+              {errVacia && <Banner type="error">La estructura está vacía: añade al menos un elemento</Banner>}
+              <EditorEstructura soloExtremos={enUso} raiz={borrador.raiz} onChange={(raiz) => setBorrador({ ...borrador, raiz })} />
+            </>
+          ) : (
+            <>
+              <span className="muted">Describen cada posición de esta estructura (por ejemplo, el lado de una rueda). Las comparten todas las flotas que la usan. Sus valores se pueden rellenar ahora o más adelante y no aparecen en las plantillas.</span>
+              <EditorPropsHueco raiz={borrador.raiz} valor={borrador.propsHueco ?? {}} onChange={(v) => setBorrador({ ...borrador, propsHueco: v })} />
+            </>
+          )}
         </section>
       </div>
 
@@ -116,6 +135,7 @@ export default function EditarEstructuraPage() {
           <span className="grow lm-body-small muted">
             {contarHuecos(borrador.raiz)} huecos por unidad
             {hayCambiosArbol && ` · ${dif.anadidos.length} añadidos · ${dif.eliminados.length} eliminados`}
+            {hayCambiosHuecos && " · Propiedades de hueco modificadas"}
           </span>
           <Button variant="outlined" onClick={() => router.push("/configuracion/estructuras")}>Cancelar</Button>
           <Button onClick={guardar}>{esNueva ? "Crear estructura" : "Guardar cambios"}</Button>
@@ -130,6 +150,7 @@ export default function EditarEstructuraPage() {
             <Button onClick={guardar}>Aplicar en {usos.length} configuraciones</Button>
           </>}>
           <div className="row gap-20">
+            {hayCambiosHuecos && <Tag tone="primary" icon="radio_button_checked">Propiedades de hueco modificadas</Tag>}
             {dif.anadidos.length > 0 && <Tag tone="success" icon="add">{dif.anadidos.length} {dif.anadidos.length === 1 ? "hueco añadido" : "huecos añadidos"} por unidad</Tag>}
             {dif.eliminados.length > 0 && <Tag tone="error" icon="remove">{dif.eliminados.length} {dif.eliminados.length === 1 ? "hueco eliminado" : "huecos eliminados"} por unidad</Tag>}
           </div>
