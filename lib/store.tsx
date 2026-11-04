@@ -9,7 +9,7 @@ import {
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[]; perfilesProps: PerfilPropiedades[] };
-const CLAVE = "lm-trace-prototipo-v9";
+const CLAVE = "lm-trace-prototipo-v10";
 
 /**
  * Cada estructura del catálogo tiene siempre su perfil por defecto («Estándar · <estructura>») de drivers,
@@ -86,17 +86,17 @@ function semilla(): Estado {
   parcial["Tren"] = "cargada"; parcial["Coche"] = "cargada"; parcial["Puerta"] = "cargada"; parcial["Rueda"] = "errores";
   const configs: Configuracion[] = [
     base("f1000", {
-      id: "cfg-serie-a", nombre: "Serie A", descripcion: "Unidades de 3 coches", estructuraId: e1.id, unidades: 16,
+      id: "cfg-serie-a", nombre: "", descripcion: "", estructuraId: e1.id, unidades: 16,
       perfilDriversId: "drv-1", perfilPropsCategoriaId: "pc-1", perfilPropsHuecoId: "ph-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
-      id: "cfg-serie-b", nombre: "Serie B", descripcion: "Unidades de 2 coches, ampliación 2026", estructuraId: e2.id, unidades: 8,
+      id: "cfg-serie-b", nombre: "", descripcion: "", estructuraId: e2.id, unidades: 8,
       perfilDriversId: "drv-2", perfilPropsCategoriaId: "pc-2", perfilPropsHuecoId: null, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
-      id: "cfg-tranvia", nombre: "Serie única", descripcion: "Todas las unidades del tranvía", estructuraId: e1.id, unidades: 12,
+      id: "cfg-tranvia", nombre: "", descripcion: "", estructuraId: e1.id, unidades: 12,
       perfilDriversId: "drv-1", perfilPropsCategoriaId: "pc-1", perfilPropsHuecoId: "ph-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
     }),
@@ -253,18 +253,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const restablecer = useCallback(() => setEstado(semilla()), []);
 
+  // Una configuración no tiene nombre propio: se identifica por su flota y su estructura (una por estructura en cada flota).
+  const configs = useMemo(() => estado.configs.map((c) => ({ ...c, nombre: estado.estructuras.find((e) => e.id === c.estructuraId)?.nombre ?? "" })), [estado.configs, estado.estructuras]);
+
   const api = useMemo<Api>(() => ({
-    listo, flotas: estado.flotas, configs: estado.configs, perfiles: estado.perfiles, perfilesProps: estado.perfilesProps,
+    listo, flotas: estado.flotas, configs, perfiles: estado.perfiles, perfilesProps: estado.perfilesProps,
     estructuras: estado.estructuras.filter((e) => !e.borradorDe),
     estructura: (id) => estado.estructuras.find((e) => e.id === id),
     perfil: (id) => estado.perfiles.find((p) => p.id === id),
     perfilProps: (id) => estado.perfilesProps.find((p) => p.id === id),
-    usosDe: (eid) => estado.configs.filter((c) => c.guardada && c.estructuraId === eid),
-    usosDePerfil: (pid) => estado.configs.filter((c) => c.guardada && c.perfilDriversId === pid),
-    usosDePerfilProps: (pid) => estado.configs.filter((c) => c.guardada && (c.perfilPropsCategoriaId === pid || c.perfilPropsHuecoId === pid)),
+    usosDe: (eid) => configs.filter((c) => c.guardada && c.estructuraId === eid),
+    usosDePerfil: (pid) => configs.filter((c) => c.guardada && c.perfilDriversId === pid),
+    usosDePerfilProps: (pid) => configs.filter((c) => c.guardada && (c.perfilPropsCategoriaId === pid || c.perfilPropsHuecoId === pid)),
     crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig,
     guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer,
-  }), [listo, estado, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer]);
+  }), [listo, estado, configs, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

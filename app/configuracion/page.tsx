@@ -7,7 +7,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, Loading, Menu, Tag, useSnackbar,
 } from "@/components/ds";
-import { fecha, unidadesTerminadas, type Configuracion, type Flota } from "@/lib/model";
+import { contarHuecos, fecha, unidadesTerminadas, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 type Demo = "normal" | "vacio" | "error" | "cargando";
@@ -188,13 +188,10 @@ export default function ListadoPage() {
                           <tr key={c.id} className="is-child">
                             <td />
                             <td style={{ paddingLeft: "var(--lm-space-30)" }}>
-                              <span className="stack">
-                                <span className="emph">{c.nombre}</span>
-                                <span className="lm-body-small muted">{c.descripcion}</span>
-                              </span>
+                              <span className="emph">{c.nombre || "Nueva configuración"}</span>
                             </td>
                             <td />
-                            <td>{est?.nombre ?? "—"}</td>
+                            <td className="muted">{est ? `${contarHuecos(est.raiz)} huecos por unidad` : "Sin estructura"}</td>
                             <td className="num">{c.unidades ?? "—"}</td>
                             <td>
                               <span className="row gap-10">

@@ -10,7 +10,7 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 | ID | Historia | Origen |
 |---|---|---|
 | HU-01 | Ver el listado de configuraciones de una flota con su estado (En configuración / Activa), para saber qué hay y por dónde seguir | N |
-| HU-02 | Iniciar una configuración en una flota nueva, con nombre y descripción, para identificarla | T |
+| HU-02 | Iniciar una configuración en una flota nueva (la flota con nombre y descripción; la configuración se identifica por su estructura) | T |
 | HU-03 | Iniciar una nueva configuración en una flota existente, para gestionar varias estructuras dentro de la misma flota | T |
 | HU-04 | Indicar el número de unidades de la configuración, para generar las unidades que comparten la estructura (los nº de serie llegan en la plantilla de primer nivel) | T |
 

@@ -204,7 +204,7 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const sms = flota.sms;
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
-    { n: 1, titulo: "Datos y estructura", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad</> },
+    { n: 1, titulo: "Estructura", contenido: <>{est.nombre}: {contarHuecos(raiz)} huecos por unidad</> },
     { n: 2, titulo: "Unidades", contenido: <>{c.unidades} unidades</> },
     { n: 3, titulo: "Drivers", contenido: <>{perfil ? `Perfil: ${perfil.nombre}` : "Sin perfil: kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: !perfil ? "Falta elegir el perfil de drivers" : undefined },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>{propiedades ? `Perfil: ${propiedades.nombre}` : "Sin propiedades de categoría"}<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },

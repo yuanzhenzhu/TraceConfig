@@ -4,7 +4,7 @@
 **Historias:** HU-01 a HU-29 (ver `historias/backlog-configuracion.md`)
 
 ## Idea general
-La **flota** es el paraguas: tiene nombre y descripción. Dentro de ella hay una o varias **configuraciones**, cada una una parte de la flota con su propia estructura y su número de unidades, y con nombre y descripción propios. Por ejemplo, la flota Metro Línea 1 puede tener "Serie A", que usa Estructura 1 con 16 unidades, y "Serie B", que usa Estructura 2 con 8 unidades.
+La **flota** es el paraguas: tiene nombre y descripción. Dentro de ella hay una o varias **configuraciones**, cada una una parte de la flota con su propia estructura y su número de unidades. La configuración **no tiene nombre ni descripción propios**: se identifica por su flota y su estructura, porque cada flota tiene una configuración por estructura. Por ejemplo, la flota Metro Línea 1 puede tener una configuración con Estructura 1 y 16 unidades, y otra con Estructura 2 y 8 unidades.
 
 El alta inicial es un **asistente por pasos** (`stepper-horizontal`) que se abre desde el listado de flotas (HU-01).
 - Los pasos **obligatorios** son Estructura, Unidades, Drivers y Carga de datos.
@@ -24,7 +24,7 @@ flowchart TD
     DF -->|Cancelar| L
 
     subgraph ASISTENTE [Asistente de configuración]
-      P1[1 · Datos y estructura<br/>nombre + descripción de la configuración<br/>obligatorio y bloqueante]
+      P1[1 · Estructura<br/>obligatorio y bloqueante<br/>una configuración por estructura en cada flota]
       P1 --> E1{¿Estructura existente?}
       E1 -->|Sí| E2[Elegir de la lista + previsualizar · HU-05]
       E1 -->|No, crear nueva| E3[Nombre + descripción<br/>partir de una existente o de cero · HU-06]
@@ -67,7 +67,7 @@ flowchart TD
 |---|---|---|
 | 0 | Listado de flotas y configuraciones | navbar, header, filtros (matSelect), tabla (matCell), tagSemantic-status, matPaginator, empty-state |
 | 0b | Dialog "Nueva flota" (nombre y descripción de la flota) | dialog-2, matFormField ×2 |
-| 1a | Datos y estructura: nombre y descripción de la configuración + elegir estructura existente | matFormField ×2, matRadioButton o matList, previsualización del árbol, matTabs (Existente / Nueva) |
+| 1a | Estructura: elegir una existente (las que ya usa otra configuración de la flota aparecen desactivadas) | matRadioButton o matList, previsualización del árbol, matTabs (Existente / Nueva) |
 | 1b | Estructura: editor | paleta de categorías (matList + buscador), árbol editable, matMenu (copiar, pegar, eliminar), banner informativo "solo se podrá modificar por los extremos" |
 | 2 | Unidades | matFormField (nº de unidades). Los nº de serie llegan después en la plantilla de primer nivel |
 | 3 | Drivers | árbol de la estructura con matCheckbox km / ciclos / horas por categoría |
@@ -80,7 +80,7 @@ flowchart TD
 Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` arriba, con un pie fijo que tiene **Anterior** (outlined), **Guardar y salir** (text) y **Siguiente / Finalizar** (filled).
 
 ## Decisiones validadas
-1. **Flota y configuración:** la flota es el paraguas, solo con nombre y descripción (sin código; el nombre no se puede repetir). Cada configuración es una parte de la flota con su estructura y tiene también nombre y descripción.
+1. **Flota y configuración:** la flota es el paraguas, solo con nombre y descripción (sin código; el nombre no se puede repetir). Cada configuración es una parte de la flota con su estructura. **Actualizado (2026-11-04):** la configuración no tiene nombre ni descripción; toma el nombre de su estructura y cada flota tiene como mucho una configuración por estructura.
 2. **Unidades:** en el paso 2 solo se indica cuántas. Los nº de serie y el resto de datos de la unidad (fecha, km) llegan en la **plantilla de primer nivel**.
 3. **Finalizar:** se puede finalizar en cuanto está cargada la plantilla de **primer nivel (unidades)**. El resto de plantillas se puede completar después.
 4. **Cambios de estructura:** solo en los **extremos** (eliminar o cambiar extremos). La construcción completa con arrastrar y soltar solo es posible mientras se crea la estructura en el paso 1.
