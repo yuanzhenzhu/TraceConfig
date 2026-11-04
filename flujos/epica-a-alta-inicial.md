@@ -70,7 +70,7 @@ flowchart TD
 | 1a | Datos y estructura: nombre y descripción de la configuración + elegir estructura existente | matFormField ×2, matRadioButton o matList, previsualización del árbol, matTabs (Existente / Nueva) |
 | 1b | Estructura: editor | paleta de categorías (matList + buscador), árbol editable, matMenu (copiar, pegar, eliminar), banner informativo "solo se podrá modificar por los extremos" |
 | 2 | Unidades | matFormField (nº de unidades). Los nº de serie llegan después en la plantilla de primer nivel |
-| 3 | Drivers | árbol de la estructura con matCheckbox km / ciclos / horas por categoría |
+| 3 | Drivers | estructura entera de la unidad con matCheckbox km / ciclos / horas (tiene y heredable) en cada hueco |
 | 4 | Propiedades de categoría | dos columnas: categorías · propiedades (matCheckbox + toggle de histórico), buscador |
 | 5 | Propiedades de hueco | árbol de huecos con selección múltiple, panel de propiedades y valores |
 | 6 | Cálculos en SMS | matSelect (flota o línea, driver), matRadioButton (forma de cálculo) |
@@ -107,6 +107,7 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
     - **Propiedades de hueco:** de cada estructura. Se editan en **Configuración › Estructuras**, pestaña *Propiedades de hueco*. El paso 5 solo las muestra, con el botón *Modificar en Estructuras*. Desaparece el apartado Propiedades de hueco.
 
 ## En prueba (rama prueba/estructura-y-unidades)
+- **Drivers sobre la estructura entera de la unidad** (2026-11-04): en el paso 3 (y en Configuración › Drivers) los drivers ya no se marcan por categoría sino en cada hueco de la estructura. Al marcar un hueco, los que cuelgan de él también lo tienen y lo heredan. La plantilla de una categoría pide el valor inicial de un driver si algún hueco de esa categoría lo tiene sin heredarlo.
 - **Confirmar la estructura** (2026-11-04): al pulsar *Siguiente* en el paso 1 por primera vez, un dialog avisa de que los pasos siguientes se basan en la estructura elegida y que, una vez confirmada, no se puede cambiar: si se necesita otra, hay que crear de nuevo la configuración. Botones *Revisar estructura* y *Confirmar y continuar*. Hasta confirmarla, los demás pasos no se pueden abrir desde la barra de pasos.
 - **Crear una estructura nueva desde el asistente** (2026-11-04): la pestaña *Crear una estructura nueva* del paso 1 explica cómo se crea y tiene el botón *Ir a Estructuras*, que lleva a **Configuración › Estructuras** (nueva estructura). Al abrir la pestaña se quita la estructura existente que estuviera elegida. Al pulsar *Crear y volver al asistente*, la estructura entra en el catálogo, queda asignada a la configuración y se vuelve al paso 1. Desde entonces la estructura queda fijada: ya no se puede elegir una existente. *Cancelar y volver al asistente* vuelve sin estructura.
 - **Estructura y propiedades de hueco unidas** (2026-11-04):

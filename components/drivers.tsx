@@ -1,15 +1,14 @@
 "use client";
 
-// Editor de drivers de un perfil (HU-10 a HU-13). Se usa en Configuración › Drivers y en el paso 3 del asistente.
-// Los drivers dependen de la CATEGORÍA: se marcan sobre el árbol de categorías de la estructura.
+// Editor de drivers de una configuración (HU-10 a HU-13). Se usa en Configuración › Drivers y en el paso 3 del asistente.
+// Los drivers se marcan sobre la ESTRUCTURA ENTERA DE LA UNIDAD: cada hueco tiene los suyos.
 // Tener un driver y que sea heredable son dos marcas distintas:
-// - Tener: la categoría cuenta su vida con ese driver.
-// - Heredable: su valor viene de la categoría padre (no se registra aparte). La unidad no tiene padre, así que nunca hereda.
+// - Tener: el hueco cuenta su vida con ese driver.
+// - Heredable: su valor viene del hueco padre (no se registra aparte). La unidad no tiene padre, así que nunca hereda.
 
-import { useMemo } from "react";
 import { Banner, Button, Tag } from "./ds";
-import { ArbolFilas } from "./arbol";
-import { DRIVERS, arbolCategorias, buscar, categoriasDe, driversIniciales, recorrer, type DriverId, type Drivers, type DriversConfig, type Nodo } from "@/lib/model";
+import { ArbolFilas, Etiqueta } from "./arbol";
+import { DRIVERS, buscar, driversIniciales, recorrer, type DriverId, type Drivers, type DriversConfig, type Nodo } from "@/lib/model";
 
 export const cuentaDrivers = (m: Drivers, drv: DriverId) => Object.values(m).filter((x) => x[drv]).length;
 
@@ -27,8 +26,7 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
   raiz: Nodo; valor: DriversConfig; onChange: (v: DriversConfig) => void; soloLectura?: boolean;
 }) {
   const { drivers: d, heredables: h } = valor;
-  const arbol = useMemo(() => arbolCategorias(raiz), [raiz]);
-  const huecos = useMemo(() => Object.fromEntries(categoriasDe(raiz).map((x) => [x.categoria, x.huecos])), [raiz]);
+  const arbol = raiz; // estructura entera de la unidad
 
   const padreTiene = (id: string, drv: DriverId) => {
     let ok = false;
@@ -38,7 +36,7 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
   const cambiarTiene = (id: string, drv: DriverId, on: boolean) => {
     const tiene = { ...d }, hereda = { ...h };
     const n = buscar(arbol, id)!;
-    // Al marcar un driver en una categoría, también lo tienen sus categorías hijas, que además lo heredan de ella (la padre no).
+    // Al marcar un driver en un hueco, también lo tienen los huecos que cuelgan de él, que además lo heredan (el propio hueco no).
     recorrer(n, (x) => {
       tiene[x.id] = { ...tiene[x.id], [drv]: on };
       hereda[x.id] = { ...hereda[x.id], [drv]: !on ? false : x.id === n.id ? !!hereda[x.id]?.[drv] : true };
@@ -51,12 +49,12 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
   return (
     <div className="stack gap-20">
       {!soloLectura && (
-        <Banner type="info" title="Los drivers se marcan por categoría">
-          <strong>Tener</strong>: la categoría cuenta su vida con ese driver (por defecto, el kilometraje lo tienen todas). <strong>Heredable</strong>: el valor viene de la categoría padre y no hay que registrarlo aparte (por defecto, todas menos la unidad). Al marcar un driver en una categoría, también lo tienen sus categorías hijas y lo heredan de ella.
+        <Banner type="info" title="Los drivers se marcan sobre la estructura entera de la unidad">
+          <strong>Tener</strong>: el hueco cuenta su vida con ese driver (por defecto, el kilometraje lo tienen todos). <strong>Heredable</strong>: el valor viene del hueco padre y no hay que registrarlo aparte (por defecto, todos menos la unidad). Al marcar un driver en un hueco, también lo tienen los huecos que cuelgan de él y lo heredan.
         </Banner>
       )}
       <div className="row gap-10 wrap">
-        {DRIVERS.map((x) => <Tag key={x.id} tone="primary">{x.nombre}: {cuentaDrivers(d, x.id)} categorías · {cuentaDrivers(h, x.id)} heredables</Tag>)}
+        {DRIVERS.map((x) => <Tag key={x.id} tone="primary">{x.nombre}: {cuentaDrivers(d, x.id)} huecos · {cuentaDrivers(h, x.id)} heredables</Tag>)}
         <span className="grow" />
         {!soloLectura && <Button variant="text" icon="restart_alt" onClick={() => onChange(driversIniciales(raiz))}>Restablecer por defecto</Button>}
       </div>
@@ -70,7 +68,7 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
           ))}
         </div>
         <div className="row" style={{ height: "var(--lm-space-40)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
-          <span className="lm-label-medium grow" style={{ paddingLeft: "var(--lm-space-50)" }}>CATEGORÍA POR NIVELES</span>
+          <span className="lm-label-medium grow" style={{ paddingLeft: "var(--lm-space-50)" }}>ESTRUCTURA DE LA UNIDAD</span>
           {DRIVERS.map((x) => (
             <span key={x.id} className="row" style={{ margin: "0 var(--lm-space-5)" }}>
               <span className="lm-label-small muted" style={{ width: COL, textAlign: "center" }}>TIENE</span>
@@ -78,13 +76,10 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
             </span>
           ))}
         </div>
-        <ArbolFilas raiz={arbol} abiertosIni={9} render={(n) => (
+        <ArbolFilas raiz={arbol} abiertosIni={3} render={(n) => (
           <>
-            <span className="grow row gap-10">
-              <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{n.nombre}</span>
-              {n.id === arbol.id && <Tag tone="neutral">Unidad</Tag>}
-              <span className="lm-body-small muted">{huecos[n.id]} {huecos[n.id] === 1 ? "hueco" : "huecos"} por unidad</span>
-            </span>
+            <Etiqueta n={n} />
+            {n.id === arbol.id && <Tag tone="neutral">Unidad</Tag>}
             {DRIVERS.map((x) => {
               const tiene = !!d[n.id]?.[x.id];
               const puedeHeredar = tiene && n.id !== arbol.id && padreTiene(n.id, x.id);
@@ -97,7 +92,7 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
                   <span style={{ width: COL, display: "flex", justifyContent: "center" }}>
                     <input type="checkbox" style={{ width: 18, height: 18, accentColor: "var(--lm-sys-primary)" }}
                       aria-label={`${x.nombre} heredable en ${n.nombre}`} disabled={soloLectura || !puedeHeredar}
-                      title={n.id === arbol.id ? "La unidad no tiene padre del que heredar" : !tiene ? `Marca antes que tiene ${x.nombre}` : !puedeHeredar ? `La categoría padre no tiene ${x.nombre}` : undefined}
+                      title={n.id === arbol.id ? "La unidad no tiene padre del que heredar" : !tiene ? `Marca antes que tiene ${x.nombre}` : !puedeHeredar ? `El hueco padre no tiene ${x.nombre}` : undefined}
                       checked={puedeHeredar && !!h[n.id]?.[x.id]} onChange={(e) => cambiarHeredable(n.id, x.id, e.target.checked)} />
                   </span>
                 </span>

@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v13";
+const CLAVE = "lm-trace-prototipo-v14";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -42,13 +42,16 @@ function semilla(): Estado {
   const [e1, e2] = estructuras;
   const todas = (raiz: typeof e1.raiz) => Object.fromEntries(categoriasDe(raiz).map((c) => [c.categoria, "cargada" as const]));
 
-  // Drivers de Serie B: ciclos en las puertas; la categoría Puerta tiene ciclos y sus categorías hijas lo heredan de ella.
+  // Drivers de Serie B: ciclos en todas las puertas; cada puerta tiene ciclos y los huecos que cuelgan de ella lo heredan.
   const conCiclos = driversIniciales(e2.raiz);
-  conCiclos.drivers["Puerta"] = { ...conCiclos.drivers["Puerta"], ciclos: true };
-  for (const hija of ["Motor Puerta", "Tarjeta Electrónica"]) {
-    conCiclos.drivers[hija] = { ...conCiclos.drivers[hija], ciclos: true };
-    conCiclos.heredables[hija] = { ...conCiclos.heredables[hija], ciclos: true };
-  }
+  recorrer(e2.raiz, (n) => {
+    if (n.categoria !== "Puerta") return;
+    conCiclos.drivers[n.id] = { ...conCiclos.drivers[n.id], ciclos: true };
+    n.hijos.forEach((hija) => recorrer(hija, (x) => {
+      conCiclos.drivers[x.id] = { ...conCiclos.drivers[x.id], ciclos: true };
+      conCiclos.heredables[x.id] = { ...conCiclos.heredables[x.id], ciclos: true };
+    }));
+  });
   const flotas: Flota[] = [
     flota({
       id: "f1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,

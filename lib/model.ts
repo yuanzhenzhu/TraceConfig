@@ -13,7 +13,7 @@ export type PropsHueco = Record<string, Record<string, string>>;
 export type PropsCategoria = Record<string, PropAsignada[]>;
 
 export type DriverId = "km" | "ciclos" | "horas";
-export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por categoría
+export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por hueco (id del nodo de la estructura)
 export type PropAsignada = { propId: string; historico: boolean };
 export type EstadoPlantilla = "pendiente" | "cargada" | "errores";
 export type Sms = { ambito: "flota" | "linea"; driver: DriverId; calculo: string };
@@ -193,36 +193,19 @@ export function categoriasDe(raiz: Nodo): { categoria: string; nivel: number; hu
   return [...m.entries()].map(([categoria, v]) => ({ categoria, ...v })).sort((a, b) => a.nivel - b.nivel);
 }
 
-/**
- * Árbol de categorías de una estructura: cada categoría aparece una vez, colgando de la categoría de su padre.
- * Los drivers se marcan por categoría, así que se editan sobre este árbol. El id de cada nodo es el nombre de la categoría.
- */
-export function arbolCategorias(raiz: Nodo): Nodo {
-  const nodos = new Map<string, Nodo>();
-  const top: Nodo = { id: raiz.categoria, categoria: raiz.categoria, nombre: raiz.categoria, hijos: [] };
-  nodos.set(raiz.categoria, top);
-  recorrer(raiz, (n, _l, padre) => {
-    if (!padre || nodos.has(n.categoria)) return;
-    const nuevo: Nodo = { id: n.categoria, categoria: n.categoria, nombre: n.categoria, hijos: [] };
-    nodos.set(n.categoria, nuevo);
-    nodos.get(padre.categoria)?.hijos.push(nuevo);
-  });
-  return top;
-}
-
 /* ---------- Drivers por defecto ---------- */
-// Los drivers dependen de la categoría: se guardan por nombre de categoría.
-/** Tener un driver y que sea heredable son cosas distintas. Por defecto, el km lo tienen todas las categorías. */
+// Los drivers se marcan sobre la estructura entera de la unidad: se guardan por hueco (id del nodo).
+/** Tener un driver y que sea heredable son cosas distintas. Por defecto, el km lo tienen todos los huecos. */
 export function driversPorDefecto(raiz: Nodo): Drivers {
   const d: Drivers = {};
-  recorrer(arbolCategorias(raiz), (n) => { d[n.id] = { km: true }; });
+  recorrer(raiz, (n) => { d[n.id] = { km: true }; });
   return d;
 }
 
-/** Por defecto, el km es heredable en todas las categorías menos en la unidad (raíz), que no tiene padre del que heredar. */
+/** Por defecto, el km es heredable en todos los huecos menos en la unidad (raíz), que no tiene padre del que heredar. */
 export function heredablesPorDefecto(raiz: Nodo): Drivers {
   const d: Drivers = {};
-  recorrer(arbolCategorias(raiz), (n, nivel) => { d[n.id] = { km: nivel > 1 }; });
+  recorrer(raiz, (n, nivel) => { d[n.id] = { km: nivel > 1 }; });
   return d;
 }
 
@@ -234,11 +217,11 @@ export function driversEfectivos(d: DriversConfig | null | undefined, raiz: Nodo
   return d && Object.keys(d.drivers).length ? d : driversIniciales(raiz);
 }
 
-/** Adapta unos drivers a la estructura actual: las categorías nuevas tienen los drivers de su categoría padre y los heredan de ella. */
+/** Adapta unos drivers a la estructura actual: los huecos nuevos tienen los drivers de su hueco padre y los heredan de él. */
 export function sincronizarDrivers(d: DriversConfig, raiz: Nodo): DriversConfig {
   const drivers: Drivers = {};
   const heredables: Drivers = {};
-  recorrer(arbolCategorias(raiz), (n, _l, padre) => {
+  recorrer(raiz, (n, _l, padre) => {
     drivers[n.id] = d.drivers[n.id] ?? (padre ? { ...drivers[padre.id] } : {});
     heredables[n.id] = d.heredables?.[n.id] ?? (padre ? { ...drivers[padre.id] } : {});
   });

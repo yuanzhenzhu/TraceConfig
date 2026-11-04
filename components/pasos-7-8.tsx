@@ -25,7 +25,8 @@ function descargarPlantilla(c: Configuracion, raiz: Nodo, drivers: DriversConfig
   recorrer(raiz, (n) => { if (n.categoria === categoria) huecos.push({ id: n.id, ruta: rutaDe(raiz, n.id).join(" > ") || n.nombre }); });
   // Solo se pide el valor inicial de los drivers propios: si el driver es heredable, el valor viene del padre.
   const ef = driversEfectivos(drivers, raiz);
-  const drvs = DRIVERS.filter((d) => ef.drivers[categoria]?.[d.id] && !ef.heredables[categoria]?.[d.id]); // los drivers son por categoría
+  // Los drivers son por hueco: la columna aparece si algún hueco de la categoría tiene ese driver propio (no heredable).
+  const drvs = DRIVERS.filter((d) => huecos.some((h) => ef.drivers[h.id]?.[d.id] && !ef.heredables[h.id]?.[d.id]));
   const props = (propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
   const esRaiz = categoria === raiz.categoria;
   const cab = esRaiz
@@ -205,7 +206,7 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
     { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</> },
     { n: 2, titulo: "Valores de propiedades de hueco", contenido: <>{nHuecosProps ? `${huecosConValor(raiz, est.propsHueco ?? {}, c.valoresHueco ?? {})} de ${nHuecosProps} huecos con valores` : `${est.nombre} no tiene propiedades de hueco`}<br />Opcional: los valores son de esta configuración</>, aviso: omitido(2) ? "Paso omitido" : undefined },
-    { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: undefined },
+    { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} huecos (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: undefined },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todo el cliente<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
     ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS (de la flota)", contenido: sms ? `${sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === sms.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === sms.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),
     { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c, raiz)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },

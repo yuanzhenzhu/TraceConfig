@@ -214,7 +214,7 @@ export function Paso3({ c, set, est, flota }: PasoProps) {
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Drivers</h2>
       <p className="muted" style={{ margin: 0 }}>
-        Los drivers son propios de esta configuración: de <strong>{flota.nombre}</strong> con <strong>{est!.nombre}</strong>. Otra flota que use {est!.nombre} puede tener otros. De inicio, el kilometraje en todas las categorías.
+        Los drivers son propios de esta configuración: de <strong>{flota.nombre}</strong> con <strong>{est!.nombre}</strong>. Otra flota que use {est!.nombre} puede tener otros. Se marcan sobre la estructura entera de la unidad, hueco a hueco. De inicio, el kilometraje en todos los huecos.
       </p>
       <EditorDrivers raiz={raiz} valor={valor} onChange={(v) => set({ drivers: { ...v, estructuraId: est!.id } })} />
     </section>

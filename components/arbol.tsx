@@ -51,7 +51,7 @@ export function ArbolFilas({
   );
 }
 
-function Etiqueta({ n }: { n: Nodo }) {
+export function Etiqueta({ n }: { n: Nodo }) {
   return (
     <span className="row gap-10 grow">
       <Icon name={iconoCategoria(n.categoria)} size="m" />
