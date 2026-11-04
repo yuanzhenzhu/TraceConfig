@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Banner, EmptyState, Field, Icon } from "./ds";
+import { Banner, Button, EmptyState, Field, Icon } from "./ds";
 import { useRouter } from "next/navigation";
 import { ArbolVista, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
@@ -38,8 +38,9 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   const router = useRouter();
   const fijada = !!c.estructuraNueva && !!est; // estructura nueva creada en Estructuras desde el asistente
   const elegir = (e: Estructura) => set({ estructuraId: e.id });
-  // Crear una estructura nueva lleva a Estructuras; al crearla se vuelve aquí con ella asignada.
-  const crearNueva = () => router.push(`/configuracion/estructuras/nueva?config=${c.id}`);
+  // Pestaña Crear una estructura nueva: informa y lleva a Estructuras; al crearla se vuelve aquí con ella asignada.
+  const [modo, setModo] = useState<"existente" | "nueva">("existente");
+  const irAEstructuras = () => router.push(`/configuracion/estructuras/nueva?config=${c.id}`);
 
   const errNombre = intentado && !c.unica && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
   const errEstructura = intentado && !est ? "Selecciona o crea una estructura" : "";
@@ -92,16 +93,21 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
         ) : (
           <>
             <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
-              <button role="tab" className="lm-tab" aria-selected={true}>
+              <button role="tab" className="lm-tab" aria-selected={modo === "existente"} onClick={() => setModo("existente")}>
                 <Icon name="list" /> Usar una estructura existente
               </button>
-              <button role="tab" className="lm-tab" aria-selected={false} onClick={crearNueva}>
+              <button role="tab" className="lm-tab" aria-selected={modo === "nueva"} onClick={() => { setModo("nueva"); if (c.estructuraId) set({ estructuraId: null }); }}>
                 <Icon name="add" /> Crear una estructura nueva
               </button>
             </div>
-            <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Si creas una estructura nueva, irás a Estructuras y, al crearla, volverás aquí con ella asignada.</span>
             {errEstructura && <Banner type="error">{errEstructura}</Banner>}
 
+            {modo === "nueva" ? (
+              <Banner type="info" title="La estructura nueva se crea en Estructuras"
+                actions={<Button variant="outlined" small icon="north_east" onClick={irAEstructuras}>Ir a Estructuras</Button>}>
+                Irás a Configuración › Estructuras para crearla: su composición de huecos y, si quieres, sus propiedades de hueco. Al pulsar Crear y volver al asistente, se añadirá al catálogo del cliente y volverás aquí con ella asignada. Lo que has rellenado en este paso se conserva. Una vez creada, ya no podrás elegir una estructura existente para esta configuración.
+              </Banner>
+            ) : (
             <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
               <div className="stack gap-10" role="radiogroup" aria-label="Estructuras existentes">
                 {store.estructuras.map((e) => {
@@ -123,6 +129,7 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
                 <div className="lm-card"><div className="lm-center"><Icon name="find_in_page" size="xl" />Selecciona una estructura para ver su composición</div></div>
               )}
             </div>
+            )}
           </>
         )}
       </section>
