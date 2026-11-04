@@ -293,25 +293,22 @@ function DialogNuevaFlota({ flota, existentes, onClose, onCrear }: {
   const [nombre, setNombre] = useState(flota?.nombre ?? "");
   const [descripcion, setDescripcion] = useState("");
   const [unica, setUnica] = useState(true);
-  const [una, setUna] = useState<FilaConfig>(filaVacia());
   const [varias, setVarias] = useState<FilaConfig[]>([filaVacia(), filaVacia()]);
   const [textoN, setTextoN] = useState("2");
   const [intentado, setIntentado] = useState(false);
 
   const errNombre = flota ? "" : !nombre.trim() ? "Indica el nombre de la flota" : existentes.includes(nombre.trim().toLowerCase()) ? "Ya existe una flota con este nombre" : "";
-  const errUna = { unidades: !una.unidades ? "Indica un número entero entre 1 y 999" : "" };
   const errVarias = erroresFilas(varias);
-  const filasOk = unica ? !errUna.unidades : errVarias.every((e) => !e.nombre && !e.unidades);
+  const filasOk = unica || errVarias.every((e) => !e.nombre);
   const crear = () => {
     setIntentado(true);
     if (errNombre || !filasOk) return;
-    onCrear({ nombre: nombre.trim(), descripcion: descripcion.trim(), unica, filas: unica ? [{ ...una, nombre: nombre.trim(), descripcion: "" }] : varias });
+    onCrear({ nombre: nombre.trim(), descripcion: descripcion.trim(), unica, filas: unica ? [{ ...filaVacia(), nombre: nombre.trim() }] : varias });
   };
-  const num = (v: string) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 999 ? n : null; };
   const rojo = { color: "var(--lm-sys-error)" };
 
   return (
-    <Dialog large title={flota ? `Iniciar la configuración de ${flota.nombre}` : "Nueva flota"} message={flota ? "Indica si la flota tiene una o varias estructuras y cuántas unidades tiene cada una. La estructura se elige después, al configurar cada una." : "Indica los datos básicos de la flota. La estructura se elige después, al configurar cada configuración."} onClose={onClose}
+    <Dialog large title={flota ? `Iniciar la configuración de ${flota.nombre}` : "Nueva flota"} message={flota ? "Indica si la flota tiene una o varias estructuras. La estructura y las unidades se indican después, al configurar cada una." : "Indica los datos básicos de la flota. La estructura y las unidades se indican después, al configurar cada configuración."} onClose={onClose}
       footer={<>
         <Button variant="outlined" onClick={onClose}>Cancelar</Button>
         <Button onClick={crear}>{unica ? "Crear y configurar" : "Crear"}</Button>
@@ -331,7 +328,7 @@ function DialogNuevaFlota({ flota, existentes, onClose, onCrear }: {
           <div className="row gap-30">
             <label className="lm-radio" style={{ alignItems: "flex-start" }}>
               <input type="radio" name="nf-unica" checked={unica} onChange={() => setUnica(true)} />
-              <span className="lm-radio__text"><span>Una</span><span className="lm-radio__support">Todas sus unidades tienen la misma estructura</span></span>
+              <span className="lm-radio__text"><span>Una</span><span className="lm-radio__support">Todas sus unidades tienen la misma estructura. La configuración se llamará como la flota</span></span>
             </label>
             <label className="lm-radio" style={{ alignItems: "flex-start" }}>
               <input type="radio" name="nf-unica" checked={!unica} onChange={() => setUnica(false)} />
@@ -340,22 +337,17 @@ function DialogNuevaFlota({ flota, existentes, onClose, onCrear }: {
           </div>
         </fieldset>
 
-        {unica ? (
-          <Field label="Número de unidades" required htmlFor="nf-uds" error={intentado ? errUna.unidades : ""} style={{ width: 280 }}
-            support={nombre.trim() ? `Entre 1 y 999. La configuración se llamará como la flota: ${nombre.trim()}` : "Entre 1 y 999. La configuración se llamará como la flota"}>
-            <input id="nf-uds" className="lm-input" inputMode="numeric" aria-invalid={intentado && !!errUna.unidades} placeholder="Por ejemplo: 16" onChange={(e) => setUna({ ...una, unidades: num(e.target.value) })} />
-          </Field>
-        ) : (
+        {!unica && (
           <div className="stack gap-10">
             <Field label="Número de estructuras" required htmlFor="nf-n" support="Entre 2 y 10" style={{ width: 200 }}>
               <input id="nf-n" className="lm-input" inputMode="numeric" value={textoN}
                 onChange={(e) => { setTextoN(e.target.value); const n = Number(e.target.value); if (Number.isInteger(n) && n >= 2 && n <= 10) setVarias(Array.from({ length: n }, (_, i) => varias[i] ?? filaVacia())); }} />
             </Field>
             <table className="lm-table">
-              <thead><tr><th style={{ width: 32 }}>Nº</th><th>Nombre *</th><th style={{ width: 200 }}>Unidades *</th></tr></thead>
+              <thead><tr><th style={{ width: 32 }}>Nº</th><th>Nombre de la configuración *</th></tr></thead>
               <tbody>
                 {varias.map((fila, i) => {
-                  const err = intentado ? errVarias[i] : { nombre: "", unidades: "" };
+                  const err = intentado ? errVarias[i] : { nombre: "" };
                   const upd = (x: Partial<FilaConfig>) => setVarias(varias.map((g, j) => (j === i ? { ...g, ...x } : g)));
                   return (
                     <tr key={i}>
@@ -364,10 +356,6 @@ function DialogNuevaFlota({ flota, existentes, onClose, onCrear }: {
                         <input className="lm-input lm-input--dense" aria-label={`Nombre de la configuración ${i + 1}`} aria-invalid={!!err.nombre} value={fila.nombre} placeholder={`Por ejemplo: Serie ${String.fromCharCode(65 + i)}`} onChange={(ev) => upd({ nombre: ev.target.value })} />
                         {err.nombre && <span className="lm-body-small" style={rojo}>{err.nombre}</span>}
                       </td>
-                      <td>
-                        <input className="lm-input lm-input--dense" inputMode="numeric" aria-label={`Unidades de la configuración ${i + 1}`} aria-invalid={!!err.unidades} placeholder="1 a 999" onChange={(ev) => upd({ unidades: num(ev.target.value) })} />
-                        {err.unidades && <span className="lm-body-small" style={rojo}>{err.unidades}</span>}
-                      </td>
                     </tr>
                   );
                 })}
@@ -375,7 +363,6 @@ function DialogNuevaFlota({ flota, existentes, onClose, onCrear }: {
             </table>
           </div>
         )}
-        <span className="lm-body-small muted">Los nº de serie de las unidades se cargan después, en la plantilla de primer nivel.</span>
       </div>
     </Dialog>
   );
