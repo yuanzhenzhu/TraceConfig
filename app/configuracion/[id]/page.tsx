@@ -97,10 +97,6 @@ export default function AsistentePage() {
     // Tras validar el paso actual, el siguiente es alcanzable aunque el estado aún no se haya refrescado.
     if (siguiente) irA(siguiente.n, true);
   };
-  const omitir = () => {
-    if (!c.pasosOmitidos.includes(p)) set({ pasosOmitidos: [...c.pasosOmitidos, p] });
-    if (siguiente) irA(siguiente.n);
-  };
   const finalizar = () => {
     set({ estado: "activa", pasoActual: 8 });
     snack(`Configuración "${c.nombre}" finalizada: sus ${c.unidades} unidades ya están activas`);
@@ -182,7 +178,6 @@ export default function AsistentePage() {
                 {intentado && !valido(p) && <span style={{ color: "var(--lm-sys-error)" }}> · Revisa los campos marcados</span>}
               </span>
               {anterior && <Button variant="outlined" onClick={() => irA(anterior.n)}>Anterior</Button>}
-              {!actual.obligatorio && siguiente && <Button variant="text" onClick={omitir}>Omitir paso</Button>}
               {p === 8
                 ? <Button icon="check" disabled={!primerNivelCargado(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
                 : <Button onClick={() => avanzar()}>Siguiente</Button>}

@@ -127,6 +127,6 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
-2. **Pasos opcionales** con el botón "Omitir paso". En el stepper se marcan como *pendiente* y no como *hecho*.
+2. **Pasos opcionales**: no hay botón "Omitir paso" (decidido 2026-11-04). En los pasos opcionales basta con pulsar *Siguiente* sin rellenar nada.
 3. **Navegación libre** hacia atrás por el stepper. Hacia delante, solo cuando los obligatorios están completos.
 4. **SMS** solo aparece si el cliente lo tiene contratado.
