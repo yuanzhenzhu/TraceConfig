@@ -5,7 +5,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
-import { Paso1, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
+import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
 import { Paso4, Paso6 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
 import { PASOS, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
@@ -28,7 +28,7 @@ export default function AsistentePage() {
     if (!c || paso !== null) return;
     const q = Number(new URLSearchParams(window.location.search).get("paso"));
     const n = q >= 1 && q <= 8 ? q : c.pasoActual;
-    setPaso(n === 2 || n === 5 ? (n === 2 ? 1 : 4) : n); // los antiguos pasos Unidades y Propiedades de hueco están dentro del paso 1
+    setPaso(n === 5 ? 4 : n); // el antiguo paso 5 (Propiedades de hueco) ya no existe
   }, [c, paso]);
 
   if (!store.listo || (c && paso === null)) return <main className="lm-page"><Loading text="Cargando configuración" /></main>;
@@ -163,6 +163,7 @@ export default function AsistentePage() {
           </nav>
 
           {p === 1 && <Paso1 {...props} />}
+          {p === 2 && est && <Paso2 {...props} />}
           {p === 3 && est && <Paso3 {...props} />}
           {p === 4 && est && <Paso4 {...props} />}
           {p === 6 && <Paso6 {...props} />}

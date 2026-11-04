@@ -183,6 +183,11 @@ function DialogSubida({ categoria, c, onClose, onResultado }: {
   );
 }
 
+function huecosConValor(raiz: Nodo, def: Record<string, Record<string, string>>, val: Record<string, Record<string, string>>) {
+  let n = 0; recorrer(raiz, (h) => { if (Object.keys(def[h.id] ?? {}).some((p) => val[h.id]?.[p])) n++; });
+  return n;
+}
+
 /* ---------- Paso 8 ---------- */
 export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; flota: Flota; est: Estructura; irA: (n: number) => void; soloLectura?: boolean }) {
   const raiz = est.raiz;
@@ -199,6 +204,7 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
     { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</> },
+    { n: 2, titulo: "Valores de propiedades de hueco", contenido: <>{nHuecosProps ? `${huecosConValor(raiz, est.propsHueco ?? {}, c.valoresHueco ?? {})} de ${nHuecosProps} huecos con valores` : `${est.nombre} no tiene propiedades de hueco`}<br />Opcional: los valores son de esta configuración</>, aviso: omitido(2) ? "Paso omitido" : undefined },
     { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: undefined },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todo el cliente<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
     ...(flota.usaSms ? [{ n: 6, titulo: "Cálculos en SMS (de la flota)", contenido: sms ? `${sms.ambito === "flota" ? "Flota completa" : "Por línea"} · ${DRIVERS.find((d) => d.id === sms.driver)?.nombre} · ${FORMAS_CALCULO.find((f) => f.id === sms.calculo)?.nombre}` : "No se envían datos a SMS", aviso: omitido(6) ? "Paso omitido" : undefined }] : []),

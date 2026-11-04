@@ -1,11 +1,12 @@
 "use client";
 
-// Pasos 1 (Estructura y unidades) y 3 (Drivers) del asistente.
-// (Prueba: el paso 1 incluye el antiguo paso 2, Unidades, y el 5, Propiedades de hueco, que son de la estructura.)
+// Pasos 1 (Estructura y unidades), 2 (Valores de propiedades de hueco) y 3 (Drivers) del asistente.
+// (Prueba) La estructura y sus propiedades de hueco van unidas: en el paso 1 se consultan en dos pestañas
+// y en el paso 2 se da valor, si se quiere, a las propiedades que define la estructura.
 
 import Link from "next/link";
 import { useState } from "react";
-import { Banner, Field, Icon } from "./ds";
+import { Banner, EmptyState, Field, Icon } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
 import { EditorPropsHueco, resumenPropiedades } from "./propiedades";
@@ -37,6 +38,7 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   const [modo, setModo] = useState<"existente" | "nueva">(esBorrador ? "nueva" : "existente");
   const [origen, setOrigen] = useState<"existente" | "cero">("cero");
   const [base, setBase] = useState(store.estructuras[0]?.id ?? "");
+  const [pestBorrador, setPestBorrador] = useState<"estructura" | "huecos">("estructura");
 
   const quitarBorrador = () => { if (esBorrador && est) store.eliminarEstructura(est.id); };
   const elegir = (e: Estructura) => { quitarBorrador(); set({ estructuraId: e.id }); };
@@ -50,8 +52,6 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
     set({ estructuraId: borrador.id });
   };
   const editarBorrador = (cambios: Partial<Estructura>) => { if (est) store.guardarEstructura({ ...est, ...cambios }); };
-  const otrosUsos = est ? store.usosDe(est.id).filter((x) => x.id !== c.id) : [];
-  const huecosConProps = est ? resumenPropiedades(est.raiz, { propsCategoria: {}, propsHueco: est.propsHueco ?? {} }).nHuecos : 0;
 
   const errNombre = intentado && !c.unica && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
   const errEstructura = intentado && !est ? "Selecciona o crea una estructura" : "";
@@ -94,13 +94,7 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
               actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est.id}`}>Modificar en Estructuras</Link>}>
               Esta configuración ya tiene unidades. Para cambiar la estructura, modifícala desde el apartado Estructuras: el cambio afectará a todas las configuraciones que la usan.
             </Banner>
-            <div className="lm-card">
-              <div className="stack gap-10" style={{ marginBottom: "var(--lm-space-10)" }}>
-                <span className="lm-title-small">{est.nombre}</span>
-                <ResumenArbol raiz={est.raiz} />
-              </div>
-              <ArbolVista raiz={est.raiz} />
-            </div>
+            <VistaEstructura est={est} titulo={est.nombre} />
           </>
         ) : (
           <>
@@ -132,19 +126,9 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
                     );
                   })}
                 </div>
-                <div className="lm-card">
-                  {est ? (
-                    <>
-                      <div className="stack gap-10" style={{ marginBottom: "var(--lm-space-10)" }}>
-                        <span className="lm-title-small">Vista previa · {est.nombre}</span>
-                        <ResumenArbol raiz={est.raiz} />
-                      </div>
-                      <ArbolVista raiz={est.raiz} />
-                    </>
-                  ) : (
-                    <div className="lm-center"><Icon name="find_in_page" size="xl" />Selecciona una estructura para ver su composición</div>
-                  )}
-                </div>
+                {est ? <VistaEstructura est={est} titulo={`Vista previa · ${est.nombre}`} /> : (
+                  <div className="lm-card"><div className="lm-center"><Icon name="find_in_page" size="xl" />Selecciona una estructura para ver su composición</div></div>
+                )}
               </div>
             ) : est && esBorrador ? (
               <div className="stack gap-20">
@@ -175,30 +159,61 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
                     </select>
                   )}
                 </fieldset>
-                {errVacia && <Banner type="error">{errVacia}</Banner>}
-                <EditorEstructura raiz={est.raiz} onChange={(raiz) => editarBorrador({ raiz })} />
+                <Pestanas n={contarConProps(est)} valor={pestBorrador} onChange={setPestBorrador} />
+                {pestBorrador === "estructura" ? (
+                  <>
+                    {errVacia && <Banner type="error">{errVacia}</Banner>}
+                    <EditorEstructura raiz={est.raiz} onChange={(raiz) => editarBorrador({ raiz })} />
+                  </>
+                ) : (
+                  <>
+                    <span className="muted">Elige qué propiedades tiene cada hueco de la estructura nueva. Sus valores se dan en el paso siguiente.</span>
+                    <EditorPropsHueco raiz={est.raiz} valor={est.propsHueco ?? {}} onChange={(v) => editarBorrador({ propsHueco: v })} />
+                  </>
+                )}
               </div>
             ) : null}
           </>
         )}
       </section>
 
-      {est && est.raiz.hijos.length > 0 && (
-        <section className="lm-surface lm-surface--p24 stack gap-20">
-          <div className="row gap-10">
-            <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Propiedades de hueco{huecosConProps ? ` (${huecosConProps})` : ""}</h2>
-            <span className="lm-body-small muted">Opcional</span>
-          </div>
-          <p className="muted" style={{ margin: 0 }}>
-            Describen cada posición de {est.nombre || "la estructura"} (por ejemplo, el lado de una rueda). Son de la estructura y sus valores no aparecen en las plantillas. Puedes rellenarlas ahora o más adelante.
-          </p>
-          {otrosUsos.length > 0 && (
-            <Banner type="attention" title={`Son comunes a todas las configuraciones que usan ${est.nombre}`}>
-              Lo que cambies aquí también se aplica a {otrosUsos.map((x) => store.etiqueta(x)).join(", ")}.
-            </Banner>
-          )}
-          <EditorPropsHueco raiz={est.raiz} valor={est.propsHueco ?? {}} onChange={(v) => store.guardarEstructura({ ...est, propsHueco: v })} />
-        </section>
+    </div>
+  );
+}
+
+/* ---------- Estructura y sus propiedades de hueco, en dos pestañas (solo consulta) ---------- */
+const contarConProps = (est: Estructura) => resumenPropiedades(est.raiz, { propsCategoria: {}, propsHueco: est.propsHueco ?? {} }).nHuecos;
+
+function Pestanas({ n, valor, onChange }: { n: number; valor: "estructura" | "huecos"; onChange: (v: "estructura" | "huecos") => void }) {
+  return (
+    <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
+      <button role="tab" className="lm-tab" aria-selected={valor === "estructura"} onClick={() => onChange("estructura")}><Icon name="table_rows" /> Estructura</button>
+      <button role="tab" className="lm-tab" aria-selected={valor === "huecos"} onClick={() => onChange("huecos")}><Icon name="radio_button_checked" /> Propiedades de hueco{n ? ` (${n})` : ""}</button>
+    </div>
+  );
+}
+
+function VistaEstructura({ est, titulo }: { est: Estructura; titulo: string }) {
+  const [pest, setPest] = useState<"estructura" | "huecos">("estructura");
+  const n = contarConProps(est);
+  return (
+    <div className="lm-card stack gap-10">
+      <span className="lm-title-small">{titulo}</span>
+      <Pestanas n={n} valor={pest} onChange={setPest} />
+      {pest === "estructura" ? (
+        <>
+          <ResumenArbol raiz={est.raiz} />
+          <ArbolVista raiz={est.raiz} />
+        </>
+      ) : n === 0 ? (
+        <div className="lm-center"><Icon name="radio_button_checked" size="xl" />{est.nombre} no tiene propiedades de hueco
+          <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion/estructuras/${est.id}?pestana=huecos`}>Definirlas en Estructuras</Link>
+        </div>
+      ) : (
+        <>
+          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Son de la estructura y aquí solo se consultan. Sus valores se dan en el paso siguiente.</span>
+          <EditorPropsHueco soloLectura raiz={est.raiz} valor={est.propsHueco ?? {}} onChange={() => {}} />
+        </>
       )}
     </div>
   );
@@ -208,6 +223,30 @@ export function paso1Valido(c: Configuracion, est: Estructura | undefined, nombr
   if ((!c.unica && !c.nombre.trim()) || !c.unidades || !est || est.raiz.hijos.length === 0) return false;
   if (est.borradorDe && (!est.nombre.trim() || nombresOcupados.includes(est.nombre.trim().toLowerCase()))) return false;
   return true;
+}
+
+/* ---------- Paso 2 ---------- */
+/** Valores de las propiedades de hueco que define la estructura. Son de esta configuración y opcionales. */
+export function Paso2({ c, set, est }: PasoProps) {
+  const def = est!.propsHueco ?? {};
+  const n = contarConProps(est!);
+  return (
+    <section className="lm-surface lm-surface--p24 stack gap-20">
+      <h2 className="lm-title-medium" style={{ margin: 0 }}>Valores de propiedades de hueco</h2>
+      {n === 0 ? (
+        <EmptyState icon="radio_button_checked" title={`${est!.nombre} no tiene propiedades de hueco`}
+          text="No hay valores que dar. Puedes continuar con el paso siguiente"
+          action={<Link className="lm-btn lm-btn--outlined" href={`/configuracion/estructuras/${est!.id}?pestana=huecos`}>Definirlas en Estructuras</Link>} />
+      ) : (
+        <>
+          <p className="muted" style={{ margin: 0 }}>
+            {est!.nombre} define propiedades en {n} huecos. Da valor a las que quieras: son de esta configuración y puedes dejarlas vacías.
+          </p>
+          <EditorPropsHueco modo="valores" raiz={est!.raiz} definicion={def} valor={c.valoresHueco ?? {}} onChange={(v) => set({ valoresHueco: v })} />
+        </>
+      )}
+    </section>
+  );
 }
 
 /* ---------- Paso 3 ---------- */

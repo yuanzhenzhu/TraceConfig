@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v11";
+const CLAVE = "lm-trace-prototipo-v12";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -25,13 +25,19 @@ function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
 const flota = (f: Omit<Flota, "sms"> & Partial<Flota>): Flota => ({ sms: null, ...f });
 
 function semilla(): Estado {
-  // Propiedades de ejemplo: el lado de cada rueda como propiedad de hueco (Estructura 1) y, en las ruedas, diámetro y fabricante.
+  // Propiedades de ejemplo: Estructura 1 define en las ruedas el lado y el código de posición (propiedades de hueco);
+  // cada configuración les da valor. Y, en las ruedas, diámetro y fabricante (propiedades de categoría).
+  const defRuedas = (raiz: Estructura["raiz"]) => {
+    const m: Record<string, Record<string, string>> = {};
+    recorrer(raiz, (n) => { if (n.categoria === "Rueda") m[n.id] = { lado: "", "codigo-pos": "" }; });
+    return m;
+  };
   const ladoRuedas = (raiz: Estructura["raiz"]) => {
     const m: Record<string, Record<string, string>> = {};
     recorrer(raiz, (n) => { if (n.categoria === "Rueda") m[n.id] = { lado: n.nombre === "Rueda 1" ? "Izquierdo" : "Derecho" }; });
     return m;
   };
-  const estructuras = ESTRUCTURAS.map((e, i) => ({ ...e, propsHueco: i === 0 ? ladoRuedas(e.raiz) : {}, actualizada: "2026-05-20T08:00:00Z" }));
+  const estructuras = ESTRUCTURAS.map((e, i) => ({ ...e, propsHueco: i === 0 ? defRuedas(e.raiz) : {}, actualizada: "2026-05-20T08:00:00Z" }));
   const propsCategoria: PropsCategoria = { Rueda: [{ propId: "diametro", historico: true }, { propId: "fabricante", historico: false }] };
   const [e1, e2] = estructuras;
   const todas = (raiz: typeof e1.raiz) => Object.fromEntries(categoriasDe(raiz).map((c) => [c.categoria, "cargada" as const]));
@@ -57,7 +63,7 @@ function semilla(): Estado {
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "", estructuraId: e1.id, unidades: 16,
       drivers: { ...driversIniciales(e1.raiz), estructuraId: e1.id }, plantillas: todas(e1.raiz), pasoActual: 8,
-      estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
+      valoresHueco: ladoRuedas(e1.raiz), estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "", estructuraId: e2.id, unidades: 8,

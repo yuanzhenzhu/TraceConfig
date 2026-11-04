@@ -29,6 +29,8 @@ export type Configuracion = {
   unidades: number | null;
   /** Drivers propios de esta configuración (flota + estructura): otra flota con la misma estructura puede tener otros. */
   drivers: DriversConfigEst | null;
+  /** Valores de las propiedades de hueco que define su estructura (opcionales). Por hueco y propiedad. */
+  valoresHueco?: PropsHueco;
   plantillas: Record<string, EstadoPlantilla>; // por categoría
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
@@ -316,7 +318,8 @@ export function diferencia(antes: Nodo, despues: Nodo) {
 }
 
 export const PASOS = [
-  { n: 1, titulo: "Estructura y unidades", obligatorio: true }, // (prueba) incluye el antiguo paso 2 (Unidades) y el 5 (Propiedades de hueco)
+  { n: 1, titulo: "Estructura y unidades", obligatorio: true }, // (prueba) incluye el antiguo paso Unidades
+  { n: 2, titulo: "Valores de propiedades de hueco", obligatorio: false }, // (prueba) las propiedades las define la estructura
   { n: 3, titulo: "Drivers", obligatorio: true },
   { n: 4, titulo: "Propiedades de categoría", obligatorio: false },
   { n: 6, titulo: "Cálculos en SMS", obligatorio: false },

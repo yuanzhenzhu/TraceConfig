@@ -123,7 +123,7 @@ export default function EditarEstructuraPage() {
             </>
           ) : (
             <>
-              <span className="muted">Describen cada posición de esta estructura (por ejemplo, el lado de una rueda). Las comparten todas las flotas que la usan. Sus valores se pueden rellenar ahora o más adelante y no aparecen en las plantillas.</span>
+              <span className="muted">Elige qué propiedades tiene cada posición de esta estructura (por ejemplo, el lado de una rueda). Las comparten todas las flotas que la usan. Sus valores se dan en cada configuración, en el paso 2 del asistente, y no aparecen en las plantillas.</span>
               <EditorPropsHueco raiz={borrador.raiz} valor={borrador.propsHueco ?? {}} onChange={(v) => setBorrador({ ...borrador, propsHueco: v })} />
             </>
           )}
