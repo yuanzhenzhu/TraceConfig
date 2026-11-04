@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Banner, EmptyState, Field, Icon } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
-import { EditorPropsHueco, resumenPropiedades } from "./propiedades";
+import { EditorPropsHueco, TablaValoresHueco, resumenPropiedades } from "./propiedades";
 import {
   clonar, contarHuecos, driversIniciales, nodo, nuevoId,
   type Configuracion, type Estructura, type Flota, type Nodo,
@@ -240,9 +240,9 @@ export function Paso2({ c, set, est }: PasoProps) {
       ) : (
         <>
           <p className="muted" style={{ margin: 0 }}>
-            {est!.nombre} define propiedades en {n} huecos. Da valor a las que quieras: son de esta configuración y puedes dejarlas vacías.
+            {est!.nombre} define propiedades en {n} huecos. Escribe el valor de cada una: son de esta configuración y puedes dejarlas vacías.
           </p>
-          <EditorPropsHueco modo="valores" raiz={est!.raiz} definicion={def} valor={c.valoresHueco ?? {}} onChange={(v) => set({ valoresHueco: v })} />
+          <TablaValoresHueco raiz={est!.raiz} definicion={def} valor={c.valoresHueco ?? {}} onChange={(v) => set({ valoresHueco: v })} />
         </>
       )}
     </section>

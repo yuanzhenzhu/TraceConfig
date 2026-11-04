@@ -8,7 +8,7 @@
 // - Propiedades de hueco: dependen de los huecos de la estructura.
 
 import { useMemo, useState } from "react";
-import { Button, Icon, SearchInput, Tag } from "./ds";
+import { Button, EmptyState, Icon, SearchInput, Tag } from "./ds";
 import { ArbolFilas, iconoCategoria } from "./arbol";
 import { PROPS_CATEGORIA, PROPS_HUECO, categoriasDe, recorrer, rutaDe, type Nodo, type PropiedadesConfig, type PropsHueco } from "@/lib/model";
 
@@ -230,6 +230,77 @@ export function EditorPropsHueco({ raiz, valor, onChange, soloLectura, modo = "d
           </>
         )}
       </aside>
+    </div>
+  );
+}
+
+/* ---------- Valores de propiedades de hueco (paso 2) ---------- */
+/** Tabla con los huecos que tienen propiedades en la estructura y un campo por propiedad para su valor (opcional). */
+export function TablaValoresHueco({ raiz, definicion, valor, onChange }: {
+  raiz: Nodo; definicion: PropsHueco; valor: PropsHueco; onChange: (v: PropsHueco) => void;
+}) {
+  const [cat, setCat] = useState("");
+  const [buscar, setBuscar] = useState("");
+  const huecos: { n: Nodo; ruta: string }[] = [];
+  recorrer(raiz, (n) => { if (Object.keys(definicion[n.id] ?? {}).length) huecos.push({ n, ruta: rutaDe(raiz, n.id).slice(0, -1).join(" › ") }); });
+  const categorias = [...new Set(huecos.map((h) => h.n.categoria))];
+  const props = PROPS_HUECO.filter((p) => huecos.some((h) => definicion[h.n.id]?.[p.id] !== undefined));
+  const conValor = huecos.filter((h) => props.some((p) => valor[h.n.id]?.[p.id])).length;
+  const q = buscar.trim().toLowerCase();
+  const lista = huecos
+    .filter((h) => !cat || h.n.categoria === cat)
+    .filter((h) => !q || `${h.ruta} ${h.n.nombre}`.toLowerCase().includes(q));
+
+  const cambiar = (id: string, propId: string, v: string) => {
+    const actual = { ...(valor[id] ?? {}) };
+    if (v) actual[propId] = v; else delete actual[propId];
+    onChange({ ...valor, [id]: actual });
+  };
+  const limpiar = () => { setCat(""); setBuscar(""); };
+
+  return (
+    <div className="stack gap-15">
+      <div className="lm-filters">
+        <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar hueco" label="Buscar hueco" />
+        <select className="lm-select lm-select--dense" style={{ width: 220 }} aria-label="Filtrar por categoría" value={cat} onChange={(e) => setCat(e.target.value)}>
+          <option value="">Todas las categorías</option>
+          {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {(cat || buscar) && <Button variant="text" icon="restart_alt" onClick={limpiar}>Restablecer</Button>}
+        <span className="grow" />
+        <span className="lm-body-small muted">{conValor} de {huecos.length} huecos con valores</span>
+      </div>
+      {lista.length === 0 ? (
+        <EmptyState icon="search_off" title="No hay resultados" text="Ningún hueco coincide con los filtros"
+          action={<Button variant="outlined" onClick={limpiar}>Restablecer filtros</Button>} />
+      ) : (
+        <div style={{ maxHeight: 560, overflow: "auto" }}>
+          <table className="lm-table">
+            <thead>
+              <tr>
+                <th>Hueco</th><th>Categoría</th>
+                {props.map((p) => <th key={p.id}>{p.nombre} <span className="muted" style={{ fontWeight: 400 }}>· {p.tipo}</span></th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map(({ n, ruta }) => (
+                <tr key={n.id}>
+                  <td><span className="stack"><span className="emph">{n.nombre}</span><span className="lm-body-small muted">{ruta}</span></span></td>
+                  <td>{n.categoria}</td>
+                  {props.map((p) => (
+                    <td key={p.id}>
+                      {definicion[n.id]?.[p.id] !== undefined ? (
+                        <input className="lm-input lm-input--dense" aria-label={`${p.nombre} de ${ruta} › ${n.nombre}`} value={valor[n.id]?.[p.id] ?? ""}
+                          placeholder={`Por ejemplo: ${p.ejemplo}`} onChange={(e) => cambiar(n.id, p.id, e.target.value)} />
+                      ) : <span className="muted" aria-label="No aplica">—</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
