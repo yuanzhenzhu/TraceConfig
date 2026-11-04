@@ -30,7 +30,7 @@ Cliente
 - **Drivers**: de la **categoría**. Se marcan sobre el árbol de categorías de la estructura.
 - **Propiedades de categoría**: de las **categorías** de la estructura.
 - **Propiedades de hueco**: de los **huecos** de la estructura.
-- Si varias configuraciones usan la misma estructura, normalmente comparten propiedades. Si hay diferencias, se duplica el perfil. *(Prueba de la opción B; queda pendiente valorar la A: propiedades por flota × estructura.)*
+- Si varias configuraciones usan la misma estructura, normalmente comparten propiedades. Si hay diferencias, se duplica el perfil. **Decidido (2026-11-04): opción B**, perfiles comunes del cliente. Se descarta guardar las propiedades por flota × estructura.
 
 ### Reglas de las estructuras
 - **Una sola versión**: no hay versiones ni variantes. Modificar una estructura **afecta a todas las configuraciones que la usan**.

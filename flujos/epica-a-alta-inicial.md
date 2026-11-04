@@ -91,7 +91,7 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 8. **Drivers comunes** (2026-11-03): los drivers se agrupan en **perfiles** del catálogo del cliente, en el apartado **Configuración › Drivers**, ligados a una estructura. En el paso 3 se elige un perfil de la estructura o se crea uno nuevo, que pasa al catálogo. Un perfil en uso se modifica desde el catálogo, con aviso de impacto.
 
-9. **Drivers por categoría y propiedades comunes** (2026-11-03): los drivers se marcan por **categoría**. Las propiedades de categoría y de hueco pasan a **perfiles de propiedades** del catálogo del cliente (**Configuración › Propiedades**), ligados a una estructura. En el paso 4 se elige, se crea o se duplica el perfil, y los pasos 4 y 5 lo editan, avisando si lo usan otras configuraciones. La flota se queda solo con el SMS. *(Opción B en prueba; después se valorará la A.)*
+9. **Drivers por categoría y propiedades comunes** (2026-11-03): los drivers se marcan por **categoría**. Las propiedades de categoría y de hueco pasan a **perfiles de propiedades** del catálogo del cliente (**Configuración › Propiedades**), ligados a una estructura. En el paso 4 se elige, se crea o se duplica el perfil, y los pasos 4 y 5 lo editan, avisando si lo usan otras configuraciones. La flota se queda solo con el SMS. **Opción B decidida (2026-11-04).**
 
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
