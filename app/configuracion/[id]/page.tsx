@@ -88,7 +88,7 @@ export default function AsistentePage() {
     }
     if (p === 2 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });
-      snack(`Configuración de ${flota.nombre} con ${c.nombre} guardada como En configuración`);
+      snack(`Configuración "${c.nombre}" guardada como En configuración`);
     }
     if (p === 6 && !flota.sms) setFlota({ sms: { ambito: "flota", driver: "km", calculo: "real" } }); // los valores por defecto que muestra el paso
     if (c.pasosOmitidos.includes(p)) set({ pasosOmitidos: c.pasosOmitidos.filter((x) => x !== p) });
@@ -101,12 +101,12 @@ export default function AsistentePage() {
   };
   const finalizar = () => {
     set({ estado: "activa", pasoActual: 8 });
-    snack(`Configuración de ${flota.nombre} con ${c.nombre} finalizada: sus ${c.unidades} unidades ya están activas`);
+    snack(`Configuración "${c.nombre}" finalizada: sus ${c.unidades} unidades ya están activas`);
     router.push("/configuracion");
   };
   const guardarYSalir = () => {
     if (!c.guardada) { setSalir(true); return; }
-    snack(`Configuración de ${flota.nombre} con ${c.nombre} guardada`);
+    snack(`Configuración "${c.nombre}" guardada`);
     router.push("/configuracion");
   };
   const pendientesActiva = soloLectura && raiz ? categoriasDe(raiz).some((x) => c.plantillas[x.categoria] !== "cargada") : false;

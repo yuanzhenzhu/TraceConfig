@@ -24,7 +24,7 @@ Cliente
 |---|---|
 | **Cliente** | Los catálogos comunes de **estructuras**, **perfiles de drivers**, **perfiles de propiedades de categoría** y **perfiles de propiedades de hueco**. Los perfiles van ligados a una estructura y los pueden usar varias configuraciones de distintas flotas |
 | **Flota** | Nombre, descripción y **cálculos en SMS** |
-| **Configuración** | La estructura (no tiene nombre ni descripción propios: se identifica por su flota y su estructura, una por estructura en cada flota), el **perfil de drivers**, el **perfil de propiedades de categoría** y el **perfil de propiedades de hueco** que usa, el nº de unidades y la carga de datos (plantillas) |
+| **Configuración** | Nombre, descripción, la estructura, el **perfil de drivers**, el **perfil de propiedades de categoría** y el **perfil de propiedades de hueco** que usa, el nº de unidades y la carga de datos (plantillas) |
 
 ### De qué depende cada cosa
 - **Drivers**: de la **categoría**. Se marcan sobre el árbol de categorías de la estructura.
@@ -131,7 +131,7 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
 | Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
-| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. No tiene nombre propio: se identifica por su flota y su estructura. La **flota es el paraguas** y puede tener varias configuraciones; las propiedades y el SMS son de la flota |
+| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. Tiene nombre y descripción. La **flota es el paraguas** y puede tener varias configuraciones; las propiedades y el SMS son de la flota |
 | Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
 | Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro. Cada hueco tiene dos marcas por driver: **tenerlo** y que sea **heredable** |
 | Perfil de propiedades de categoría | Qué propiedades se registran en cada categoría de una estructura (y si guardan histórico). Es común al cliente, se gestiona en **Configuración › Propiedades de categoría** y modificarlo afecta a todas las configuraciones que lo usan |

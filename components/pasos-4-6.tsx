@@ -31,7 +31,7 @@ function AvisoFlota({ flota }: { flota: Flota }) {
  */
 type PropiedadesConfigLike = Pick<PerfilPropiedades, "propsCategoria" | "propsHueco">;
 
-function PasoPerfilProps({ tipo, c, set, est, flota }: PasoProps & { tipo: TipoProps }) {
+function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps }) {
   const t = TIPOS_PROPS[tipo];
   const store = useStore();
   const snack = useSnackbar();
@@ -62,7 +62,7 @@ function PasoPerfilProps({ tipo, c, set, est, flota }: PasoProps & { tipo: TipoP
   const duplicar = (base: PerfilPropiedades) => {
     const p: PerfilPropiedades = {
       ...structuredClone(base), id: nuevoId(t.prefijo),
-      nombre: nombreLibre(`${base.nombre} · ${flota.nombre}`, delTipo), descripcion: `Copia de ${base.nombre}`, porDefecto: false,
+      nombre: nombreLibre(`${base.nombre} · ${c.nombre || "copia"}`, delTipo), descripcion: `Copia de ${base.nombre}`, porDefecto: false,
     };
     store.guardarPerfilProps(p);
     elegir(p.id);
@@ -113,7 +113,7 @@ function PasoPerfilProps({ tipo, c, set, est, flota }: PasoProps & { tipo: TipoP
                       <span className="row gap-10"><span className="lm-title-small">{p.nombre}</span>{p.porDefecto && <Tag tone="info">Por defecto</Tag>}</span>
                       <span className="lm-radio__support">{p.descripcion}</span>
                       <span className="lm-body-small">{cifraPerfil(tipo, raiz, p).texto}</span>
-                      <span className="lm-body-small muted">{usos.length ? `También lo usa: ${usos.map((x) => store.flotas.find((f) => f.id === x.flotaId)?.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
+                      <span className="lm-body-small muted">{usos.length ? `También lo usan: ${usos.map((x) => x.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
                     </span>
                   </label>
                 );
@@ -134,7 +134,7 @@ function PasoPerfilProps({ tipo, c, set, est, flota }: PasoProps & { tipo: TipoP
           <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />El perfil se añadirá a Configuración › {t.titulo} y podrán usarlo otras configuraciones con {est!.nombre}.</span>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
             <Field label="Nombre del perfil" required htmlFor={`pp-nombre-${tipo}`} error={errNombre}>
-              <input id={`pp-nombre-${tipo}`} className="lm-input" value={nuevo.nombre} aria-invalid={!!errNombre} placeholder={tipo === "categoria" ? `Por ejemplo: Ruedas · ${flota.nombre}` : `Por ejemplo: Lado de ruedas · ${flota.nombre}`}
+              <input id={`pp-nombre-${tipo}`} className="lm-input" value={nuevo.nombre} aria-invalid={!!errNombre} placeholder={tipo === "categoria" ? `Por ejemplo: Ruedas · ${c.nombre || est!.nombre}` : `Por ejemplo: Lado de ruedas · ${c.nombre || est!.nombre}`}
                 onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
             </Field>
             <Field label="Descripción" htmlFor={`pp-desc-${tipo}`}>

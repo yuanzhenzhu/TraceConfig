@@ -1,6 +1,6 @@
 "use client";
 
-// Pasos 1 (Estructura), 2 (Unidades) y 3 (Drivers) del asistente.
+// Pasos 1 (Datos y estructura), 2 (Unidades) y 3 (Drivers) del asistente.
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -23,7 +23,7 @@ export type PasoProps = {
 };
 
 /* ---------- Paso 1 ---------- */
-export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
+export function Paso1({ c, set, intentado, est }: PasoProps) {
   const store = useStore();
   const esBorrador = est?.borradorDe === c.id; // estructura nueva creada en este asistente
   const [modo, setModo] = useState<"existente" | "nueva">(esBorrador ? "nueva" : "existente");
@@ -43,6 +43,7 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   };
   const editarBorrador = (cambios: Partial<Estructura>) => { if (est) store.guardarEstructura({ ...est, ...cambios }); };
 
+  const errNombre = intentado && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
   const errEstructura = intentado && !est ? "Selecciona o crea una estructura" : "";
   const nombreRepetido = esBorrador && !!est && store.estructuras.some((e) => e.nombre.trim().toLowerCase() === est.nombre.trim().toLowerCase());
   const errNombreEst = intentado && esBorrador && est && !est.nombre.trim() ? "Indica el nombre de la estructura" : nombreRepetido ? "Ya existe una estructura con este nombre" : "";
@@ -51,8 +52,20 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   return (
     <div className="stack gap-30">
       <section className="lm-surface lm-surface--p24 stack gap-20">
+        <h2 className="lm-title-medium" style={{ margin: 0 }}>Datos de la configuración</h2>
+        <p className="muted" style={{ margin: 0 }}>Una configuración es una parte de la flota que comparte la misma estructura.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
+          <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
+            <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
+          </Field>
+          <Field label="Descripción" htmlFor="c-desc">
+            <input id="c-desc" className="lm-input" value={c.descripcion} placeholder="Por ejemplo: Unidades de 3 coches entregadas en 2026" onChange={(e) => set({ descripcion: e.target.value })} />
+          </Field>
+        </div>
+      </section>
+
+      <section className="lm-surface lm-surface--p24 stack gap-20">
         <h2 className="lm-title-medium" style={{ margin: 0 }}>Estructura</h2>
-        {!c.guardada && <p className="muted" style={{ margin: 0 }}>Elige la estructura de las unidades de {flota.nombre} que vas a configurar. Cada flota tiene una configuración por estructura, y la configuración toma el nombre de su estructura.</p>}
         {c.guardada && est ? (
           <>
             <Banner type="info" title="La estructura es común a todo el cliente"
@@ -85,15 +98,13 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
                   {store.estructuras.map((e) => {
                     const sel = c.estructuraId === e.id;
                     const usos = store.usosDe(e.id).length;
-                    // Una flota tiene una sola configuración por estructura.
-                    const enEstaFlota = store.configs.some((x) => x.id !== c.id && x.flotaId === c.flotaId && x.estructuraId === e.id);
                     return (
-                      <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", opacity: enEstaFlota ? 0.6 : undefined, borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
-                        <input type="radio" name="estructura" checked={sel} disabled={enEstaFlota} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
+                      <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
+                        <input type="radio" name="estructura" checked={sel} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
                         <span className="lm-radio__text gap-5">
                           <span className="lm-title-small">{e.nombre}</span>
                           <span className="lm-radio__support">{e.descripcion}</span>
-                          <span className="lm-body-small muted">{enEstaFlota ? `${flota.nombre} ya tiene una configuración con esta estructura` : `${contarHuecos(e.raiz)} huecos por unidad · ${usos ? `usada en ${usos} configuraciones` : "sin usar"}`}</span>
+                          <span className="lm-body-small muted">{contarHuecos(e.raiz)} huecos por unidad · {usos ? `usada en ${usos} configuraciones` : "sin usar"}</span>
                         </span>
                       </label>
                     );
@@ -154,7 +165,7 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
 }
 
 export function paso1Valido(c: Configuracion, est: Estructura | undefined, nombresOcupados: string[] = []) {
-  if (!est || est.raiz.hijos.length === 0) return false;
+  if (!c.nombre.trim() || !est || est.raiz.hijos.length === 0) return false;
   if (est.borradorDe && (!est.nombre.trim() || nombresOcupados.includes(est.nombre.trim().toLowerCase()))) return false;
   return true;
 }
@@ -194,7 +205,7 @@ export function Paso2({ c, set, intentado, est }: PasoProps) {
 /* ---------- Paso 3 ---------- */
 // Los drivers son un catálogo común del cliente (Configuración › Drivers), como las estructuras:
 // aquí se elige un perfil de la estructura de la configuración o se crea uno nuevo.
-export function Paso3({ c, set, est, flota }: PasoProps) {
+export function Paso3({ c, set, est }: PasoProps) {
   const snack = useSnackbar();
   const store = useStore();
   const raiz: Nodo = est!.raiz;
@@ -222,7 +233,7 @@ export function Paso3({ c, set, est, flota }: PasoProps) {
   const otrasDe = (id: string) => store.usosDePerfil(id).filter((x) => x.id !== c.id);
   const duplicar = () => {
     if (!actual) return;
-    const p: PerfilDrivers = { ...structuredClone(actual), id: nuevoId("drv"), nombre: nombreLibre(`${actual.nombre} · ${flota.nombre}`, store.perfiles), descripcion: `Copia de ${actual.nombre}`, porDefecto: false };
+    const p: PerfilDrivers = { ...structuredClone(actual), id: nuevoId("drv"), nombre: nombreLibre(`${actual.nombre} · ${c.nombre || "copia"}`, store.perfiles), descripcion: `Copia de ${actual.nombre}`, porDefecto: false };
     store.guardarPerfil(p);
     set({ perfilDriversId: p.id });
     snack(`Perfil duplicado como "${p.nombre}"`);
@@ -255,7 +266,7 @@ export function Paso3({ c, set, est, flota }: PasoProps) {
                       <span className="row gap-10"><span className="lm-title-small">{p.nombre}</span>{p.porDefecto && <Tag tone="info">Por defecto</Tag>}</span>
                       <span className="lm-radio__support">{p.descripcion}</span>
                       <ResumenDrivers valor={p} />
-                      <span className="lm-body-small muted">{usos.length ? `También lo usa: ${usos.map((x) => store.flotas.find((f) => f.id === x.flotaId)?.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
+                      <span className="lm-body-small muted">{usos.length ? `También lo usan: ${usos.map((x) => x.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
                     </span>
                   </label>
                 );
@@ -314,7 +325,7 @@ export function CabeceraPerfil({ nombre, otras, apartado, href, onDuplicar, titu
         <Link className="lm-btn lm-btn--text lm-btn--small" href={href}>Modificar en {apartado}</Link>
       </div>
       <Banner type="info" title={compartido ? `Solo lectura · lo usan también ${otras.length} ${otras.length === 1 ? "configuración" : "configuraciones"}` : "Solo lectura"}>
-        {compartido && <>{otras.map((x) => store.flotas.find((f) => f.id === x.flotaId)?.nombre).join(", ")}. </>}
+        {compartido && <>{otras.map((x) => `${store.flotas.find((f) => f.id === x.flotaId)?.nombre} · ${x.nombre}`).join(", ")}. </>}
         Para cambiar este perfil, modifícalo en {apartado}{compartido ? " (afecta a todas las configuraciones que lo usan)" : ""}. Si esta configuración necesita algo distinto, duplícalo.
       </Banner>
     </div>

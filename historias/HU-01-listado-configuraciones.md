@@ -27,8 +27,8 @@ Una sola tabla **agrupada y desplegable**: una fila por flota y, al desplegarla,
 ```
 FLOTA            DESCRIPCIÓN              CONFIGURACIONES   UNIDADES   ESTADO                          
 › Metro Línea 1  Flota de metro de la l… 2                 24         [1 Activa] [1 En configuración]  ⋮
-   └ Estructura 1                         ─                 16         [Activa]        16/16 terminadas  Ver ⋮
-   └ Estructura 2                         ─                 8          [En configuración] 3/8 terminadas  Continuar ⋮
+   └ Estructura 1 · Serie 1000            ─                 16         [Activa]        16/16 terminadas  Ver ⋮
+   └ Estructura 2 · Serie 1100            ─                 8          [En configuración] 3/8 terminadas  Continuar ⋮
 › Tranvía Norte  Tranvía de la red norte  1                 12         [1 Activa]                       ⋮
   Cercanías Sur  Cercanías del corredor…  0                 —          [Sin configurar]   Iniciar configuración ⋮
 ```
