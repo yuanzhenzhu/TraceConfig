@@ -73,7 +73,7 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
 
       <section className="lm-surface lm-surface--p24 stack gap-20">
         <h2 className="lm-title-medium" style={{ margin: 0 }}>Estructura</h2>
-        {c.guardada && est ? (
+        {c.guardada && est && c.pasoMax > 1 ? ( // la estructura queda fijada al pasar del paso 1
           <>
             <Banner type="info" title="La estructura es común a todo el cliente"
               actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est.id}`}>Modificar en Estructuras</Link>}>
