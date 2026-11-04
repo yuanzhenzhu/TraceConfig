@@ -6,8 +6,8 @@
 // Igual que los drivers: se elige o crea el perfil. Si lo usan otras configuraciones, se ve en solo lectura
 // (se modifica en su apartado o se duplica); si solo lo usa esta, se edita aquí.
 
-import { useState } from "react";
-import { Banner, Button, Field, Icon, useSnackbar } from "./ds";
+import { useEffect, useState } from "react";
+import { Banner, Button, Field, Icon, Tag, useSnackbar } from "./ds";
 import { EditorPropsCategoria, EditorPropsHueco } from "./propiedades";
 import { cifraPerfil } from "./catalogo-propiedades";
 import {
@@ -36,13 +36,19 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
   const store = useStore();
   const snack = useSnackbar();
   const raiz = est!.raiz;
-  const compatibles = store.perfilesProps.filter((p) => p.tipo === tipo && p.estructuraId === est!.id);
+  const delTipo = store.perfilesProps.filter((p) => p.tipo === tipo);
+  const compatibles = delTipo.filter((p) => p.estructuraId === est!.id).sort((a, b) => Number(!!b.porDefecto) - Number(!!a.porDefecto));
   const actual = store.perfilProps(c[t.campo]);
+  // Sin perfil válido, se usa el perfil por defecto de la estructura.
+  const defecto = compatibles.find((p) => p.porDefecto);
+  useEffect(() => {
+    if ((!actual || actual.estructuraId !== est!.id) && defecto) set({ [t.campo]: defecto.id } as Partial<Configuracion>);
+  }, [actual, defecto, est, set, t.campo]);
   const otrasDe = (id: string) => store.usosDePerfilProps(id).filter((x) => x.id !== c.id);
   const [modo, setModo] = useState<"existente" | "nuevo">(compatibles.length ? "existente" : "nuevo");
   const [nuevo, setNuevo] = useState(() => ({ nombre: "", descripcion: "", ...propiedadesVacias() }));
   const [intento, setIntento] = useState(false);
-  const repetido = store.perfilesProps.some((p) => p.nombre.trim().toLowerCase() === nuevo.nombre.trim().toLowerCase());
+  const repetido = delTipo.some((p) => p.nombre.trim().toLowerCase() === nuevo.nombre.trim().toLowerCase());
   const errNombre = intento && !nuevo.nombre.trim() ? "Indica el nombre del perfil" : repetido ? "Ya existe un perfil con este nombre" : "";
   const elegir = (id: string | null) => set({ [t.campo]: id } as Partial<Configuracion>);
 
@@ -57,7 +63,7 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
   const duplicar = (base: PerfilPropiedades) => {
     const p: PerfilPropiedades = {
       ...structuredClone(base), id: nuevoId(t.prefijo),
-      nombre: nombreLibre(`${base.nombre} · ${c.nombre || "copia"}`, store.perfilesProps), descripcion: `Copia de ${base.nombre}`,
+      nombre: nombreLibre(`${base.nombre} · ${c.nombre || "copia"}`, delTipo), descripcion: `Copia de ${base.nombre}`, porDefecto: false,
     };
     store.guardarPerfilProps(p);
     elegir(p.id);
@@ -98,7 +104,7 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
                   <label key={p.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
                     <input type="radio" name={`perfil-${tipo}`} checked={sel} onChange={() => elegir(p.id)} aria-label={p.nombre} />
                     <span className="lm-radio__text gap-5">
-                      <span className="lm-title-small">{p.nombre}</span>
+                      <span className="row gap-10"><span className="lm-title-small">{p.nombre}</span>{p.porDefecto && <Tag tone="info">Por defecto</Tag>}</span>
                       <span className="lm-radio__support">{p.descripcion}</span>
                       <span className="lm-body-small">{cifraPerfil(tipo, raiz, p).texto}</span>
                       <span className="lm-body-small muted">{usos.length ? `También lo usan: ${usos.map((x) => x.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
@@ -113,7 +119,7 @@ function PasoPerfilProps({ tipo, c, set, est }: PasoProps & { tipo: TipoProps })
                 {editor(actual, (v) => store.guardarPerfilProps({ ...actual, ...v }), otrasDe(actual.id).length > 0)}
               </div>
             ) : (
-              <div className="lm-card lm-center"><Icon name={t.icono} size="xl" />Selecciona un perfil para ver sus propiedades. Si omites el paso, la configuración quedará sin propiedades {t.corto}.</div>
+              <div className="lm-card lm-center"><Icon name={t.icono} size="xl" />Selecciona un perfil para ver sus propiedades. Si omites el paso, se aplica el perfil por defecto de la estructura.</div>
             )}
           </div>
         )

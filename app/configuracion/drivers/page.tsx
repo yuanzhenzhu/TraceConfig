@@ -20,6 +20,8 @@ export default function DriversPage() {
   const [aEliminar, setAEliminar] = useState<string | null>(null);
 
   const lista = store.perfiles
+    .filter((p) => store.estructura(p.estructuraId) && !store.estructura(p.estructuraId)!.borradorDe)
+    .sort((a, b) => a.estructuraId.localeCompare(b.estructuraId) || Number(!!b.porDefecto) - Number(!!a.porDefecto))
     .filter((p) => p.nombre.toLowerCase().includes(busca.toLowerCase()))
     .filter((p) => !fEstructura || p.estructuraId === fEstructura);
 
@@ -72,7 +74,7 @@ export default function DriversPage() {
                         <IconButton compact icon={abierto ? "expand_less" : "expand_more"} label={`${abierto ? "Plegar" : "Ver"} configuraciones que usan ${p.nombre}`}
                           aria-expanded={abierto} onClick={() => setAbiertos((a) => ({ ...a, [p.id]: !abierto }))} />
                       )}</td>
-                      <td><span className="stack"><span className="emph">{p.nombre}</span><span className="lm-body-small muted">{p.descripcion}</span></span></td>
+                      <td><span className="stack"><span className="row gap-10"><span className="emph">{p.nombre}</span>{p.porDefecto && <Tag tone="info">Por defecto</Tag>}</span><span className="lm-body-small muted">{p.descripcion}</span></span></td>
                       <td>{store.estructura(p.estructuraId)?.nombre ?? "—"}</td>
                       <td><ResumenDrivers valor={p} /></td>
                       <td className="num">{heredables}</td>
@@ -84,7 +86,7 @@ export default function DriversPage() {
                         <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                           <Button variant="outlined" small onClick={() => router.push(`/configuracion/drivers/${p.id}`)}>Modificar</Button>
                           <Menu label={`Acciones de ${p.nombre}`} items={[
-                            { label: "Eliminar", icon: "delete", danger: true, disabled: usos.length > 0, onSelect: () => setAEliminar(p.id) },
+                            { label: p.porDefecto ? "Eliminar (no disponible: es el perfil por defecto)" : "Eliminar", icon: "delete", danger: true, disabled: usos.length > 0 || !!p.porDefecto, onSelect: () => setAEliminar(p.id) },
                           ]} />
                         </span>
                       </td>

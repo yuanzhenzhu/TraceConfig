@@ -97,6 +97,8 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 11. **Propiedades de categoría y de hueco separadas** (2026-11-04): son dos catálogos con su propio apartado lateral (**Propiedades de categoría** y **Propiedades de hueco**). El paso 4 elige o crea un perfil de propiedades de categoría y el paso 5, uno de propiedades de hueco, de forma independiente y con la misma regla que los drivers.
 
+12. **Perfiles por defecto** (2026-11-04): cada estructura tiene un perfil «Estándar» de drivers, de propiedades de categoría y de propiedades de hueco, que se crea solo con la estructura. En los pasos 3, 4 y 5 aparece **seleccionado de inicio** y marcado como *Por defecto*; si se omite el paso, se queda ese. No se puede eliminar.
+
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
 2. **Pasos opcionales** con el botón "Omitir paso". En el stepper se marcan como *pendiente* y no como *hecho*.

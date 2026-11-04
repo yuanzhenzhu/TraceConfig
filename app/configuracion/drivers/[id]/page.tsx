@@ -63,11 +63,17 @@ export default function EditarPerfilPage() {
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{esNuevo ? "Nuevo perfil de drivers" : `Modificar ${original!.nombre}`}</h1>
             {!esNuevo && (enUso ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>)}
+            {borrador.porDefecto && <Tag tone="info">Por defecto</Tag>}
           </span>
         </div>
       </div>
 
       <div className="stack gap-20">
+        {borrador.porDefecto && (
+          <Banner type="info" title={`Perfil por defecto de ${store.estructura(borrador.estructuraId)?.nombre ?? "la estructura"}`}>
+            Se crea solo con la estructura y es el que usan las configuraciones nuevas si no eligen otro. Se puede modificar, pero no eliminar.
+          </Banner>
+        )}
         {enUso && (
           <Banner type="attention" title={`Este perfil lo usan ${usos.length} configuraciones (${unidades} unidades)`}>
             Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.codigo} · ${c.nombre}`).join(", ")}.

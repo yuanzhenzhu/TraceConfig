@@ -37,7 +37,8 @@ export function CatalogoPropiedades({ tipo }: { tipo: TipoProps }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   const [aEliminar, setAEliminar] = useState<string | null>(null);
 
-  const todos = store.perfilesProps.filter((p) => p.tipo === tipo);
+  const todos = store.perfilesProps.filter((p) => p.tipo === tipo && store.estructura(p.estructuraId) && !store.estructura(p.estructuraId)!.borradorDe)
+    .sort((a, b) => a.estructuraId.localeCompare(b.estructuraId) || Number(!!b.porDefecto) - Number(!!a.porDefecto));
   const lista = todos
     .filter((p) => p.nombre.toLowerCase().includes(busca.toLowerCase()))
     .filter((p) => !fEstructura || p.estructuraId === fEstructura);
@@ -92,7 +93,7 @@ export function CatalogoPropiedades({ tipo }: { tipo: TipoProps }) {
                         <IconButton compact icon={abierto ? "expand_less" : "expand_more"} label={`${abierto ? "Plegar" : "Ver"} configuraciones que usan ${p.nombre}`}
                           aria-expanded={abierto} onClick={() => setAbiertos((a) => ({ ...a, [p.id]: !abierto }))} />
                       )}</td>
-                      <td><span className="stack"><span className="emph">{p.nombre}</span><span className="lm-body-small muted">{p.descripcion}</span></span></td>
+                      <td><span className="stack"><span className="row gap-10"><span className="emph">{p.nombre}</span>{p.porDefecto && <Tag tone="info">Por defecto</Tag>}</span><span className="lm-body-small muted">{p.descripcion}</span></span></td>
                       <td>{est?.nombre ?? "—"}</td>
                       <td className="num">{n}</td>
                       <td className="num">{usos.length}</td>
@@ -103,7 +104,7 @@ export function CatalogoPropiedades({ tipo }: { tipo: TipoProps }) {
                         <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                           <Button variant="outlined" small onClick={() => router.push(`${t.ruta}/${p.id}`)}>Modificar</Button>
                           <Menu label={`Acciones de ${p.nombre}`} items={[
-                            { label: "Eliminar", icon: "delete", danger: true, disabled: usos.length > 0, onSelect: () => setAEliminar(p.id) },
+                            { label: p.porDefecto ? "Eliminar (no disponible: es el perfil por defecto)" : "Eliminar", icon: "delete", danger: true, disabled: usos.length > 0 || !!p.porDefecto, onSelect: () => setAEliminar(p.id) },
                           ]} />
                         </span>
                       </td>
@@ -178,7 +179,7 @@ export function EditorPerfilProps({ tipo, id }: { tipo: TipoProps; id: string })
   const enUso = usos.length > 0;
   const unidades = usos.reduce((s, c) => s + (c.unidades ?? 0), 0);
   const cambiado = !!delTipo && JSON.stringify([delTipo.propsCategoria, delTipo.propsHueco]) !== JSON.stringify([borrador.propsCategoria, borrador.propsHueco]);
-  const nombreRepetido = store.perfilesProps.some((p) => p.id !== borrador.id && p.nombre.trim().toLowerCase() === borrador.nombre.trim().toLowerCase());
+  const nombreRepetido = store.perfilesProps.some((p) => p.tipo === tipo && p.id !== borrador.id && p.nombre.trim().toLowerCase() === borrador.nombre.trim().toLowerCase());
   const errNombre = intentado && !borrador.nombre.trim() ? "Indica el nombre del perfil" : nombreRepetido ? "Ya existe un perfil con este nombre" : "";
 
   const guardar = () => {
@@ -198,11 +199,17 @@ export function EditorPerfilProps({ tipo, id }: { tipo: TipoProps; id: string })
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{esNuevo ? `Nuevo perfil de propiedades ${t.corto}` : `Modificar ${delTipo!.nombre}`}</h1>
             {!esNuevo && (enUso ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>)}
+            {borrador.porDefecto && <Tag tone="info">Por defecto</Tag>}
           </span>
         </div>
       </div>
 
       <div className="stack gap-20">
+        {borrador.porDefecto && (
+          <Banner type="info" title={`Perfil por defecto de ${est?.nombre ?? "la estructura"}`}>
+            Se crea solo con la estructura y es el que usan las configuraciones nuevas si no eligen otro. Se puede modificar, pero no eliminar.
+          </Banner>
+        )}
         {enUso && (
           <Banner type="attention" title={`Este perfil lo usan ${usos.length} configuraciones (${unidades} unidades)`}>
             Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.codigo} · ${c.nombre}`).join(", ")}.

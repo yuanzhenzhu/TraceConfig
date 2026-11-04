@@ -4,12 +4,44 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
+  ESTRUCTURAS, categoriasDe, driversIniciales, nombreLibre, nuevoId, propiedadesVacias, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
   type Configuracion, type Estructura, type Flota, type PerfilDrivers, type PerfilPropiedades,
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[]; perfilesProps: PerfilPropiedades[] };
-const CLAVE = "lm-trace-prototipo-v7";
+const CLAVE = "lm-trace-prototipo-v8";
+
+/**
+ * Cada estructura del catálogo tiene siempre su perfil por defecto («Estándar · <estructura>») de drivers,
+ * de propiedades de categoría y de propiedades de hueco. Se crean solos al dar de alta la estructura
+ * y desaparecen con ella. Devuelve el mismo estado si no falta nada.
+ */
+function conPerfilesPorDefecto(s: Estado): Estado {
+  const vivas = s.estructuras.filter((e) => !e.borradorDe);
+  const ids = new Set(s.estructuras.map((e) => e.id));
+  let perfiles = s.perfiles.filter((p) => !p.porDefecto || ids.has(p.estructuraId));
+  let perfilesProps = s.perfilesProps.filter((p) => !p.porDefecto || ids.has(p.estructuraId));
+  let cambio = perfiles.length !== s.perfiles.length || perfilesProps.length !== s.perfilesProps.length;
+  for (const e of vivas) {
+    if (!perfiles.some((p) => p.porDefecto && p.estructuraId === e.id)) {
+      perfiles = [...perfiles, {
+        id: nuevoId("drv"), nombre: nombreLibre(`Estándar · ${e.nombre}`, perfiles), estructuraId: e.id, porDefecto: true,
+        descripcion: "Perfil por defecto: kilometraje en todo, heredable salvo la unidad", ...driversIniciales(e.raiz), actualizada: new Date().toISOString(),
+      }];
+      cambio = true;
+    }
+    for (const tipo of ["categoria", "hueco"] as const) {
+      if (!perfilesProps.some((p) => p.porDefecto && p.tipo === tipo && p.estructuraId === e.id)) {
+        perfilesProps = [...perfilesProps, {
+          id: nuevoId(tipo === "categoria" ? "pc" : "ph"), tipo, nombre: nombreLibre(`Estándar · ${e.nombre}`, perfilesProps.filter((p) => p.tipo === tipo)),
+          estructuraId: e.id, porDefecto: true, descripcion: "Perfil por defecto de la estructura", ...propiedadesVacias(), actualizada: new Date().toISOString(),
+        }];
+        cambio = true;
+      }
+    }
+  }
+  return cambio ? { ...s, perfiles, perfilesProps } : s;
+}
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -37,9 +69,9 @@ function semilla(): Estado {
   }
   const fecha = "2026-05-22T08:00:00Z";
   const perfiles: PerfilDrivers[] = [
-    { id: "drv-1", nombre: "Km estándar · Estructura 1", descripcion: "Kilometraje en todo, heredable salvo la unidad", estructuraId: e1.id, ...driversIniciales(e1.raiz), actualizada: fecha },
+    { id: "drv-1", nombre: "Estándar · Estructura 1", porDefecto: true, descripcion: "Perfil por defecto: kilometraje en todo, heredable salvo la unidad", estructuraId: e1.id, ...driversIniciales(e1.raiz), actualizada: fecha },
     { id: "drv-2", nombre: "Km y ciclos de puertas · Estructura 2", descripcion: "Kilometraje en todo y ciclos en las puertas", estructuraId: e2.id, ...conCiclos, actualizada: fecha },
-    { id: "drv-3", nombre: "Km estándar · Estructura 3", descripcion: "Kilometraje en todo, heredable salvo la unidad", estructuraId: e3.id, ...driversIniciales(e3.raiz), actualizada: fecha },
+    { id: "drv-3", nombre: "Estándar · Estructura 3", porDefecto: true, descripcion: "Perfil por defecto: kilometraje en todo, heredable salvo la unidad", estructuraId: e3.id, ...driversIniciales(e3.raiz), actualizada: fecha },
   ];
 
   const flotas: Flota[] = [
@@ -77,11 +109,11 @@ function semilla(): Estado {
   };
   const ruedas = { Rueda: [{ propId: "diametro", historico: true }, { propId: "fabricante", historico: false }] };
   const perfilesProps: PerfilPropiedades[] = [
-    { id: "pc-1", tipo: "categoria", nombre: "Ruedas estándar · Estructura 1", descripcion: "Diámetro (con histórico) y fabricante de las ruedas", estructuraId: e1.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
-    { id: "pc-2", tipo: "categoria", nombre: "Ruedas estándar · Estructura 2", descripcion: "Diámetro (con histórico) y fabricante de las ruedas", estructuraId: e2.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
-    { id: "ph-1", tipo: "hueco", nombre: "Lado de ruedas · Estructura 1", descripcion: "Lado izquierdo o derecho de cada rueda", estructuraId: e1.id, propsCategoria: {}, propsHueco: ladoRuedas(e1.raiz), actualizada: fecha },
+    { id: "pc-1", tipo: "categoria", nombre: "Estándar · Estructura 1", porDefecto: true, descripcion: "Diámetro (con histórico) y fabricante de las ruedas", estructuraId: e1.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
+    { id: "pc-2", tipo: "categoria", nombre: "Estándar · Estructura 2", porDefecto: true, descripcion: "Diámetro (con histórico) y fabricante de las ruedas", estructuraId: e2.id, propsCategoria: ruedas, propsHueco: {}, actualizada: fecha },
+    { id: "ph-1", tipo: "hueco", nombre: "Estándar · Estructura 1", porDefecto: true, descripcion: "Lado izquierdo o derecho de cada rueda", estructuraId: e1.id, propsCategoria: {}, propsHueco: ladoRuedas(e1.raiz), actualizada: fecha },
   ];
-  return { flotas, configs, estructuras, perfiles, perfilesProps };
+  return conPerfilesPorDefecto({ flotas, configs, estructuras, perfiles, perfilesProps });
 }
 
 type Api = {
@@ -131,6 +163,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     setListo(true);
   }, []);
+
+  // Toda estructura nueva (del catálogo o creada en un asistente) recibe sus perfiles por defecto.
+  useEffect(() => {
+    if (!listo) return;
+    const completo = conPerfilesPorDefecto(estado);
+    if (completo !== estado) setEstado(completo);
+  }, [estado, listo]);
 
   useEffect(() => {
     if (!listo) return;

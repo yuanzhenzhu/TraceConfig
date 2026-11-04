@@ -61,7 +61,7 @@ export const TIPOS_PROPS: Record<TipoProps, {
  * de categoría (solo usa propsCategoria) o de hueco (solo usa propsHueco).
  * Si varias configuraciones usan la misma estructura, normalmente comparten perfil; si hay diferencias, se crea otro.
  */
-export type PerfilPropiedades = PropiedadesConfig & { id: string; tipo: TipoProps; nombre: string; descripcion: string; estructuraId: string; actualizada?: string };
+export type PerfilPropiedades = PropiedadesConfig & { id: string; tipo: TipoProps; nombre: string; descripcion: string; estructuraId: string; porDefecto?: boolean; actualizada?: string };
 
 export const propiedadesVacias = (): PropiedadesConfig => ({ propsCategoria: {}, propsHueco: {} });
 
@@ -72,7 +72,16 @@ export type DriversConfig = { drivers: Drivers; heredables: Drivers };
  * Perfil de drivers del catálogo común del cliente, como las estructuras.
  * Va ligado a una estructura (sus huecos) y lo pueden usar varias configuraciones: modificarlo les afecta a todas.
  */
-export type PerfilDrivers = DriversConfig & { id: string; nombre: string; descripcion: string; estructuraId: string; actualizada?: string };
+/** Cada estructura tiene un perfil por defecto («Estándar») de drivers, de propiedades de categoría y de propiedades de hueco. */
+export type PerfilDrivers = DriversConfig & { id: string; nombre: string; descripcion: string; estructuraId: string; porDefecto?: boolean; actualizada?: string };
+
+/** Nombre que no repite ninguno de la lista: añade (2), (3)… si hace falta. */
+export function nombreLibre(base: string, lista: { nombre: string }[]) {
+  const usado = (n: string) => lista.some((p) => p.nombre.trim().toLowerCase() === n.toLowerCase());
+  let n = base, i = 2;
+  while (usado(n)) n = `${base} (${i++})`;
+  return n;
+}
 
 export const DRIVERS: { id: DriverId; nombre: string; corto: string }[] = [
   { id: "km", nombre: "Kilometraje", corto: "Km" },

@@ -3,12 +3,12 @@
 // Pasos 1 (Datos y estructura), 2 (Unidades) y 3 (Drivers) del asistente.
 
 import Link from "next/link";
-import { useState } from "react";
-import { Banner, Button, Field, Icon, useSnackbar } from "./ds";
+import { useEffect, useState } from "react";
+import { Banner, Button, Field, Icon, Tag, useSnackbar } from "./ds";
 import { ArbolVista, EditorEstructura, ResumenArbol } from "./arbol";
 import { EditorDrivers, ResumenDrivers } from "./drivers";
 import {
-  clonar, contarHuecos, driversIniciales, nodo, nuevoId,
+  clonar, contarHuecos, driversIniciales, nodo, nombreLibre, nuevoId,
   type Configuracion, type DriversConfig, type Estructura, type Flota, type Nodo, type PerfilDrivers,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
@@ -209,8 +209,13 @@ export function Paso3({ c, set, est }: PasoProps) {
   const snack = useSnackbar();
   const store = useStore();
   const raiz: Nodo = est!.raiz;
-  const compatibles = store.perfiles.filter((p) => p.estructuraId === est!.id);
+  const compatibles = store.perfiles.filter((p) => p.estructuraId === est!.id).sort((a, b) => Number(!!b.porDefecto) - Number(!!a.porDefecto));
   const actual = store.perfil(c.perfilDriversId);
+  // Sin perfil válido, se usa el perfil por defecto de la estructura.
+  const defecto = compatibles.find((p) => p.porDefecto);
+  useEffect(() => {
+    if ((!actual || actual.estructuraId !== est!.id) && defecto) set({ perfilDriversId: defecto.id });
+  }, [actual, defecto, est, set]);
   const [modo, setModo] = useState<"existente" | "nuevo">(compatibles.length ? "existente" : "nuevo");
   const [nuevo, setNuevo] = useState<DriversConfig & { nombre: string; descripcion: string }>(() => ({ nombre: "", descripcion: "", ...driversIniciales(raiz) }));
   const [intentoNuevo, setIntentoNuevo] = useState(false);
@@ -228,7 +233,7 @@ export function Paso3({ c, set, est }: PasoProps) {
   const otrasDe = (id: string) => store.usosDePerfil(id).filter((x) => x.id !== c.id);
   const duplicar = () => {
     if (!actual) return;
-    const p: PerfilDrivers = { ...structuredClone(actual), id: nuevoId("drv"), nombre: nombreLibre(`${actual.nombre} · ${c.nombre || "copia"}`, store.perfiles), descripcion: `Copia de ${actual.nombre}` };
+    const p: PerfilDrivers = { ...structuredClone(actual), id: nuevoId("drv"), nombre: nombreLibre(`${actual.nombre} · ${c.nombre || "copia"}`, store.perfiles), descripcion: `Copia de ${actual.nombre}`, porDefecto: false };
     store.guardarPerfil(p);
     set({ perfilDriversId: p.id });
     snack(`Perfil duplicado como "${p.nombre}"`);
@@ -258,7 +263,7 @@ export function Paso3({ c, set, est }: PasoProps) {
                   <label key={p.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
                     <input type="radio" name="perfil" checked={sel} onChange={() => set({ perfilDriversId: p.id })} aria-label={p.nombre} />
                     <span className="lm-radio__text gap-5">
-                      <span className="lm-title-small">{p.nombre}</span>
+                      <span className="row gap-10"><span className="lm-title-small">{p.nombre}</span>{p.porDefecto && <Tag tone="info">Por defecto</Tag>}</span>
                       <span className="lm-radio__support">{p.descripcion}</span>
                       <ResumenDrivers valor={p} />
                       <span className="lm-body-small muted">{usos.length ? `También lo usan: ${usos.map((x) => x.nombre).join(", ")}` : "No lo usa ninguna otra configuración"}</span>
@@ -274,7 +279,7 @@ export function Paso3({ c, set, est }: PasoProps) {
                   <EditorDrivers soloLectura={otrasDe(actual.id).length > 0} raiz={raiz} valor={actual} onChange={(v) => store.guardarPerfil({ ...actual, ...v })} />
                 </>
               ) : (
-                <div className="lm-card lm-center"><Icon name="timelapse" size="xl" />Selecciona un perfil para ver sus drivers. Si omites el paso, se aplica el kilometraje por defecto.</div>
+                <div className="lm-card lm-center"><Icon name="timelapse" size="xl" />Selecciona un perfil para ver sus drivers. Si omites el paso, se aplica el perfil por defecto de la estructura.</div>
               )}
             </div>
           </div>
@@ -301,13 +306,7 @@ export function Paso3({ c, set, est }: PasoProps) {
   );
 }
 
-/** Nombre que no repite ninguno del catálogo: añade (2), (3)… si hace falta. */
-export function nombreLibre(base: string, lista: { nombre: string }[]) {
-  const usado = (n: string) => lista.some((p) => p.nombre.trim().toLowerCase() === n.toLowerCase());
-  let n = base, i = 2;
-  while (usado(n)) n = `${base} (${i++})`;
-  return n;
-}
+export { nombreLibre };
 
 /**
  * Misma regla para drivers y propiedades en el asistente:
