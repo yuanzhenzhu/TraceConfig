@@ -35,7 +35,7 @@ export type Configuracion = {
 
 /** El SMS es de la flota: lo comparten todas sus configuraciones. */
 export type Flota = {
-  id: string; codigo: string; nombre: string; descripcion: string; usaSms: boolean;
+  id: string; nombre: string; descripcion: string; usaSms: boolean;
   sms: Sms | null;
 };
 

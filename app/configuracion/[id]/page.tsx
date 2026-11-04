@@ -115,7 +115,7 @@ export default function AsistentePage() {
     <main className="lm-page" style={{ paddingBottom: 120 }}>
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: `${flota.codigo} · ${flota.nombre}`, href: "/configuracion" }, { label: c.nombre || "Nueva configuración" }]} />
+          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: flota.nombre, href: "/configuracion" }, { label: c.nombre || "Nueva configuración" }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{c.nombre || "Nueva configuración"}</h1>
             {c.guardada && (soloLectura ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>)}

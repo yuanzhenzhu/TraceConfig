@@ -76,7 +76,7 @@ export default function EditarPerfilPage() {
         )}
         {enUso && (
           <Banner type="attention" title={`Este perfil lo usan ${usos.length} configuraciones (${unidades} unidades)`}>
-            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.codigo} · ${c.nombre}`).join(", ")}.
+            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.nombre} · ${c.nombre}`).join(", ")}.
           </Banner>
         )}
         <section className="lm-surface lm-surface--p24 stack gap-20">
@@ -123,7 +123,7 @@ export default function EditarPerfilPage() {
             <tbody>
               {usos.map((c) => (
                 <tr key={c.id}>
-                  <td className="emph">{store.flotas.find((x) => x.id === c.flotaId)?.codigo}</td><td>{c.nombre}</td>
+                  <td className="emph">{store.flotas.find((x) => x.id === c.flotaId)?.nombre}</td><td>{c.nombre}</td>
                   <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                   <td className="num">{c.unidades}</td>
                 </tr>

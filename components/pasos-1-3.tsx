@@ -325,7 +325,7 @@ export function CabeceraPerfil({ nombre, otras, apartado, href, onDuplicar, titu
         <Link className="lm-btn lm-btn--text lm-btn--small" href={href}>Modificar en {apartado}</Link>
       </div>
       <Banner type="info" title={compartido ? `Solo lectura · lo usan también ${otras.length} ${otras.length === 1 ? "configuración" : "configuraciones"}` : "Solo lectura"}>
-        {compartido && <>{otras.map((x) => `${store.flotas.find((f) => f.id === x.flotaId)?.codigo} · ${x.nombre}`).join(", ")}. </>}
+        {compartido && <>{otras.map((x) => `${store.flotas.find((f) => f.id === x.flotaId)?.nombre} · ${x.nombre}`).join(", ")}. </>}
         Para cambiar este perfil, modifícalo en {apartado}{compartido ? " (afecta a todas las configuraciones que lo usan)" : ""}. Si esta configuración necesita algo distinto, duplícalo.
       </Banner>
     </div>

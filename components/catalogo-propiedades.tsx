@@ -115,7 +115,7 @@ export function CatalogoPropiedades({ tipo }: { tipo: TipoProps }) {
                         <tr key={c.id} className="is-child">
                           <td />
                           <td colSpan={3} style={{ paddingLeft: "var(--lm-space-30)" }}>
-                            <Link href={`/configuracion/${c.id}`}>{f?.codigo} · {c.nombre}</Link><span className="muted"> · {f?.nombre}</span>
+                            <Link href={`/configuracion/${c.id}`}>{f?.nombre} · {c.nombre}</Link>
                           </td>
                           <td />
                           <td className="num">{c.unidades}</td>
@@ -212,7 +212,7 @@ export function EditorPerfilProps({ tipo, id }: { tipo: TipoProps; id: string })
         )}
         {enUso && (
           <Banner type="attention" title={`Este perfil lo usan ${usos.length} configuraciones (${unidades} unidades)`}>
-            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.codigo} · ${c.nombre}`).join(", ")}.
+            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.nombre} · ${c.nombre}`).join(", ")}.
           </Banner>
         )}
         <section className="lm-surface lm-surface--p24 stack gap-20">
@@ -259,7 +259,7 @@ export function EditorPerfilProps({ tipo, id }: { tipo: TipoProps; id: string })
             <tbody>
               {usos.map((c) => (
                 <tr key={c.id}>
-                  <td className="emph">{store.flotas.find((x) => x.id === c.flotaId)?.codigo}</td><td>{c.nombre}</td>
+                  <td className="emph">{store.flotas.find((x) => x.id === c.flotaId)?.nombre}</td><td>{c.nombre}</td>
                   <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                   <td className="num">{c.unidades}</td>
                 </tr>

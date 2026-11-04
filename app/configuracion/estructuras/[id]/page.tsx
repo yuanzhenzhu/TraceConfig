@@ -78,7 +78,7 @@ export default function EditarEstructuraPage() {
       <div className="stack gap-20">
         {enUso && (
           <Banner type="attention" title={`Esta estructura la usan ${usos.length} configuraciones (${unidades} unidades)`}>
-            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.codigo} · ${c.nombre}`).join(", ")}. Solo se puede modificar por los extremos.
+            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.nombre} · ${c.nombre}`).join(", ")}. Solo se puede modificar por los extremos.
           </Banner>
         )}
 
@@ -140,7 +140,7 @@ export default function EditarEstructuraPage() {
                 const f = store.flotas.find((x) => x.id === c.flotaId);
                 return (
                   <tr key={c.id}>
-                    <td className="emph">{f?.codigo}</td><td>{c.nombre}</td>
+                    <td className="emph">{f?.nombre}</td><td>{c.nombre}</td>
                     <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                     <td className="num">{c.unidades}</td>
                   </tr>

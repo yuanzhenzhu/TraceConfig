@@ -26,11 +26,11 @@ Una sola tabla **agrupada y desplegable**: una fila por flota y, al desplegarla,
 
 ```
 FLOTA            DESCRIPCIÓN              CONFIGURACIONES   UNIDADES   ESTADO                          
-› F1000          Metro Línea 1            2                 24         [1 Activa] [1 En configuración]  ⋮
+› Metro Línea 1  Flota de metro de la l… 2                 24         [1 Activa] [1 En configuración]  ⋮
    └ Estructura 1 · Serie 1000            ─                 16         [Activa]        16/16 terminadas  Ver ⋮
    └ Estructura 2 · Serie 1100            ─                 8          [En configuración] 3/8 terminadas  Continuar ⋮
-› F2000          Tranvía Zaragoza         1                 12         [1 Activa]                       ⋮
-  F3000          Cercanías Norte          0                 —          [Sin configurar]   Iniciar configuración ⋮
+› Tranvía Norte  Tranvía de la red norte  1                 12         [1 Activa]                       ⋮
+  Cercanías Sur  Cercanías del corredor…  0                 —          [Sin configurar]   Iniciar configuración ⋮
 ```
 
 - **Fila de flota:** Flota, Descripción, nº de configuraciones, total de unidades, resumen de estado y menú (⋮): Editar flota, Añadir configuración.

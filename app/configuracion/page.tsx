@@ -88,7 +88,7 @@ export default function ListadoPage() {
           <Field label="Flota" htmlFor="f-flota">
             <select id="f-flota" className="lm-select lm-select--dense" value={fFlota} onChange={(e) => { setFFlota(e.target.value); setPagina(0); }}>
               <option value="">Todas</option>
-              {store.flotas.map((f) => <option key={f.id} value={f.id}>{f.codigo} · {f.nombre}</option>)}
+              {store.flotas.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
             </select>
           </Field>
           <Field label="Estructura" htmlFor="f-est">
@@ -154,12 +154,12 @@ export default function ListadoPage() {
                         <td>
                           {todas.length > 0 && (
                             <IconButton compact icon={abierta ? "expand_less" : "expand_more"}
-                              label={`${abierta ? "Plegar" : "Desplegar"} configuraciones de ${f.codigo}`}
+                              label={`${abierta ? "Plegar" : "Desplegar"} configuraciones de ${f.nombre}`}
                               aria-expanded={abierta} onClick={() => setAbiertas((a) => ({ ...a, [f.id]: !abierta }))} />
                           )}
                         </td>
-                        <td className="emph">{f.codigo}</td>
-                        <td>{f.nombre}</td>
+                        <td className="emph">{f.nombre}</td>
+                        <td>{f.descripcion || "—"}</td>
                         <td className="muted">{todas.length === 0 ? "—" : todas.length === 1 ? store.estructura(todas[0].estructuraId)?.nombre : `${todas.length} configuraciones`}</td>
                         <td className="num">{total || "—"}</td>
                         <td>
@@ -173,7 +173,7 @@ export default function ListadoPage() {
                         <td className="actions">
                           <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                             {todas.length === 0 && <Button variant="text" small onClick={() => nuevaConfig(f.id)}>Iniciar configuración</Button>}
-                            <Menu label={`Acciones de ${f.codigo}`} items={[
+                            <Menu label={`Acciones de ${f.nombre}`} items={[
                               { label: "Añadir configuración", icon: "add", onSelect: () => nuevaConfig(f.id) },
                               { label: "Modificar flota", icon: "edit", onSelect: () => snack("Fuera del alcance de este prototipo"), disabled: false },
                             ]} />
@@ -244,10 +244,10 @@ export default function ListadoPage() {
 
       {dialogFlota && (
         <DialogNuevaFlota
-          existentes={store.flotas.map((f) => f.codigo.toLowerCase())}
+          existentes={store.flotas.map((f) => f.nombre.trim().toLowerCase())}
           onClose={() => setDialogFlota(false)}
-          onCrear={(codigo, nombre, descripcion) => {
-            const f = store.crearFlota({ codigo, nombre, descripcion });
+          onCrear={(nombre, descripcion) => {
+            const f = store.crearFlota({ nombre, descripcion });
             setDialogFlota(false);
             nuevaConfig(f.id);
           }}
@@ -267,24 +267,19 @@ export default function ListadoPage() {
 }
 
 function DialogNuevaFlota({ existentes, onClose, onCrear }: {
-  existentes: string[]; onClose: () => void; onCrear: (codigo: string, nombre: string, descripcion: string) => void;
+  existentes: string[]; onClose: () => void; onCrear: (nombre: string, descripcion: string) => void;
 }) {
-  const [codigo, setCodigo] = useState("");
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [intentado, setIntentado] = useState(false);
-  const errCodigo = !codigo.trim() ? "Indica el código de la flota" : existentes.includes(codigo.trim().toLowerCase()) ? "Ya existe una flota con este código" : "";
-  const errNombre = !nombre.trim() ? "Indica el nombre de la flota" : "";
-  const crear = () => { setIntentado(true); if (!errCodigo && !errNombre) onCrear(codigo.trim().toUpperCase(), nombre.trim(), descripcion.trim()); };
+  const errNombre = !nombre.trim() ? "Indica el nombre de la flota" : existentes.includes(nombre.trim().toLowerCase()) ? "Ya existe una flota con este nombre" : "";
+  const crear = () => { setIntentado(true); if (!errNombre) onCrear(nombre.trim(), descripcion.trim()); };
   return (
     <Dialog title="Nueva flota" message="Después podrás añadir sus configuraciones, una por cada estructura." onClose={onClose}
       footer={<>
         <Button variant="outlined" onClick={onClose}>Cancelar</Button>
         <Button onClick={crear}>Crear y configurar</Button>
       </>}>
-      <Field label="Código" required htmlFor="nf-codigo" error={intentado ? errCodigo : ""} support="Por ejemplo: F4000">
-        <input id="nf-codigo" className="lm-input" value={codigo} aria-invalid={intentado && !!errCodigo} onChange={(e) => setCodigo(e.target.value)} />
-      </Field>
       <Field label="Nombre" required htmlFor="nf-nombre" error={intentado ? errNombre : ""}>
         <input id="nf-nombre" className="lm-input" value={nombre} aria-invalid={intentado && !!errNombre} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Metro Línea 4" />
       </Field>

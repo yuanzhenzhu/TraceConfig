@@ -246,7 +246,7 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
           </article>
         ))}
       </div>
-      <span className="lm-body-small muted">{PASOS.length} pasos · Flota {flota.codigo} · {flota.nombre}</span>
+      <span className="lm-body-small muted">{PASOS.length} pasos · Flota {flota.nombre}</span>
     </section>
   );
 }

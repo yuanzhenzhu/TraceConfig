@@ -9,7 +9,7 @@ import {
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[]; perfilesProps: PerfilPropiedades[] };
-const CLAVE = "lm-trace-prototipo-v8";
+const CLAVE = "lm-trace-prototipo-v9";
 
 /**
  * Cada estructura del catálogo tiene siempre su perfil por defecto («Estándar · <estructura>») de drivers,
@@ -76,11 +76,11 @@ function semilla(): Estado {
 
   const flotas: Flota[] = [
     flota({
-      id: "f1000", codigo: "F1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
+      id: "f1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
       sms: { ambito: "flota", driver: "km", calculo: "real" },
     }),
-    flota({ id: "f2000", codigo: "F2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: false }),
-    flota({ id: "f3000", codigo: "F3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: true }),
+    flota({ id: "f2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: false }),
+    flota({ id: "f3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: true }),
   ];
   const parcial = plantillasIniciales(e2.raiz);
   parcial["Tren"] = "cargada"; parcial["Coche"] = "cargada"; parcial["Puerta"] = "cargada"; parcial["Rueda"] = "errores";
@@ -129,7 +129,7 @@ type Api = {
   usosDe: (estructuraId: string) => Configuracion[];
   usosDePerfil: (perfilId: string) => Configuracion[];
   usosDePerfilProps: (perfilId: string) => Configuracion[];
-  crearFlota: (f: Pick<Flota, "codigo" | "nombre" | "descripcion">) => Flota;
+  crearFlota: (f: Pick<Flota, "nombre" | "descripcion">) => Flota;
   actualizarFlota: (id: string, cambios: Partial<Flota>) => void;
   iniciarConfig: (flotaId: string) => string;
   actualizarConfig: (id: string, cambios: Partial<Configuracion>) => void;
@@ -176,7 +176,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch { /* sin almacenamiento: el prototipo sigue funcionando */ }
   }, [estado, listo]);
 
-  const crearFlota = useCallback((f: Pick<Flota, "codigo" | "nombre" | "descripcion">) => {
+  const crearFlota = useCallback((f: Pick<Flota, "nombre" | "descripcion">) => {
     const nueva = flota({ ...f, id: nuevoId("flota"), usaSms: true });
     setEstado((s) => ({ ...s, flotas: [...s.flotas, nueva] }));
     return nueva;

@@ -19,7 +19,7 @@ import { CabeceraPerfil, nombreLibre, type PasoProps } from "./pasos-1-3";
 
 function AvisoFlota({ flota }: { flota: Flota }) {
   return (
-    <Banner type="info" title={`Se aplica a toda la flota ${flota.codigo}`}>
+    <Banner type="info" title={`Se aplica a toda la flota ${flota.nombre}`}>
       Esta información es de la flota y la comparten todas sus configuraciones. Si cambias algo aquí, cambia para todas ellas.
     </Banner>
   );
@@ -162,7 +162,7 @@ export function Paso6({ flota, setFlota }: PasoProps) {
   if (!flota.usaSms) {
     return (
       <section className="lm-surface lm-surface--p24">
-        <Banner type="info" title="Este cliente no usa SMS">Este paso no aplica para la flota {flota.codigo}. Puedes continuar.</Banner>
+        <Banner type="info" title="Este cliente no usa SMS">Este paso no aplica para la flota {flota.nombre}. Puedes continuar.</Banner>
       </section>
     );
   }
@@ -175,7 +175,7 @@ export function Paso6({ flota, setFlota }: PasoProps) {
       <AvisoFlota flota={flota} />
       <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>Ámbito del cálculo</legend>
-        <label className="lm-radio"><input type="radio" name="ambito" checked={sms.ambito === "flota"} onChange={() => upd({ ambito: "flota" })} />Flota {flota.codigo} completa</label>
+        <label className="lm-radio"><input type="radio" name="ambito" checked={sms.ambito === "flota"} onChange={() => upd({ ambito: "flota" })} />Flota {flota.nombre} completa</label>
         <label className="lm-radio"><input type="radio" name="ambito" checked={sms.ambito === "linea"} onChange={() => upd({ ambito: "linea" })} />Por línea</label>
       </fieldset>
       <Field label="Driver" htmlFor="sms-driver" style={{ width: 280 }}>

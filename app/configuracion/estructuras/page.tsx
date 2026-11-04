@@ -84,7 +84,7 @@ export default function EstructurasPage() {
                         <tr key={c.id} className="is-child">
                           <td />
                           <td colSpan={3} style={{ paddingLeft: "var(--lm-space-30)" }}>
-                            <Link href={`/configuracion/${c.id}`}>{f?.codigo} · {c.nombre}</Link>
+                            <Link href={`/configuracion/${c.id}`}>{f?.nombre} · {c.nombre}</Link>
                             <span className="muted"> · {f?.nombre}</span>
                           </td>
                           <td />
