@@ -70,7 +70,7 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
           ))}
         </div>
         <div className="row" style={{ height: "var(--lm-space-40)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
-          <span className="lm-label-medium grow" style={{ paddingLeft: "var(--lm-space-50)" }}>CATEGORÍA</span>
+          <span className="lm-label-medium grow" style={{ paddingLeft: "var(--lm-space-50)" }}>CATEGORÍA POR NIVELES</span>
           {DRIVERS.map((x) => (
             <span key={x.id} className="row" style={{ margin: "0 var(--lm-space-5)" }}>
               <span className="lm-label-small muted" style={{ width: COL, textAlign: "center" }}>TIENE</span>
