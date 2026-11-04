@@ -2,7 +2,7 @@
 
 // Estado del prototipo: vive en el navegador (localStorage) y se puede restablecer.
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ESTRUCTURAS, categoriasDe, driversIniciales, nombreLibre, nuevoId, propiedadesVacias, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
   type Configuracion, type Estructura, type Flota, type PerfilDrivers, type PerfilPropiedades,
@@ -155,8 +155,6 @@ export const useStore = () => {
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], perfiles: [], perfilesProps: [] });
   const [listo, setListo] = useState(false);
-  const estadoRef = useRef(estado);
-  estadoRef.current = estado;
 
   useEffect(() => {
     try {
@@ -191,8 +189,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const iniciarConfig = useCallback((flotaId: string) => {
-    // Si es la primera configuración de la flota, de inicio se supone que la flota tiene una sola estructura.
-    const c = base(flotaId, { unica: !estadoRef.current.configs.some((x) => x.flotaId === flotaId) });
+    const c = base(flotaId, {});
     setEstado((s) => ({ ...s, configs: [...s.configs, c] }));
     return c.id;
   }, []);

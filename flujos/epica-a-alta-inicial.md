@@ -102,8 +102,13 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 13. **Perfil existente en solo lectura; drivers obligatorio** (2026-11-04): en el asistente, un perfil existente (de drivers o de propiedades) **nunca se marca ni desmarca**: se ve en solo lectura y, para cambiarlo, se modifica en su apartado o se duplica. Solo se marca al **crear un perfil nuevo**. El paso **Drivers es obligatorio** y empieza con el perfil Estándar elegido. Los pasos de **propiedades de categoría y de hueco son opcionales**: la configuración puede quedarse **sin perfil** (opción *Sin propiedades*), y no hay nada elegido de inicio. Sustituye a la parte de la decisión 10 que permitía editar en el asistente un perfil que solo usaba esa configuración.
 
 ## En prueba (rama prueba/estructura-y-unidades)
-- **Pasos 1 y 2 juntos** (2026-11-04): un solo paso **Estructura y unidades**. La primera sección pregunta si la flota tiene **una sola estructura** y, al lado, pide el **nº de unidades**. Si la flota tiene una sola estructura, la configuración **se llama como la flota** y no se piden nombre ni descripción. Si tiene varias, se piden. La pregunta solo aparece en la primera configuración de la flota. La configuración se guarda al completar este paso.
-- **Varias estructuras** (2026-11-04): si la flota tiene varias, se pregunta **cuántas** (2 a 10) y aparece una fila por configuración con **nombre** (obligatorio y sin repetir), descripción, **estructura** (de las existentes) y **nº de unidades**. Al continuar se crean todas las configuraciones (En configuración) y se sigue con la primera; desde el asistente hay accesos a las demás. Si falta una estructura, hay que crearla antes en Configuración › Estructuras.
+- **Datos básicos en la flota** (2026-11-04): al crear la flota (**Nueva flota**) o al iniciar una flota sin configuraciones se piden sus datos básicos:
+  - Nombre y descripción de la flota (solo al crearla).
+  - **¿Cuántas estructuras tiene?** *Una* o *Varias*.
+  - **Una:** estructura y nº de unidades. La configuración se llama como la flota.
+  - **Varias:** cuántas (2 a 10) y, por cada una, **nombre** (obligatorio y sin repetir), **estructura** y **nº de unidades**.
+  - Al crear, se crean la flota y todas sus configuraciones (En configuración) y se sigue por la primera en el paso **Drivers**. Si falta una estructura, hay que crearla antes en Configuración › Estructuras.
+- **Pasos 1 y 2 juntos:** el asistente tiene un solo paso **Estructura y unidades**. Sirve para añadir una configuración a una flota que ya tiene otras (nombre, descripción, nº de unidades y estructura, que se puede crear aquí) y para revisar las ya creadas.
 
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.

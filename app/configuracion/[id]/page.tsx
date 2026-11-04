@@ -73,20 +73,6 @@ export default function AsistentePage() {
   const avanzar = () => {
     setIntentado(true);
     if (!valido(p)) return;
-    // (Prueba) Varias estructuras: se crea una configuración por fila y se sigue con la primera.
-    if (p === 1 && !c.guardada && !c.unica && c.varias) {
-      const [primera, ...resto] = c.varias;
-      const e0 = store.estructura(primera.estructuraId)!;
-      set({ nombre: primera.nombre.trim(), descripcion: primera.descripcion.trim(), estructuraId: e0.id, unidades: primera.unidades, varias: null, plantillas: plantillasIniciales(e0.raiz), guardada: true });
-      resto.forEach((r) => {
-        const e = store.estructura(r.estructuraId)!;
-        const nueva = store.iniciarConfig(flota.id);
-        store.actualizarConfig(nueva, { nombre: r.nombre.trim(), descripcion: r.descripcion.trim(), estructuraId: e.id, unidades: r.unidades, unica: false, plantillas: plantillasIniciales(e.raiz), guardada: true, pasoActual: 3, pasoMax: 3 });
-      });
-      snack(`${c.varias.length} configuraciones de ${flota.nombre} creadas. Sigues con ${primera.nombre.trim()}`);
-      irA(3, true);
-      return;
-    }
     if (p === 1 && raiz) {
       // Si se cambia de estructura, las plantillas se recalculan para sus categorías.
       const nuevas = plantillasIniciales(raiz);

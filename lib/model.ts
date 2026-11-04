@@ -31,11 +31,10 @@ export type Configuracion = {
   estado: EstadoConfig;
   guardada: boolean; // se guarda al completar el paso Estructura y unidades
   unica: boolean; // la flota tiene una sola estructura: la configuración se llama como la flota
-  varias?: FilaConfig[] | null; // (prueba) la flota tiene varias estructuras: una fila por configuración hasta guardar el paso 1
   actualizada: string; // ISO
 };
 
-/** (Prueba) Datos de cada configuración cuando, en el paso 1, la flota tiene varias estructuras. */
+/** (Prueba) Datos básicos de cada configuración al crear la flota (dialog Nueva flota). */
 export type FilaConfig = { nombre: string; descripcion: string; estructuraId: string | null; unidades: number | null };
 export const filaVacia = (): FilaConfig => ({ nombre: "", descripcion: "", estructuraId: null, unidades: null });
 

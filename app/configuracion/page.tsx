@@ -7,7 +7,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, Loading, Menu, Tag, useSnackbar,
 } from "@/components/ds";
-import { fecha, unidadesTerminadas, type Configuracion, type Flota } from "@/lib/model";
+import { contarHuecos, erroresFilas, fecha, filaVacia, plantillasIniciales, unidadesTerminadas, type Configuracion, type FilaConfig, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 type Demo = "normal" | "vacio" | "error" | "cargando";
@@ -24,7 +24,8 @@ export default function ListadoPage() {
   const [fEstado, setFEstado] = useState("");
   const [abiertas, setAbiertas] = useState<Record<string, boolean>>({});
   const [pagina, setPagina] = useState(0);
-  const [dialogFlota, setDialogFlota] = useState(false);
+  // true: nueva flota · Flota: iniciar la configuración de una flota que aún no tiene ninguna
+  const [dialogFlota, setDialogFlota] = useState<boolean | Flota>(false);
   const [aDescartar, setADescartar] = useState<Configuracion | null>(null);
 
   useEffect(() => {
@@ -172,9 +173,9 @@ export default function ListadoPage() {
                         <td />
                         <td className="actions">
                           <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
-                            {todas.length === 0 && <Button variant="text" small onClick={() => nuevaConfig(f.id)}>Iniciar configuración</Button>}
+                            {todas.length === 0 && <Button variant="text" small onClick={() => setDialogFlota(f)}>Iniciar configuración</Button>}
                             <Menu label={`Acciones de ${f.nombre}`} items={[
-                              { label: "Añadir configuración", icon: "add", onSelect: () => nuevaConfig(f.id) },
+                              { label: "Añadir configuración", icon: "add", onSelect: () => (todas.length === 0 ? setDialogFlota(f) : nuevaConfig(f.id)) },
                               { label: "Modificar flota", icon: "edit", onSelect: () => snack("Fuera del alcance de este prototipo"), disabled: false },
                             ]} />
                           </span>
@@ -244,12 +245,21 @@ export default function ListadoPage() {
 
       {dialogFlota && (
         <DialogNuevaFlota
+          flota={dialogFlota === true ? undefined : dialogFlota}
           existentes={store.flotas.map((f) => f.nombre.trim().toLowerCase())}
           onClose={() => setDialogFlota(false)}
-          onCrear={(nombre, descripcion) => {
-            const f = store.crearFlota({ nombre, descripcion });
+          onCrear={({ nombre, descripcion, unica, filas }) => {
+            const f = dialogFlota === true ? store.crearFlota({ nombre, descripcion }) : dialogFlota;
+            // Se crean ya todas sus configuraciones, con su estructura y sus unidades, y se sigue por la primera en el paso Drivers.
+            const ids = filas.map((r) => {
+              const e = store.estructura(r.estructuraId)!;
+              const id = store.iniciarConfig(f.id);
+              store.actualizarConfig(id, { nombre: unica ? f.nombre : r.nombre.trim(), descripcion: r.descripcion.trim(), estructuraId: e.id, unidades: r.unidades, unica, plantillas: plantillasIniciales(e.raiz), guardada: true, pasoActual: 3, pasoMax: 3 });
+              return id;
+            });
             setDialogFlota(false);
-            nuevaConfig(f.id);
+            snack(dialogFlota === true ? (unica ? `Flota ${f.nombre} creada` : `Flota ${f.nombre} creada con ${filas.length} configuraciones`) : `${filas.length === 1 ? "Configuración creada" : `${filas.length} configuraciones creadas`} en ${f.nombre}`);
+            router.push(`/configuracion/${ids[0]}?paso=3`);
           }}
         />
       )}
@@ -266,26 +276,115 @@ export default function ListadoPage() {
   );
 }
 
-function DialogNuevaFlota({ existentes, onClose, onCrear }: {
-  existentes: string[]; onClose: () => void; onCrear: (nombre: string, descripcion: string) => void;
+/**
+ * (Prueba) Nueva flota con sus datos básicos: nombre, descripción, si tiene una o varias estructuras,
+ * y la estructura y el nº de unidades de cada configuración. Al crear, se crean la flota y sus configuraciones.
+ */
+function DialogNuevaFlota({ flota, existentes, onClose, onCrear }: {
+  flota?: Flota; existentes: string[]; onClose: () => void;
+  onCrear: (datos: { nombre: string; descripcion: string; unica: boolean; filas: FilaConfig[] }) => void;
 }) {
-  const [nombre, setNombre] = useState("");
+  const store = useStore();
+  const [nombre, setNombre] = useState(flota?.nombre ?? "");
   const [descripcion, setDescripcion] = useState("");
+  const [unica, setUnica] = useState(true);
+  const [una, setUna] = useState<FilaConfig>(filaVacia());
+  const [varias, setVarias] = useState<FilaConfig[]>([filaVacia(), filaVacia()]);
+  const [textoN, setTextoN] = useState("2");
   const [intentado, setIntentado] = useState(false);
-  const errNombre = !nombre.trim() ? "Indica el nombre de la flota" : existentes.includes(nombre.trim().toLowerCase()) ? "Ya existe una flota con este nombre" : "";
-  const crear = () => { setIntentado(true); if (!errNombre) onCrear(nombre.trim(), descripcion.trim()); };
+
+  const errNombre = flota ? "" : !nombre.trim() ? "Indica el nombre de la flota" : existentes.includes(nombre.trim().toLowerCase()) ? "Ya existe una flota con este nombre" : "";
+  const errUna = { estructura: !una.estructuraId ? "Elige una estructura" : "", unidades: !una.unidades ? "Indica un número entero entre 1 y 999" : "" };
+  const errVarias = erroresFilas(varias);
+  const filasOk = unica ? !errUna.estructura && !errUna.unidades : errVarias.every((e) => !e.nombre && !e.estructura && !e.unidades);
+  const crear = () => {
+    setIntentado(true);
+    if (errNombre || !filasOk) return;
+    onCrear({ nombre: nombre.trim(), descripcion: descripcion.trim(), unica, filas: unica ? [{ ...una, nombre: nombre.trim(), descripcion: "" }] : varias });
+  };
+  const num = (v: string) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 999 ? n : null; };
+  const opciones = store.estructuras.map((x) => <option key={x.id} value={x.id}>{x.nombre} · {contarHuecos(x.raiz)} huecos</option>);
+  const rojo = { color: "var(--lm-sys-error)" };
+
   return (
-    <Dialog title="Nueva flota" message="Después podrás añadir sus configuraciones, una por cada estructura." onClose={onClose}
+    <Dialog large title={flota ? `Iniciar la configuración de ${flota.nombre}` : "Nueva flota"} message={flota ? "Indica si la flota tiene una o varias estructuras y cuántas unidades tiene cada una." : "Indica los datos básicos de la flota. Después configurarás cada una de sus configuraciones."} onClose={onClose}
       footer={<>
         <Button variant="outlined" onClick={onClose}>Cancelar</Button>
         <Button onClick={crear}>Crear y configurar</Button>
       </>}>
-      <Field label="Nombre" required htmlFor="nf-nombre" error={intentado ? errNombre : ""}>
-        <input id="nf-nombre" className="lm-input" value={nombre} aria-invalid={intentado && !!errNombre} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Metro Línea 4" />
-      </Field>
-      <Field label="Descripción" htmlFor="nf-desc">
-        <textarea id="nf-desc" className="lm-input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
-      </Field>
+      <div className="stack gap-20">
+        {!flota && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--lm-space-20)" }}>
+          <Field label="Nombre" required htmlFor="nf-nombre" error={intentado ? errNombre : ""}>
+            <input id="nf-nombre" className="lm-input" value={nombre} aria-invalid={intentado && !!errNombre} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Metro Línea 4" />
+          </Field>
+          <Field label="Descripción" htmlFor="nf-desc">
+            <input id="nf-desc" className="lm-input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+          </Field>
+        </div>}
+
+        <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>¿Cuántas estructuras tiene la flota? <span aria-hidden="true" style={rojo}>*</span></legend>
+          <div className="row gap-30">
+            <label className="lm-radio" style={{ alignItems: "flex-start" }}>
+              <input type="radio" name="nf-unica" checked={unica} onChange={() => setUnica(true)} />
+              <span className="lm-radio__text"><span>Una</span><span className="lm-radio__support">Todas sus unidades tienen la misma estructura</span></span>
+            </label>
+            <label className="lm-radio" style={{ alignItems: "flex-start" }}>
+              <input type="radio" name="nf-unica" checked={!unica} onChange={() => setUnica(false)} />
+              <span className="lm-radio__text"><span>Varias</span><span className="lm-radio__support">Una configuración por estructura, cada una con su nombre</span></span>
+            </label>
+          </div>
+        </fieldset>
+
+        {unica ? (
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "var(--lm-space-20)" }}>
+            <Field label="Estructura" required htmlFor="nf-est" error={intentado ? errUna.estructura : ""} support={nombre.trim() ? `La configuración se llamará como la flota: ${nombre.trim()}` : "La configuración se llamará como la flota"}>
+              <select id="nf-est" className="lm-select" value={una.estructuraId ?? ""} aria-invalid={intentado && !!errUna.estructura} onChange={(e) => setUna({ ...una, estructuraId: e.target.value || null })}>
+                <option value="">Elige una estructura…</option>{opciones}
+              </select>
+            </Field>
+            <Field label="Número de unidades" required htmlFor="nf-uds" error={intentado ? errUna.unidades : ""} support="Entre 1 y 999">
+              <input id="nf-uds" className="lm-input" inputMode="numeric" aria-invalid={intentado && !!errUna.unidades} placeholder="Por ejemplo: 16" onChange={(e) => setUna({ ...una, unidades: num(e.target.value) })} />
+            </Field>
+          </div>
+        ) : (
+          <div className="stack gap-10">
+            <Field label="Número de estructuras" required htmlFor="nf-n" support="Entre 2 y 10" style={{ width: 200 }}>
+              <input id="nf-n" className="lm-input" inputMode="numeric" value={textoN}
+                onChange={(e) => { setTextoN(e.target.value); const n = Number(e.target.value); if (Number.isInteger(n) && n >= 2 && n <= 10) setVarias(Array.from({ length: n }, (_, i) => varias[i] ?? filaVacia())); }} />
+            </Field>
+            <table className="lm-table">
+              <thead><tr><th style={{ width: 32 }}>Nº</th><th>Nombre *</th><th>Estructura *</th><th style={{ width: 130 }}>Unidades *</th></tr></thead>
+              <tbody>
+                {varias.map((fila, i) => {
+                  const err = intentado ? errVarias[i] : { nombre: "", estructura: "", unidades: "" };
+                  const upd = (x: Partial<FilaConfig>) => setVarias(varias.map((g, j) => (j === i ? { ...g, ...x } : g)));
+                  return (
+                    <tr key={i}>
+                      <td className="muted">{i + 1}</td>
+                      <td>
+                        <input className="lm-input lm-input--dense" aria-label={`Nombre de la configuración ${i + 1}`} aria-invalid={!!err.nombre} value={fila.nombre} placeholder={`Por ejemplo: Serie ${String.fromCharCode(65 + i)}`} onChange={(ev) => upd({ nombre: ev.target.value })} />
+                        {err.nombre && <span className="lm-body-small" style={rojo}>{err.nombre}</span>}
+                      </td>
+                      <td>
+                        <select className="lm-select lm-select--dense" aria-label={`Estructura de la configuración ${i + 1}`} aria-invalid={!!err.estructura} value={fila.estructuraId ?? ""} onChange={(ev) => upd({ estructuraId: ev.target.value || null })}>
+                          <option value="">Elige una estructura…</option>{opciones}
+                        </select>
+                        {err.estructura && <span className="lm-body-small" style={rojo}>{err.estructura}</span>}
+                      </td>
+                      <td>
+                        <input className="lm-input lm-input--dense" inputMode="numeric" aria-label={`Unidades de la configuración ${i + 1}`} aria-invalid={!!err.unidades} placeholder="1 a 999" onChange={(ev) => upd({ unidades: num(ev.target.value) })} />
+                        {err.unidades && <span className="lm-body-small" style={rojo}>{err.unidades}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <span className="lm-body-small muted">Si falta una estructura, créala antes en Configuración › Estructuras. Los nº de serie de las unidades se cargan después, en la plantilla de primer nivel.</span>
+      </div>
     </Dialog>
   );
 }
