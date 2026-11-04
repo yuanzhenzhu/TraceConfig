@@ -115,7 +115,7 @@ export function CatalogoPropiedades({ tipo }: { tipo: TipoProps }) {
                         <tr key={c.id} className="is-child">
                           <td />
                           <td colSpan={3} style={{ paddingLeft: "var(--lm-space-30)" }}>
-                            <Link href={`/configuracion/${c.id}`}>{f?.nombre} · {c.nombre}</Link>
+                            <Link href={`/configuracion/${c.id}`}>{store.etiqueta(c)}</Link>
                           </td>
                           <td />
                           <td className="num">{c.unidades}</td>
@@ -212,7 +212,7 @@ export function EditorPerfilProps({ tipo, id }: { tipo: TipoProps; id: string })
         )}
         {enUso && (
           <Banner type="attention" title={`Este perfil lo usan ${usos.length} configuraciones (${unidades} unidades)`}>
-            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.nombre} · ${c.nombre}`).join(", ")}.
+            Los cambios se aplicarán a todas: {usos.map((c) => store.etiqueta(c)).join(", ")}.
           </Banner>
         )}
         <section className="lm-surface lm-surface--p24 stack gap-20">

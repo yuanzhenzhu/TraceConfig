@@ -76,7 +76,7 @@ export default function EditarPerfilPage() {
         )}
         {enUso && (
           <Banner type="attention" title={`Este perfil lo usan ${usos.length} configuraciones (${unidades} unidades)`}>
-            Los cambios se aplicarán a todas: {usos.map((c) => `${store.flotas.find((f) => f.id === c.flotaId)?.nombre} · ${c.nombre}`).join(", ")}.
+            Los cambios se aplicarán a todas: {usos.map((c) => store.etiqueta(c)).join(", ")}.
           </Banner>
         )}
         <section className="lm-surface lm-surface--p24 stack gap-20">

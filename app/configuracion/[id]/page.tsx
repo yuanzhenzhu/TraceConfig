@@ -5,7 +5,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
-import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
+import { Paso1, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
 import { Paso4, Paso5, Paso6 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
 import { PASOS, categoriasDe, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
@@ -27,7 +27,8 @@ export default function AsistentePage() {
   useEffect(() => {
     if (!c || paso !== null) return;
     const q = Number(new URLSearchParams(window.location.search).get("paso"));
-    setPaso(q >= 1 && q <= 8 ? q : c.pasoActual);
+    const n = q >= 1 && q <= 8 ? q : c.pasoActual;
+    setPaso(n === 2 ? 1 : n); // el antiguo paso Unidades está dentro del paso 1
   }, [c, paso]);
 
   if (!store.listo || (c && paso === null)) return <main className="lm-page"><Loading text="Cargando configuración" /></main>;
@@ -54,9 +55,8 @@ export default function AsistentePage() {
 
   const ocupados = store.estructuras.filter((e) => e.id !== est?.id).map((e) => e.nombre.trim().toLowerCase());
   const v1 = paso1Valido(c, est, ocupados);
-  const v2 = !!c.unidades && c.guardada;
-  const alcanzable = (n: number) => n === 1 || (n === 2 ? v1 : v1 && v2);
-  const valido = (n: number) => (n === 1 ? v1 : n === 2 ? !!c.unidades : n === 3 ? !!store.perfil(c.perfilDriversId) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
+  const alcanzable = (n: number) => n === 1 || (v1 && c.guardada);
+  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!store.perfil(c.perfilDriversId) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
@@ -86,7 +86,7 @@ export default function AsistentePage() {
         ...(otraEst(c.perfilPropsHuecoId) ? { perfilPropsHuecoId: null } : {}),
       });
     }
-    if (p === 2 && !c.guardada) {
+    if (p === 1 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });
       snack(`Configuración "${c.nombre}" guardada como En configuración`);
     }
@@ -156,7 +156,6 @@ export default function AsistentePage() {
           </nav>
 
           {p === 1 && <Paso1 {...props} />}
-          {p === 2 && <Paso2 {...props} />}
           {p === 3 && est && <Paso3 {...props} />}
           {p === 4 && est && <Paso4 {...props} />}
           {p === 5 && est && <Paso5 {...props} />}
@@ -183,7 +182,7 @@ export default function AsistentePage() {
 
       {salir && (
         <Dialog title="¿Salir sin guardar?" onClose={() => setSalir(false)}
-          message="La configuración se guarda al completar el paso Unidades. Si sales ahora, se perderá lo que has hecho."
+          message="La configuración se guarda al completar el paso Estructura y unidades. Si sales ahora, se perderá lo que has hecho."
           footer={<>
             <Button variant="outlined" onClick={() => setSalir(false)}>Seguir configurando</Button>
             <Button variant="danger" onClick={() => { store.descartarConfig(c.id); router.push("/configuracion"); }}>Salir sin guardar</Button>

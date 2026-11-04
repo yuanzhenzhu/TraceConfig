@@ -29,7 +29,8 @@ export type Configuracion = {
   pasoActual: number;
   pasoMax: number; // paso más avanzado al que se ha llegado
   estado: EstadoConfig;
-  guardada: boolean; // se guarda al completar el paso Unidades
+  guardada: boolean; // se guarda al completar el paso Estructura y unidades
+  unica: boolean; // la flota tiene una sola estructura: la configuración se llama como la flota
   actualizada: string; // ISO
 };
 
@@ -327,8 +328,7 @@ export function diferencia(antes: Nodo, despues: Nodo) {
 }
 
 export const PASOS = [
-  { n: 1, titulo: "Datos y estructura", obligatorio: true },
-  { n: 2, titulo: "Unidades", obligatorio: true },
+  { n: 1, titulo: "Estructura y unidades", obligatorio: true }, // (prueba) antes eran dos pasos: Datos y estructura, y Unidades
   { n: 3, titulo: "Drivers", obligatorio: true },
   { n: 4, titulo: "Propiedades de categoría", obligatorio: false },
   { n: 5, titulo: "Propiedades de hueco", obligatorio: false },

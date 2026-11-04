@@ -101,6 +101,9 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
 
 13. **Perfil existente en solo lectura; drivers obligatorio** (2026-11-04): en el asistente, un perfil existente (de drivers o de propiedades) **nunca se marca ni desmarca**: se ve en solo lectura y, para cambiarlo, se modifica en su apartado o se duplica. Solo se marca al **crear un perfil nuevo**. El paso **Drivers es obligatorio** y empieza con el perfil Estándar elegido. Los pasos de **propiedades de categoría y de hueco son opcionales**: la configuración puede quedarse **sin perfil** (opción *Sin propiedades*), y no hay nada elegido de inicio. Sustituye a la parte de la decisión 10 que permitía editar en el asistente un perfil que solo usaba esa configuración.
 
+## En prueba (rama prueba/estructura-y-unidades)
+- **Pasos 1 y 2 juntos** (2026-11-04): un solo paso **Estructura y unidades**. La primera sección pregunta si la flota tiene **una sola estructura** y, al lado, pide el **nº de unidades**. Si la flota tiene una sola estructura, la configuración **se llama como la flota** y no se piden nombre ni descripción. Si tiene varias, se piden. La pregunta solo aparece en la primera configuración de la flota. La configuración se guarda al completar este paso.
+
 ## Decisiones de Claude (siguen como propuesta)
 1. **Punto de guardado:** la configuración se crea, en estado En configuración, al completar el paso **Unidades**. Si sales antes, no se guarda nada y se avisa con un dialog.
 2. **Pasos opcionales** con el botón "Omitir paso". En el stepper se marcan como *pendiente* y no como *hecho*.

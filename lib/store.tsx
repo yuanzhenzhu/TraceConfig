@@ -2,14 +2,14 @@
 
 // Estado del prototipo: vive en el navegador (localStorage) y se puede restablecer.
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ESTRUCTURAS, categoriasDe, driversIniciales, nombreLibre, nuevoId, propiedadesVacias, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
   type Configuracion, type Estructura, type Flota, type PerfilDrivers, type PerfilPropiedades,
 } from "./model";
 
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; perfiles: PerfilDrivers[]; perfilesProps: PerfilPropiedades[] };
-const CLAVE = "lm-trace-prototipo-v9";
+const CLAVE = "lm-trace-prototipo-v9b";
 
 /**
  * Cada estructura del catálogo tiene siempre su perfil por defecto («Estándar · <estructura>») de drivers,
@@ -47,7 +47,7 @@ function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
     perfilDriversId: null, perfilPropsCategoriaId: null, perfilPropsHuecoId: null, plantillas: {}, intentosPlantilla: {},
-    pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false,
+    pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false, unica: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
   };
@@ -96,7 +96,7 @@ function semilla(): Estado {
       pasosOmitidos: [5], guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
-      id: "cfg-tranvia", nombre: "Serie única", descripcion: "Todas las unidades del tranvía", estructuraId: e1.id, unidades: 12,
+      id: "cfg-tranvia", nombre: "", descripcion: "", unica: true, estructuraId: e1.id, unidades: 12,
       perfilDriversId: "drv-1", perfilPropsCategoriaId: "pc-1", perfilPropsHuecoId: "ph-1", plantillas: todas(e1.raiz), pasoActual: 8,
       estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
     }),
@@ -126,6 +126,8 @@ type Api = {
   estructura: (id: string | null | undefined) => Estructura | undefined;
   perfil: (id: string | null | undefined) => PerfilDrivers | undefined;
   perfilProps: (id: string | null | undefined) => PerfilPropiedades | undefined;
+  /** Cómo se nombra una configuración fuera de su flota: «Flota · Configuración», o solo la flota si tiene una sola estructura. */
+  etiqueta: (c: Configuracion) => string;
   usosDe: (estructuraId: string) => Configuracion[];
   usosDePerfil: (perfilId: string) => Configuracion[];
   usosDePerfilProps: (perfilId: string) => Configuracion[];
@@ -153,6 +155,8 @@ export const useStore = () => {
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], perfiles: [], perfilesProps: [] });
   const [listo, setListo] = useState(false);
+  const estadoRef = useRef(estado);
+  estadoRef.current = estado;
 
   useEffect(() => {
     try {
@@ -187,7 +191,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const iniciarConfig = useCallback((flotaId: string) => {
-    const c = base(flotaId, {});
+    // Si es la primera configuración de la flota, de inicio se supone que la flota tiene una sola estructura.
+    const c = base(flotaId, { unica: !estadoRef.current.configs.some((x) => x.flotaId === flotaId) });
     setEstado((s) => ({ ...s, configs: [...s.configs, c] }));
     return c.id;
   }, []);
@@ -253,18 +258,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const restablecer = useCallback(() => setEstado(semilla()), []);
 
+  // Si la flota tiene una sola estructura, su configuración se llama como la flota.
+  const configs = useMemo(() => estado.configs.map((c) => (c.unica ? { ...c, nombre: estado.flotas.find((f) => f.id === c.flotaId)?.nombre ?? "", descripcion: "" } : c)), [estado.configs, estado.flotas]);
+
   const api = useMemo<Api>(() => ({
-    listo, flotas: estado.flotas, configs: estado.configs, perfiles: estado.perfiles, perfilesProps: estado.perfilesProps,
+    listo, flotas: estado.flotas, configs, perfiles: estado.perfiles, perfilesProps: estado.perfilesProps,
     estructuras: estado.estructuras.filter((e) => !e.borradorDe),
     estructura: (id) => estado.estructuras.find((e) => e.id === id),
     perfil: (id) => estado.perfiles.find((p) => p.id === id),
     perfilProps: (id) => estado.perfilesProps.find((p) => p.id === id),
-    usosDe: (eid) => estado.configs.filter((c) => c.guardada && c.estructuraId === eid),
-    usosDePerfil: (pid) => estado.configs.filter((c) => c.guardada && c.perfilDriversId === pid),
-    usosDePerfilProps: (pid) => estado.configs.filter((c) => c.guardada && (c.perfilPropsCategoriaId === pid || c.perfilPropsHuecoId === pid)),
+    etiqueta: (c) => { const f = estado.flotas.find((x) => x.id === c.flotaId)?.nombre ?? ""; return c.unica ? f : `${f} · ${c.nombre}`; },
+    usosDe: (eid) => configs.filter((c) => c.guardada && c.estructuraId === eid),
+    usosDePerfil: (pid) => configs.filter((c) => c.guardada && c.perfilDriversId === pid),
+    usosDePerfilProps: (pid) => configs.filter((c) => c.guardada && (c.perfilPropsCategoriaId === pid || c.perfilPropsHuecoId === pid)),
     crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig,
     guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer,
-  }), [listo, estado, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer]);
+  }), [listo, estado, configs, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPerfil, eliminarPerfil, guardarPerfilProps, eliminarPerfilProps, restablecer]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

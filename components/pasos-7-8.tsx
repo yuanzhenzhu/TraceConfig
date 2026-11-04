@@ -204,8 +204,7 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const sms = flota.sms;
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
-    { n: 1, titulo: "Datos y estructura", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad</> },
-    { n: 2, titulo: "Unidades", contenido: <>{c.unidades} unidades</> },
+    { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades</> },
     { n: 3, titulo: "Drivers", contenido: <>{perfil ? `Perfil: ${perfil.nombre}` : "Sin perfil: kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} categorías (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: !perfil ? "Falta elegir el perfil de drivers" : undefined },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>{propiedades ? `Perfil: ${propiedades.nombre}` : "Sin propiedades de categoría"}<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
     { n: 5, titulo: "Propiedades de hueco", contenido: <>{propsHueco ? `Perfil: ${propsHueco.nombre}` : "Sin propiedades de hueco"}<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</>, aviso: omitido(5) ? "Paso omitido" : undefined },
@@ -234,10 +233,10 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
         </Banner>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--lm-space-20)" }}>
-        {bloques.map((b) => (
+        {bloques.map((b, i) => (
           <article key={b.n} className="lm-card stack gap-10">
             <div className="row gap-10">
-              <span className="lm-step__dot" style={{ background: "var(--lm-sys-primary-container)", color: "var(--lm-sys-on-primary-container)" }}>{b.n}</span>
+              <span className="lm-step__dot" style={{ background: "var(--lm-sys-primary-container)", color: "var(--lm-sys-on-primary-container)" }}>{i + 1}</span>
               <span className="lm-title-small grow">{b.titulo}</span>
               {!soloLectura && <Button variant="text" small icon="edit" onClick={() => irA(b.n)}>Editar</Button>}
             </div>

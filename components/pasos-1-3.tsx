@@ -1,6 +1,6 @@
 "use client";
 
-// Pasos 1 (Datos y estructura), 2 (Unidades) y 3 (Drivers) del asistente.
+// Pasos 1 (Estructura y unidades) y 3 (Drivers) del asistente. (Prueba: el antiguo paso 2, Unidades, va dentro del paso 1.)
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -23,8 +23,16 @@ export type PasoProps = {
 };
 
 /* ---------- Paso 1 ---------- */
-export function Paso1({ c, set, intentado, est }: PasoProps) {
+export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
   const store = useStore();
+  // La pregunta solo tiene sentido en la primera configuración de la flota.
+  const otrasDeFlota = store.configs.filter((x) => x.flotaId === c.flotaId && x.id !== c.id);
+  const preguntar = otrasDeFlota.length === 0 && !c.guardada;
+  const [texto, setTexto] = useState(c.unidades ? String(c.unidades) : "");
+  const nUnidades = Number(texto);
+  const unidadesOk = Number.isInteger(nUnidades) && nUnidades >= 1 && nUnidades <= 999;
+  const errUnidades = intentado && !unidadesOk ? "Indica un número entero entre 1 y 999" : "";
+  const huecos = est ? contarHuecos(est.raiz) : 0;
   const esBorrador = est?.borradorDe === c.id; // estructura nueva creada en este asistente
   const [modo, setModo] = useState<"existente" | "nueva">(esBorrador ? "nueva" : "existente");
   const [origen, setOrigen] = useState<"existente" | "cero">("cero");
@@ -43,7 +51,7 @@ export function Paso1({ c, set, intentado, est }: PasoProps) {
   };
   const editarBorrador = (cambios: Partial<Estructura>) => { if (est) store.guardarEstructura({ ...est, ...cambios }); };
 
-  const errNombre = intentado && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
+  const errNombre = intentado && !c.unica && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
   const errEstructura = intentado && !est ? "Selecciona o crea una estructura" : "";
   const nombreRepetido = esBorrador && !!est && store.estructuras.some((e) => e.nombre.trim().toLowerCase() === est.nombre.trim().toLowerCase());
   const errNombreEst = intentado && esBorrador && est && !est.nombre.trim() ? "Indica el nombre de la estructura" : nombreRepetido ? "Ya existe una estructura con este nombre" : "";
@@ -54,14 +62,52 @@ export function Paso1({ c, set, intentado, est }: PasoProps) {
       <section className="lm-surface lm-surface--p24 stack gap-20">
         <h2 className="lm-title-medium" style={{ margin: 0 }}>Datos de la configuración</h2>
         <p className="muted" style={{ margin: 0 }}>Una configuración es una parte de la flota que comparte la misma estructura.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
-          <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
-            <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
-          </Field>
-          <Field label="Descripción" htmlFor="c-desc">
-            <input id="c-desc" className="lm-input" value={c.descripcion} placeholder="Por ejemplo: Unidades de 3 coches entregadas en 2026" onChange={(e) => set({ descripcion: e.target.value })} />
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "var(--lm-space-30)", alignItems: "start" }}>
+          {preguntar ? (
+            <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
+              <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>¿La flota {flota.nombre} tiene una sola estructura? <span aria-hidden="true" style={{ color: "var(--lm-sys-error)" }}>*</span></legend>
+              <label className="lm-radio" style={{ alignItems: "flex-start" }}>
+                <input type="radio" name="unica" checked={c.unica} onChange={() => set({ unica: true })} />
+                <span className="lm-radio__text"><span>Sí, todas sus unidades tienen la misma estructura</span><span className="lm-radio__support">La configuración se llamará como la flota: {flota.nombre}</span></span>
+              </label>
+              <label className="lm-radio" style={{ alignItems: "flex-start" }}>
+                <input type="radio" name="unica" checked={!c.unica} onChange={() => set({ unica: false })} />
+                <span className="lm-radio__text"><span>No, tiene varias estructuras</span><span className="lm-radio__support">Cada estructura será una configuración con su propio nombre</span></span>
+              </label>
+            </fieldset>
+          ) : c.unica ? (
+            <div className="stack gap-5"><span className="lm-field__label">Nombre</span><span>{flota.nombre} <span className="muted lm-body-small">· la flota tiene una sola estructura</span></span></div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--lm-space-20)" }}>
+              <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
+                <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
+              </Field>
+              <Field label="Descripción" htmlFor="c-desc">
+                <input id="c-desc" className="lm-input" value={c.descripcion} placeholder="Por ejemplo: Unidades de 3 coches entregadas en 2026" onChange={(e) => set({ descripcion: e.target.value })} />
+              </Field>
+            </div>
+          )}
+          <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades} support="Entre 1 y 999. Los nº de serie se cargan después, en la plantilla de primer nivel">
+            <input id="u-num" className="lm-input" inputMode="numeric" value={texto} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
+              onChange={(e) => { setTexto(e.target.value); const v = Number(e.target.value); set({ unidades: Number.isInteger(v) && v >= 1 && v <= 999 ? v : null }); }} />
           </Field>
         </div>
+        {preguntar && !c.unica && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--lm-space-20)" }}>
+            <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
+              <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
+            </Field>
+            <Field label="Descripción" htmlFor="c-desc">
+              <input id="c-desc" className="lm-input" value={c.descripcion} placeholder="Por ejemplo: Unidades de 3 coches entregadas en 2026" onChange={(e) => set({ descripcion: e.target.value })} />
+            </Field>
+          </div>
+        )}
+        {unidadesOk && est && (
+          <span className="lm-body-small muted">{nUnidades} unidades × {huecos} huecos por unidad = {(nUnidades * huecos).toLocaleString("es-ES")} huecos en total</span>
+        )}
+        {!c.guardada && (
+          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Al continuar, la configuración se guardará con el estado En configuración y podrás retomarla cuando quieras.</span>
+        )}
       </section>
 
       <section className="lm-surface lm-surface--p24 stack gap-20">
@@ -165,41 +211,9 @@ export function Paso1({ c, set, intentado, est }: PasoProps) {
 }
 
 export function paso1Valido(c: Configuracion, est: Estructura | undefined, nombresOcupados: string[] = []) {
-  if (!c.nombre.trim() || !est || est.raiz.hijos.length === 0) return false;
+  if ((!c.unica && !c.nombre.trim()) || !c.unidades || !est || est.raiz.hijos.length === 0) return false;
   if (est.borradorDe && (!est.nombre.trim() || nombresOcupados.includes(est.nombre.trim().toLowerCase()))) return false;
   return true;
-}
-
-/* ---------- Paso 2 ---------- */
-export function Paso2({ c, set, intentado, est }: PasoProps) {
-  const [texto, setTexto] = useState(c.unidades ? String(c.unidades) : "");
-  const n = Number(texto);
-  const valido = Number.isInteger(n) && n >= 1 && n <= 999;
-  const err = intentado && !valido ? "Indica un número entero entre 1 y 999" : "";
-  const huecos = est ? contarHuecos(est.raiz) : 0;
-  return (
-    <section className="lm-surface lm-surface--p24 stack gap-20" style={{ maxWidth: 720 }}>
-      <h2 className="lm-title-medium" style={{ margin: 0 }}>Unidades</h2>
-      <p className="muted" style={{ margin: 0 }}>Indica cuántas unidades (trenes) de la flota usan la estructura <strong>{est?.nombre}</strong>.</p>
-      <Field label="Número de unidades" required htmlFor="u-num" error={err} support="Entre 1 y 999">
-        <input id="u-num" className="lm-input" style={{ width: 200 }} inputMode="numeric" value={texto} aria-invalid={!!err}
-          onChange={(e) => { setTexto(e.target.value); const v = Number(e.target.value); set({ unidades: Number.isInteger(v) && v >= 1 && v <= 999 ? v : null }); }} />
-      </Field>
-      {valido && (
-        <div className="lm-card row gap-30">
-          <span className="stack"><span className="lm-headline-small">{n}</span><span className="lm-body-small muted">unidades</span></span>
-          <span className="stack"><span className="lm-headline-small">{huecos}</span><span className="lm-body-small muted">huecos por unidad</span></span>
-          <span className="stack"><span className="lm-headline-small">{(n * huecos).toLocaleString("es-ES")}</span><span className="lm-body-small muted">huecos en total</span></span>
-        </div>
-      )}
-      <Banner type="info" title="Los nº de serie se cargan después">
-        Los números de serie, la fecha y los km de cada unidad se cargan en la plantilla de primer nivel (Tren), en el paso Carga de datos.
-      </Banner>
-      {!c.guardada && (
-        <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Al continuar, la configuración se guardará con el estado En configuración y podrás retomarla cuando quieras.</span>
-      )}
-    </section>
-  );
 }
 
 /* ---------- Paso 3 ---------- */
@@ -325,7 +339,7 @@ export function CabeceraPerfil({ nombre, otras, apartado, href, onDuplicar, titu
         <Link className="lm-btn lm-btn--text lm-btn--small" href={href}>Modificar en {apartado}</Link>
       </div>
       <Banner type="info" title={compartido ? `Solo lectura · lo usan también ${otras.length} ${otras.length === 1 ? "configuración" : "configuraciones"}` : "Solo lectura"}>
-        {compartido && <>{otras.map((x) => `${store.flotas.find((f) => f.id === x.flotaId)?.nombre} · ${x.nombre}`).join(", ")}. </>}
+        {compartido && <>{otras.map((x) => store.etiqueta(x)).join(", ")}. </>}
         Para cambiar este perfil, modifícalo en {apartado}{compartido ? " (afecta a todas las configuraciones que lo usan)" : ""}. Si esta configuración necesita algo distinto, duplícalo.
       </Banner>
     </div>

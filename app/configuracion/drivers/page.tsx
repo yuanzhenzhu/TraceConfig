@@ -97,7 +97,7 @@ export default function DriversPage() {
                         <tr key={c.id} className="is-child">
                           <td />
                           <td colSpan={4} style={{ paddingLeft: "var(--lm-space-30)" }}>
-                            <Link href={`/configuracion/${c.id}`}>{f?.nombre} · {c.nombre}</Link>
+                            <Link href={`/configuracion/${c.id}`}>{store.etiqueta(c)}</Link>
                           </td>
                           <td />
                           <td className="num">{c.unidades}</td>
