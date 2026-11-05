@@ -105,7 +105,18 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
                   </span>
                 </td>
                 <td className="num">{x.huecos}</td>
-                <td className="num">{(x.huecos * (c.unidades ?? 0)).toLocaleString("es-ES")}</td>
+                <td className="num">
+                  {anadir && (c.unidades ?? 0) > anadir.antes ? (
+                    // Añadir unidades: registros que ya había + los de las unidades nuevas (rojo si la plantilla es obligatoria)
+                    <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
+                      {(x.huecos * anadir.antes).toLocaleString("es-ES")}
+                      <strong style={{ color: x.nivel === 1 ? "var(--lm-sys-error)" : "var(--lm-on-warning-container)" }}
+                        aria-label={`${x.huecos * ((c.unidades ?? 0) - anadir.antes)} registros nuevos, ${x.nivel === 1 ? "obligatorios" : "opcionales"}`}>
+                        + {(x.huecos * ((c.unidades ?? 0) - anadir.antes)).toLocaleString("es-ES")}
+                      </strong>
+                    </span>
+                  ) : (x.huecos * (c.unidades ?? 0)).toLocaleString("es-ES")}
+                </td>
                 <td>
                   <span className="row gap-10">
                     <Tag tone={ESTADO[est].tone}>{ESTADO[est].txt}</Tag>
@@ -129,6 +140,13 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
           })}
         </tbody>
       </table>
+      {anadir && (c.unidades ?? 0) > anadir.antes && (
+        <span className="row gap-20 lm-body-small muted">
+          <span>Registros: actuales <strong>+ nuevos</strong> por las {(c.unidades ?? 0) - anadir.antes} unidades añadidas</span>
+          <span className="row gap-5"><strong style={{ color: "var(--lm-sys-error)" }}>+ N</strong> obligatorio</span>
+          <span className="row gap-5"><strong style={{ color: "var(--lm-on-warning-container)" }}>+ N</strong> opcional</span>
+        </span>
+      )}
 
       {subiendo && (
         <DialogSubida categoria={subiendo} c={c} onClose={() => setSubiendo(null)}
