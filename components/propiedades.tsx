@@ -91,7 +91,7 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
 /* ---------- Propiedades de hueco: matriz de asignación (Configuración › Estructura y propiedades de hueco) ---------- */
 /**
  * (Prueba) Se asignan directamente, sin seleccionar antes los huecos: la estructura en filas y una columna por propiedad.
- * Encima, un resumen de lo asignado y un atajo para asignar o quitar una propiedad en todos los huecos de una categoría.
+ * Encima, un atajo para asignar o quitar una propiedad en todos los huecos de una categoría.
  * Aquí solo se elige qué propiedades tiene cada hueco; sus valores se dan en cada configuración (paso 2 del asistente).
  */
 export function MatrizPropsHueco({ raiz, valor, onChange, soloLectura }: {
@@ -114,45 +114,10 @@ export function MatrizPropsHueco({ raiz, valor, onChange, soloLectura }: {
   };
   const deCategoria = (c: string) => { const ids: string[] = []; recorrer(raiz, (n) => { if (n.categoria === c) ids.push(n.id); }); return ids; };
 
-  // Resumen: por propiedad, cuántos huecos la tienen y de qué categorías
-  const resumen = PROPS_HUECO.map((p) => {
-    const porCat = new Map<string, number>();
-    recorrer(raiz, (n) => { if (tiene(n.id, p.id)) porCat.set(n.categoria, (porCat.get(n.categoria) ?? 0) + 1); });
-    return { p, total: [...porCat.values()].reduce((s, x) => s + x, 0), porCat: [...porCat.entries()] };
-  });
-  const asignadas = resumen.filter((r) => r.total > 0);
-  const totalCat = (c: string) => cats.find((x) => x.categoria === c)?.huecos ?? 0;
   const COL = 72;
 
   return (
     <div className="stack gap-20">
-      {/* Resumen */}
-      <div className="lm-card stack gap-10">
-        <span className="lm-title-small">Resumen · {asignadas.length} de {PROPS_HUECO.length} propiedades asignadas</span>
-        {asignadas.length === 0 ? (
-          <span className="muted">Todavía no hay propiedades de hueco asignadas en esta estructura</span>
-        ) : (
-          <table className="lm-table">
-            <thead><tr><th style={{ width: 200 }}>Propiedad</th><th className="num" style={{ width: 100 }}>Huecos</th><th>Dónde</th></tr></thead>
-            <tbody>
-              {asignadas.map(({ p, total, porCat }) => (
-                <tr key={p.id}>
-                  <td className="emph">{p.nombre}</td>
-                  <td className="num">{total}</td>
-                  <td>
-                    <span className="row gap-5 wrap">
-                      {porCat.map(([c, n]) => (
-                        <Tag key={c} tone="primary">{n === totalCat(c) ? `${c}: todos (${n})` : `${c}: ${n} de ${totalCat(c)}`}</Tag>
-                      ))}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
       {/* Atajo por categoría */}
       {!soloLectura && (
         <div className="row gap-10 wrap" style={{ alignItems: "flex-end" }}>
