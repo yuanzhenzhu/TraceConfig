@@ -5,10 +5,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Breadcrumb, Button, EmptyState, Field, Loading, Tag } from "@/components/ds";
-import { ResumenDrivers, cuentaDrivers } from "@/components/drivers";
-import { textoSms } from "@/components/sms";
-import { DRIVERS, fecha } from "@/lib/model";
+import { Breadcrumb, Button, EmptyState, Field, Loading, Menu, Tag } from "@/components/ds";
+import { cuentaDrivers } from "@/components/drivers";
+import { DRIVERS, driversEfectivos } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function DriversPage() {
@@ -62,28 +61,30 @@ export default function DriversPage() {
           <table className="lm-table">
             <thead>
               <tr>
-                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th className="num">Heredables</th><th>Cálculo en SMS</th>
-                <th>Estado</th><th>Últ. actualización</th><th className="actions"><span className="sr-only">Acciones</span></th>
+                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th>Cálculo en SMS</th>
+                <th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
             <tbody>
               {lista.map((c) => {
                 const f = store.flotas.find((x) => x.id === c.flotaId);
                 const est = store.estructura(c.estructuraId)!;
-                const valor = c.drivers ?? { drivers: {}, heredables: {} };
-                const heredables = DRIVERS.reduce((s, d) => s + cuentaDrivers(valor.heredables, d.id), 0);
+                // Solo qué drivers tiene (kilometraje, ciclos, horas) y si tiene cálculo en SMS
+                const ef = driversEfectivos(c.drivers, est.raiz);
+                const tiene = DRIVERS.filter((d) => cuentaDrivers(ef.drivers, d.id) > 0).map((d) => d.nombre);
+                const sms = !!f?.usaSms && (c.sms ?? []).some((x) => x.driver && x.forma);
                 return (
                   <tr key={c.id}>
                     <td className="emph">{f?.nombre}</td>
                     <td>{c.unica ? <span className="muted">Única</span> : c.nombre}</td>
                     <td>{est.nombre}</td>
-                    <td>{c.drivers ? <ResumenDrivers valor={c.drivers} /> : <span className="muted">Kilometraje por defecto</span>}</td>
-                    <td className="num">{c.drivers ? heredables : "—"}</td>
-                    <td>{f?.usaSms ? (c.sms?.length ? textoSms(c.sms) : <span className="muted">Sin cálculo</span>) : <span className="muted">La flota no usa SMS</span>}</td>
+                    <td>{tiene.length ? tiene.join(", ") : <span className="muted">Sin drivers</span>}</td>
+                    <td>{sms ? "Sí" : "No"}</td>
                     <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
-                    <td className="muted">{fecha(c.actualizada)}</td>
                     <td className="actions">
-                      <Button variant="outlined" small onClick={() => router.push(`/configuracion/drivers/${c.id}`)}>Modificar</Button>
+                      <Menu label={`Acciones de ${store.etiqueta(c)}`} items={[
+                        { label: "Modificar", icon: "edit", onSelect: () => router.push(`/configuracion/drivers/${c.id}`) },
+                      ]} />
                     </td>
                   </tr>
                 );
