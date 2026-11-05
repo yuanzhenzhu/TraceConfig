@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v17";
+const CLAVE = "lm-trace-prototipo-v18";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -63,12 +63,12 @@ function semilla(): Estado {
   parcial["Tren"] = "cargada"; parcial["Coche"] = "cargada"; parcial["Puerta"] = "cargada"; parcial["Rueda"] = "errores";
   const configs: Configuracion[] = [
     base("f1000", {
-      id: "cfg-serie-a", nombre: "Serie A", descripcion: "", estructuraId: e1.id, unidades: 16,
+      id: "cfg-serie-a", nombre: "Serie A", descripcion: "Trenes de 3 coches entregados en 2019", estructuraId: e1.id, unidades: 16,
       drivers: { ...driversIniciales(e1.raiz), estructuraId: e1.id }, plantillas: todas(e1.raiz), pasoActual: 8,
       valoresHueco: codigosCoches(e1.raiz, "ML1"), sms: [{ driver: "km", forma: "flota" }], estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
-      id: "cfg-serie-b", nombre: "Serie B", descripcion: "", estructuraId: e2.id, unidades: 8,
+      id: "cfg-serie-b", nombre: "Serie B", descripcion: "Trenes de 2 coches para refuerzo en hora punta", estructuraId: e2.id, unidades: 8,
       drivers: { ...conCiclos, estructuraId: e2.id }, sms: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "categoria" }], plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),

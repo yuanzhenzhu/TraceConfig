@@ -194,7 +194,7 @@ export default function ListadoPage() {
                             <td style={{ paddingLeft: "var(--lm-space-30)" }}>
                               <span className="row gap-5">
                                 <span className="emph">{c.nombre}</span>
-                                {c.descripcion && <InfoTooltip text={c.descripcion} label={`Descripción de ${c.nombre}`} />}
+                                <InfoTooltip text={c.descripcion || "Sin descripción"} label={`Descripción de ${c.nombre}`} />
                               </span>
                             </td>
                             <td>{est?.nombre ?? <span className="muted">Sin elegir</span>}</td>
@@ -204,9 +204,7 @@ export default function ListadoPage() {
                                 {c.estado === "activa"
                                   ? <Tag tone="success">Activa</Tag>
                                   : <Tag tone="attention">En configuración</Tag>}
-                                {c.estado === "en-configuracion" && (
-                                  <span className="lm-body-small muted">{est ? `${term}/${c.unidades} unidades terminadas` : "Sin iniciar"}</span>
-                                )}
+                                {c.estado === "en-configuracion" && !est && <span className="lm-body-small muted">Sin iniciar</span>}
                                 {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                               </span>
                             </td>
