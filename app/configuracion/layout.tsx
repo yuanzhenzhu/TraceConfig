@@ -11,6 +11,8 @@ const APARTADOS = [
   { href: "/configuracion/estructuras", label: "Estructura y propiedades de hueco", icon: "table_rows", activo: (p: string) => p.startsWith("/configuracion/estructuras") },
   { href: "/configuracion/drivers", label: "Drivers", icon: "timelapse", activo: (p: string) => p.startsWith("/configuracion/drivers") },
   { href: "/configuracion/propiedades-categoria", label: "Propiedades de categoría", icon: "list", activo: (p: string) => p.startsWith("/configuracion/propiedades-categoria") },
+  { href: "/configuracion/cambio-numero-serie", label: "Cambio de número de serie", icon: "swap_vert", activo: (p: string) => p.startsWith("/configuracion/cambio-numero-serie") },
+  { href: "/configuracion/almacenes", label: "Almacenes", icon: "domain", activo: (p: string) => p.startsWith("/configuracion/almacenes") },
 ];
 
 export default function ConfiguracionLayout({ children }: { children: React.ReactNode }) {

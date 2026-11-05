@@ -22,6 +22,14 @@ export type CalculoSms = { driver: DriverId | ""; forma: FormaSms | "" };
 
 export type EstadoConfig = "en-configuracion" | "activa";
 
+/** Almacén del cliente (Configuración › Almacenes). Uso: para qué se utiliza; al menos uno. */
+export type UsoAlmacen = "almacen" | "mantenimiento";
+export const USOS_ALMACEN: { id: UsoAlmacen; nombre: string }[] = [
+  { id: "almacen", nombre: "Almacén" },
+  { id: "mantenimiento", nombre: "Mantenimiento" },
+];
+export type Almacen = { id: string; nombre: string; ubicacion: string; contacto: string; telefono: string; usos: UsoAlmacen[] };
+
 export type Configuracion = {
   id: string;
   flotaId: string;

@@ -5,12 +5,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
-  type Configuracion, type Estructura, type Flota, type PropsCategoria,
+  type Almacen, type Configuracion, type Estructura, type Flota, type PropsCategoria,
 } from "./model";
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
-type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v20";
+type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[] };
+const CLAVE = "lm-trace-prototipo-v21";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -94,7 +94,14 @@ function semilla(): Estado {
       estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
     }),
   ];
-  return { flotas, configs, estructuras, propsCategoria };
+  // Almacenes de ejemplo (ficticios, salvo los dos primeros, que vienen del diseño)
+  const almacenes: Almacen[] = [
+    { id: "alm-1", nombre: "Almacén Stock Urbos 100", ubicacion: "Beasain", contacto: "Servicio técnico CAF", telefono: "943 10 50 45", usos: ["almacen"] },
+    { id: "alm-2", nombre: "Almacén Tranvía Zaragoza", ubicacion: "Zaragoza", contacto: "Servicio técnico CAF", telefono: "943 10 50 45", usos: ["almacen", "mantenimiento"] },
+    { id: "alm-3", nombre: "Almacén Cocheras Metro Línea 1", ubicacion: "Bilbao", contacto: "Jefe de cocheras", telefono: "944 25 18 30", usos: ["almacen", "mantenimiento"] },
+    { id: "alm-4", nombre: "Almacén Tranvía Norte", ubicacion: "Vitoria-Gasteiz", contacto: "Responsable de mantenimiento", telefono: "945 16 22 70", usos: ["mantenimiento"] },
+  ];
+  return { flotas, configs, estructuras, propsCategoria, almacenes };
 }
 
 type Api = {
@@ -115,6 +122,9 @@ type Api = {
   guardarEstructura: (e: Estructura) => void; // crea o modifica; propaga el cambio a las configuraciones que la usan
   eliminarEstructura: (id: string) => void;
   guardarPropsCategoria: (p: PropsCategoria) => void; // afecta a todas las flotas
+  almacenes: Almacen[];
+  guardarAlmacen: (a: Almacen) => void; // crea o modifica
+  eliminarAlmacen: (id: string) => void;
   restablecer: () => void;
 };
 
@@ -126,7 +136,7 @@ export const useStore = () => {
 };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], propsCategoria: {} });
+  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], propsCategoria: {}, almacenes: [] });
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
@@ -201,20 +211,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEstado((s) => ({ ...s, propsCategoria }));
   }, []);
 
+  const guardarAlmacen = useCallback((a: Almacen) => {
+    setEstado((s) => ({ ...s, almacenes: s.almacenes.some((x) => x.id === a.id) ? s.almacenes.map((x) => (x.id === a.id ? a : x)) : [...s.almacenes, a] }));
+  }, []);
+  const eliminarAlmacen = useCallback((id: string) => {
+    setEstado((s) => ({ ...s, almacenes: s.almacenes.filter((x) => x.id !== id) }));
+  }, []);
+
   const restablecer = useCallback(() => setEstado(semilla()), []);
 
   // Si la flota tiene una sola estructura, su configuración se llama como la flota.
   const configs = useMemo(() => estado.configs.map((c) => (c.unica ? { ...c, nombre: estado.flotas.find((f) => f.id === c.flotaId)?.nombre ?? "", descripcion: "" } : c)), [estado.configs, estado.flotas]);
 
   const api = useMemo<Api>(() => ({
-    listo, flotas: estado.flotas, configs, propsCategoria: estado.propsCategoria,
+    listo, flotas: estado.flotas, configs, propsCategoria: estado.propsCategoria, almacenes: estado.almacenes ?? [],
+    guardarAlmacen, eliminarAlmacen,
     estructuras: estado.estructuras.filter((e) => !e.borradorDe),
     estructura: (id) => estado.estructuras.find((e) => e.id === id),
     etiqueta: (c) => { const f = estado.flotas.find((x) => x.id === c.flotaId)?.nombre ?? ""; return c.unica ? f : `${f} · ${c.nombre}`; },
     usosDe: (eid) => configs.filter((c) => c.guardada && c.estructuraId === eid),
     crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig,
     guardarEstructura, eliminarEstructura, guardarPropsCategoria, restablecer,
-  }), [listo, estado, configs, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPropsCategoria, restablecer]);
+  }), [listo, estado, configs, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPropsCategoria, guardarAlmacen, eliminarAlmacen, restablecer]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
