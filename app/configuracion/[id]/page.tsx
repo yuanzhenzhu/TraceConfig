@@ -1,6 +1,8 @@
 "use client";
 
 // Asistente de alta inicial de una configuración (épica A, pasos 1 a 8).
+// Con una configuración activa: Consultar (solo lectura) o Añadir unidad (?modo=anadir: solo el nº de unidades y la
+// carga de datos, con la plantilla de unidades obligatoria; los cambios son un borrador y solo se guardan al terminar).
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -24,10 +26,20 @@ export default function AsistentePage() {
   const [intentado, setIntentado] = useState(false);
   const [salir, setSalir] = useState(false);
   const [confirmarEst, setConfirmarEst] = useState(false); // aviso al fijar la estructura (paso 1 → siguiente)
+  const [modoAnadir, setModoAnadir] = useState(false);
+  // Borrador al añadir unidades: no se guarda nada hasta pulsar Añadir unidades en el resumen.
+  const [borr, setBorr] = useState<Pick<Configuracion, "unidades" | "plantillas" | "intentosPlantilla"> | null>(null);
+  const [salirAnadir, setSalirAnadir] = useState(false);
 
   useEffect(() => {
     if (!c || paso !== null) return;
-    const q = Number(new URLSearchParams(window.location.search).get("paso"));
+    const qs = new URLSearchParams(window.location.search);
+    const q = Number(qs.get("paso"));
+    if (qs.get("modo") === "anadir" && c.estado === "activa" && est) {
+      setModoAnadir(true);
+      // Las unidades nuevas obligan a cargar de nuevo la plantilla de unidades (primer nivel).
+      setBorr({ unidades: c.unidades, plantillas: { ...c.plantillas, [est.raiz.categoria]: "pendiente" }, intentosPlantilla: { ...c.intentosPlantilla } });
+    }
     const n = q >= 1 && q <= 8 ? q : c.pasoActual;
     setPaso(n === 5 ? 4 : n === 6 ? 3 : n); // los antiguos pasos 5 (Propiedades de hueco) y 6 (SMS) ya no existen
   }, [c, paso]);
@@ -43,17 +55,27 @@ export default function AsistentePage() {
   }
 
   const p = paso!;
-  const set = (cambios: Partial<Configuracion>) => store.actualizarConfig(c.id, cambios);
+  const raiz = est?.raiz;
+  const anadir = modoAnadir && borr ? { antes: c.unidades ?? 0 } : undefined;
+  const cv: Configuracion = anadir ? { ...c, ...borr! } : c; // lo que ven los pasos
+  const set = (cambios: Partial<Configuracion>) => {
+    if (!anadir) { store.actualizarConfig(c.id, cambios); return; }
+    const { unidades, plantillas, intentosPlantilla } = cambios; // al añadir unidades solo cambian estos datos, en el borrador
+    setBorr((b) => ({ ...b!, ...(unidades !== undefined && { unidades }), ...(plantillas && { plantillas }), ...(intentosPlantilla && { intentosPlantilla }) }));
+  };
   const setFlota = (cambios: Partial<Flota>) => store.actualizarFlota(flota.id, cambios);
   const soloLectura = c.estado === "activa"; // Consultar: el asistente entero, sin poder modificar nada
-  const props: PasoProps = { c, set, intentado, est, flota, setFlota, soloLectura };
+  const props: PasoProps = { c: cv, set, intentado, est, flota, setFlota, soloLectura, anadir };
+  const unidadesOk = !anadir || (cv.unidades ?? 0) > anadir.antes;
+  const listoAnadir = !!anadir && unidadesOk && primerNivelCargado(cv, raiz);
+  const hayCambiosAnadir = !!anadir && (cv.unidades !== c.unidades || JSON.stringify(cv.plantillas) !== JSON.stringify({ ...c.plantillas, [raiz?.categoria ?? ""]: "pendiente" }));
+  const qsModo = anadir ? "&modo=anadir" : "";
   const visibles = PASOS;
   const idx = visibles.findIndex((x) => x.n === p);
   const actual = visibles[idx] ?? visibles[0];
   const siguiente = visibles[idx + 1];
   const anterior = visibles[idx - 1];
   const hermanas = c.guardada ? store.configs.filter((x) => x.flotaId === c.flotaId && x.id !== c.id && x.guardada && x.estado !== "activa") : [];
-  const raiz = est?.raiz;
 
   const v1 = paso1Valido(c, est);
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
@@ -65,7 +87,8 @@ export default function AsistentePage() {
     if (!forzar && !alcanzable(n)) return;
     if (soloLectura) { // en consulta solo se navega: no se guarda nada
       setPaso(n);
-      window.history.replaceState(null, "", `/configuracion/${c.id}?paso=${n}`);
+      setIntentado(false);
+      window.history.replaceState(null, "", `/configuracion/${c.id}?paso=${n}${qsModo}`);
       window.scrollTo({ top: 0 });
       return;
     }
@@ -107,6 +130,13 @@ export default function AsistentePage() {
     snack(`Configuración "${c.nombre}" finalizada: sus ${c.unidades} unidades ya están activas`);
     router.push("/configuracion");
   };
+  const guardarAnadir = () => {
+    if (!anadir || !listoAnadir) return;
+    const n = (cv.unidades ?? 0) - anadir.antes;
+    store.actualizarConfig(c.id, { unidades: cv.unidades, plantillas: cv.plantillas, intentosPlantilla: cv.intentosPlantilla });
+    snack(`${n} unidades añadidas a ${store.etiqueta(c)}: ahora tiene ${cv.unidades}`);
+    router.push("/configuracion");
+  };
   const guardarYSalir = () => {
     if (!c.guardada) { setSalir(true); return; }
     snack(`Configuración "${c.nombre}" guardada`);
@@ -138,9 +168,15 @@ export default function AsistentePage() {
 
       {soloLectura && (
         <div style={{ marginBottom: "var(--lm-space-20)" }}>
-          <Banner type="info" title="Estás consultando una configuración activa">
-            Puedes recorrer todos sus pasos y ver sus datos, pero no modificar nada.
-          </Banner>
+          {anadir ? (
+            <Banner type="info" title={`Estás añadiendo unidades a ${store.etiqueta(c)}`}>
+              Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). La plantilla de unidades es obligatoria. Los cambios se guardan al pulsar Añadir unidades en el resumen: si sales antes, no se guarda nada.
+            </Banner>
+          ) : (
+            <Banner type="info" title="Estás consultando una configuración activa">
+              Puedes recorrer todos sus pasos y ver sus datos, pero no modificar nada.
+            </Banner>
+          )}
         </div>
       )}
 
@@ -150,7 +186,9 @@ export default function AsistentePage() {
             <ol className="lm-stepper" style={{ listStyle: "none", margin: 0 }}>
               {visibles.map((x, i) => {
                 const omit = c.pasosOmitidos.includes(x.n);
-                const hecho = !omit && x.n !== p && (soloLectura || (x.n < c.pasoMax && valido(x.n)));
+                const hecho = !omit && x.n !== p && (anadir
+                  ? (x.n === 1 ? unidadesOk : x.n === 7 ? primerNivelCargado(cv, raiz) : x.n !== 8)
+                  : soloLectura || (x.n < c.pasoMax && valido(x.n)));
                 const cls = x.n === p ? "is-current" : omit ? "is-skipped" : hecho ? "is-done" : "";
                 return (
                   <li key={x.n} className="row gap-10" style={{ flex: i < visibles.length - 1 ? 1 : undefined }}>
@@ -172,20 +210,27 @@ export default function AsistentePage() {
           {p === 3 && est && <Paso3 {...props} />}
           {p === 4 && est && <Paso4 {...props} />}
           {p === 7 && est && <Paso7 {...props} />}
-          {p === 8 && est && <Paso8 c={c} flota={flota} est={est} irA={irA} soloLectura={soloLectura} />}
+          {p === 8 && est && <Paso8 c={cv} flota={flota} est={est} irA={irA} soloLectura={soloLectura} anadir={anadir} />}
 
           <footer className="lm-footer-bar">
             <div className="row gap-10" style={{ maxWidth: 1360, margin: "0 auto", padding: "var(--lm-space-15) var(--lm-space-30)" }}>
-              {soloLectura
+              {anadir
+                ? <Button variant="text" icon="close" onClick={() => (hayCambiosAnadir ? setSalirAnadir(true) : router.push("/configuracion"))}>Cancelar</Button>
+                : soloLectura
                 ? <Button variant="text" icon="arrow_back_ios_new" onClick={() => router.push("/configuracion")}>Volver al listado</Button>
                 : <Button variant="text" icon={c.guardada ? undefined : "close"} onClick={guardarYSalir}>{c.guardada ? "Guardar y salir" : "Cancelar"}</Button>}
               <span className="grow lm-body-small muted">
                 Paso {idx + 1} de {visibles.length} · {actual.titulo}
-                {soloLectura && " · Solo consulta"}
+                {anadir ? " · Añadir unidades" : soloLectura && " · Solo consulta"}
+                {anadir && intentado && p === 1 && !unidadesOk && <span style={{ color: "var(--lm-sys-error)" }}> · Revisa el número de unidades</span>}
                 {intentado && !valido(p) && <span style={{ color: "var(--lm-sys-error)" }}> · Revisa los campos marcados</span>}
               </span>
               {anterior && <Button variant="outlined" onClick={() => irA(anterior.n)}>Anterior</Button>}
-              {soloLectura
+              {anadir
+                ? p === 8
+                  ? <Button icon="check" disabled={!listoAnadir} onClick={guardarAnadir}>Añadir {(cv.unidades ?? 0) - anadir.antes > 0 ? (cv.unidades ?? 0) - anadir.antes : ""} unidades</Button>
+                  : <Button onClick={() => { if (p === 1 && !unidadesOk) { setIntentado(true); return; } irA(siguiente!.n); }}>Siguiente</Button>
+                : soloLectura
                 ? siguiente && <Button onClick={() => irA(siguiente.n)}>Siguiente</Button>
                 : p === 8
                   ? <Button icon="check" disabled={!primerNivelCargado(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
@@ -201,6 +246,15 @@ export default function AsistentePage() {
           footer={<>
             <Button variant="outlined" onClick={() => setConfirmarEst(false)}>Revisar estructura</Button>
             <Button onClick={() => avanzar(true)}>Confirmar y continuar</Button>
+          </>} />
+      )}
+
+      {salirAnadir && anadir && (
+        <Dialog title="¿Salir sin añadir unidades?" onClose={() => setSalirAnadir(false)}
+          message={`No se guardará ningún cambio: ${store.etiqueta(c)} seguirá con sus ${anadir.antes} unidades y sus plantillas como estaban.`}
+          footer={<>
+            <Button variant="outlined" onClick={() => setSalirAnadir(false)}>Seguir añadiendo</Button>
+            <Button variant="danger" onClick={() => router.push("/configuracion")}>Salir sin guardar</Button>
           </>} />
       )}
 

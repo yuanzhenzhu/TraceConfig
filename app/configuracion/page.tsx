@@ -218,7 +218,7 @@ export default function ListadoPage() {
                                   ...(c.estado === "activa"
                                     ? [
                                       { label: "Consultar", icon: "visibility", onSelect: () => router.push(`/configuracion/${c.id}?paso=1`) },
-                                      { label: "Añadir unidad", icon: "add", onSelect: () => snack("Añadir unidades a una configuración activa está fuera del alcance de este prototipo") },
+                                      { label: "Añadir unidad", icon: "add", onSelect: () => router.push(`/configuracion/${c.id}?paso=1&modo=anadir`) },
                                     ]
                                     : ["divider" as const, { label: "Eliminar", icon: "delete", danger: true, onSelect: () => setADescartar(c) }]),
                                 ]} />

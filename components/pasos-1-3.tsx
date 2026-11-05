@@ -27,16 +27,19 @@ export type PasoProps = {
   setFlota: (cambios: Partial<Flota>) => void;
   /** Consulta de una configuración activa: se ve todo, no se puede modificar nada. */
   soloLectura?: boolean;
+  /** Añadir unidades a una configuración activa: solo se cambian el nº de unidades (paso 1) y las plantillas (carga de datos). */
+  anadir?: { antes: number };
 };
 
 /* ---------- Paso 1 ---------- */
-export function Paso1({ c, set, intentado, est, flota, soloLectura }: PasoProps) {
+export function Paso1({ c, set, intentado, est, flota, soloLectura, anadir }: PasoProps) {
   const store = useStore();
   // Si la flota tiene una o varias estructuras se indica al crear la flota (dialog Nueva flota).
   const [texto, setTexto] = useState(c.unidades ? String(c.unidades) : "");
   const nUnidades = Number(texto);
   const unidadesOk = Number.isInteger(nUnidades) && nUnidades >= 1 && nUnidades <= 999;
-  const errUnidades = intentado && !unidadesOk ? "Indica un número entero entre 1 y 999" : "";
+  const errUnidades = intentado && !unidadesOk ? "Indica un número entero entre 1 y 999"
+    : intentado && anadir && nUnidades <= anadir.antes ? `Indica un número mayor que las ${anadir.antes} unidades actuales` : "";
   const huecos = est ? contarHuecos(est.raiz) : 0;
   const router = useRouter();
   const fijada = !!c.estructuraNueva && !!est; // estructura nueva creada en Estructuras desde el asistente
@@ -61,8 +64,11 @@ export function Paso1({ c, set, intentado, est, flota, soloLectura }: PasoProps)
               <input id="c-nombre" className="lm-input" value={c.nombre} readOnly={soloLectura} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
             </Field>
           )}
-          <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades} support="Entre 1 y 999. Los nº de serie se cargan después, en la plantilla de primer nivel">
-            <input id="u-num" className="lm-input" inputMode="numeric" value={texto} readOnly={soloLectura} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
+          <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades}
+            support={anadir
+              ? (unidadesOk && nUnidades > anadir.antes ? `Se añadirán ${nUnidades - anadir.antes} unidades a las ${anadir.antes} actuales` : `Ahora tiene ${anadir.antes} unidades. Indica el nuevo total`)
+              : "Entre 1 y 999. Los nº de serie se cargan después, en la plantilla de primer nivel"}>
+            <input id="u-num" className="lm-input" inputMode="numeric" value={texto} readOnly={soloLectura && !anadir} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
               onChange={(e) => { setTexto(e.target.value); const v = Number(e.target.value); set({ unidades: Number.isInteger(v) && v >= 1 && v <= 999 ? v : null }); }} />
           </Field>
         </div>

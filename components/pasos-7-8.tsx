@@ -44,7 +44,8 @@ function descargarPlantilla(c: Configuracion, raiz: Nodo, drivers: DriversConfig
   a.click(); URL.revokeObjectURL(url);
 }
 
-export function Paso7({ c, set, est, soloLectura }: PasoProps) {
+export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps) {
+  const soloLectura = consulta && !anadir; // al añadir unidades sí se suben plantillas
   const snack = useSnackbar();
   const store = useStore();
   const raiz = est!.raiz;
@@ -60,11 +61,19 @@ export function Paso7({ c, set, est, soloLectura }: PasoProps) {
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Carga de datos</h2>
       <p className="muted" style={{ margin: 0 }}>
-        {soloLectura
+        {anadir
+          ? `Descarga la plantilla de unidades (${raiz.categoria}) con las ${c.unidades} unidades, rellena los datos de las nuevas y súbela. Si ya tienes los datos de sus activos, puedes subir también el resto de plantillas.`
+          : soloLectura
           ? "Estado de las plantillas de cada categoría. Puedes descargar las plantillas, pero no subirlas."
           : "Descarga la plantilla de cada categoría, rellénala y súbela. Los niveles se habilitan a medida que cargas los anteriores. Puedes cargarlas poco a poco y salir cuando quieras."}
       </p>
-      {c.estado === "activa" ? null : !primerNivelCargado(c, raiz) ? (
+      {anadir ? (primerNivelCargado(c, raiz) ? (
+        <Banner type="success" title="Plantilla de unidades cargada">Ya puedes guardar: ve al resumen y pulsa Añadir unidades.</Banner>
+      ) : (
+        <Banner type="attention" title={`Carga de nuevo la plantilla de unidades (${raiz.categoria})`}>
+          Es obligatoria para añadir las unidades: contiene el nº de serie y la fecha de alta de cada una. Si no la cargas y sales, no se guarda ningún cambio.
+        </Banner>
+      )) : c.estado === "activa" ? null : !primerNivelCargado(c, raiz) ? (
         <Banner type="attention" title="Carga primero la plantilla de unidades (Tren)">
           Es la única obligatoria para finalizar: contiene el nº de serie y la fecha de alta de cada unidad.
         </Banner>
@@ -195,7 +204,7 @@ function huecosConValor(raiz: Nodo, def: Record<string, Record<string, string>>,
 }
 
 /* ---------- Paso 8 ---------- */
-export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; flota: Flota; est: Estructura; irA: (n: number) => void; soloLectura?: boolean }) {
+export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configuracion; flota: Flota; est: Estructura; irA: (n: number) => void; soloLectura?: boolean; anadir?: { antes: number } }) {
   const raiz = est.raiz;
   const cats = categoriasDe(raiz);
   const pendientes = cats.filter((x) => c.plantillas[x.categoria] !== "cargada");
@@ -217,7 +226,21 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
 
   return (
     <section className="stack gap-20">
-      {soloLectura ? (
+      {anadir ? (
+        (c.unidades ?? 0) <= anadir.antes ? (
+          <Banner type="attention" title="Todavía no has añadido unidades" actions={<Button variant="outlined" small onClick={() => irA(1)}>Ir a Estructura y unidades</Button>}>
+            Indica un número de unidades mayor que las {anadir.antes} actuales.
+          </Banner>
+        ) : !primerNivelCargado(c, est.raiz) ? (
+          <Banner type="attention" title="Falta cargar la plantilla de unidades" actions={<Button variant="outlined" small onClick={() => irA(7)}>Ir a Carga de datos</Button>}>
+            Es obligatoria para añadir las {(c.unidades ?? 0) - anadir.antes} unidades nuevas.
+          </Banner>
+        ) : (
+          <Banner type="info" title={`Todo listo para añadir ${(c.unidades ?? 0) - anadir.antes} unidades`}>
+            La configuración pasará de {anadir.antes} a {c.unidades} unidades.{pendientes.length > 0 && ` Las unidades nuevas quedarán incompletas hasta cargar: ${pendientes.map((p) => p.categoria).join(", ")}.`}
+          </Banner>
+        )
+      ) : soloLectura ? (
         pendientes.length ? (
           <Banner type="attention" title={`${c.unidades} unidades incompletas`}>
             La estructura {est.nombre} ha cambiado y faltan los datos de: {pendientes.map((p) => p.categoria).join(", ")}. 
