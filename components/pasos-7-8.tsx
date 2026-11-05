@@ -252,7 +252,7 @@ export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configur
       : "No hay propiedades de hueco en esta configuración" },
     { n: 3, titulo: "Drivers", contenido: <>
       {conDrivers.length ? `Tiene ${lista(conDrivers)}` : "Sin drivers"}
-      {flota.usaSms && <><br />{smsOk ? "Con cálculo en SMS configurado" : "Sin cálculo en SMS"}</>}
+      {flota.usaSms && <><br />{smsOk ? "Con cálculo de drivers para SMS configurado" : "Sin cálculo de drivers para SMS"}</>}
     </> },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todas las flotas<br />{catsConProps} {catsConProps === 1 ? "categoría" : "categorías"} con propiedades</> },
     { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas` },

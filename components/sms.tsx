@@ -15,7 +15,7 @@ export function SeccionSms({ valor, onChange, intentado, soloLectura }: {
     const ok = valor.filter((x) => x.driver && x.forma);
     return (
       <div className="stack gap-15" style={{ borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-20)" }}>
-        <h3 className="lm-title-medium" style={{ margin: 0 }}>Cálculo en SMS</h3>
+        <h3 className="lm-title-medium" style={{ margin: 0 }}>Cálculo de drivers para SMS</h3>
         {ok.length === 0 ? <span className="muted">No se envía ningún driver a SMS</span> : (
           <table className="lm-table">
             <thead><tr><th style={{ width: 48 }}>Nº</th><th>Driver</th><th>Forma de cálculo</th></tr></thead>
@@ -46,7 +46,7 @@ export function SeccionSms({ valor, onChange, intentado, soloLectura }: {
   return (
     <div className="stack gap-20" style={{ borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-20)" }}>
       <div className="row gap-10">
-        <h3 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo en SMS</h3>
+        <h3 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo de drivers para SMS</h3>
         <span className="lm-body-small muted">Opcional</span>
       </div>
       <p className="muted" style={{ margin: 0 }}>

@@ -127,7 +127,7 @@ Hay un elemento común a todos los pasos del asistente: el `stepper-horizontal` 
   - **Varias:** cuántas (2 a 10) y el **nombre** de cada una (obligatorio y sin repetir). La configuración no tiene descripción.
   - **La estructura y el nº de unidades no se piden aquí**, sino en el **primer paso** de cada configuración.
   - **Una → «Crear y configurar»:** se crea la flota con su configuración y se abre el asistente en el paso 1.
-  - **Varias → «Crear»:** se crean la flota y sus configuraciones (En configuración, *Sin iniciar*, estructura «Sin elegir») y **el flujo termina** en el listado, con la flota desplegada. El usuario entra en cada configuración con **«Iniciar configuración»**.
+  - **Varias → «Crear»:** se crean la flota y sus configuraciones (En configuración, estructura «Sin elegir») y **el flujo termina** en el listado, con la flota desplegada. El usuario entra en cada configuración con **«Iniciar configuración»**.
 - **Pasos 1 y 2 juntos:** el asistente tiene un solo paso **Estructura y unidades**. Sirve para añadir una configuración a una flota que ya tiene otras (nombre, descripción, nº de unidades y estructura, que se puede crear aquí) y para revisar las ya creadas.
 
 ## Decisiones de Claude (siguen como propuesta)

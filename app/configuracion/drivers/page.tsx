@@ -29,7 +29,7 @@ export default function DriversPage() {
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Drivers" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Drivers</h1>
-          <span className="muted">Los drivers y su cálculo en SMS son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</span>
+          <span className="muted">Los drivers y el cálculo de drivers para SMS son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</span>
         </div>
       </div>
 
@@ -61,7 +61,7 @@ export default function DriversPage() {
           <table className="lm-table">
             <thead>
               <tr>
-                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th>Cálculo en SMS</th>
+                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th>Cálculo de drivers para SMS</th>
                 <th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>

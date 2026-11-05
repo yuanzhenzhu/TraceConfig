@@ -40,7 +40,7 @@ Sacadas del prototipo construido (rama `prueba/estructura-y-unidades`, 2026-11-0
 ### HU-03 · Añadir una configuración a una flota
 **Como** jefe de mantenimiento **quiero** añadir otra configuración a una flota existente **para** gestionar en la misma flota grupos de trenes con estructuras distintas.
 - En el menú de 3 puntos de la flota: *Añadir configuración*. Si la flota no tiene ninguna, *Iniciar configuración* abre el mismo dialog de la HU-02 sin pedir el nombre de la flota.
-- Las configuraciones sin estructura aparecen como *Sin iniciar* con el botón *Iniciar configuración*; las que están a medias, con *Continuar*. Los dos botones son tonales.
+- Las configuraciones sin estructura aparecen con el botón *Iniciar configuración*; las que están a medias, con *Continuar*. Los dos botones son tonales.
 
 ### HU-65 · Modificar el nombre y la descripción
 **Como** jefe de mantenimiento **quiero** cambiar el nombre y la descripción de una flota o de una configuración **para** mantenerlos al día.
@@ -111,7 +111,7 @@ Seis pasos: 1 Estructura y unidades · 2 Valores de propiedades de hueco · 3 Dr
 
 ### HU-22 · Descargar las plantillas de carga
 **Como** jefe de mantenimiento **quiero** descargar una plantilla por categoría **para** rellenar los datos de los activos.
-- Paso 5. La plantilla incluye una fila por unidad y hueco, una columna por driver propio (no heredado) y una por propiedad de categoría asignada.
+- Paso 5. La plantilla de unidades lleva nº de serie, km y fecha; el resto, nº de serie de la unidad, nº de serie del activo y km. Después, una columna por cada otro driver elegido (ciclos, horas) y una por propiedad de categoría asignada.
 - Los niveles se habilitan en orden: antes hay que cargar el nivel anterior.
 
 ### HU-23 · Subir las plantillas poco a poco
@@ -138,7 +138,7 @@ Seis pasos: 1 Estructura y unidades · 2 Valores de propiedades de hueco · 3 Dr
 - Paso 6. Una card por paso con lo esencial y el botón *Editar*:
   - Estructura y unidades: nombre y descripción de la configuración y de la estructura, unidades, con o sin propiedades de hueco.
   - Valores de propiedades de hueco: *N de M huecos con valores*, o *No hay propiedades de hueco en esta configuración*.
-  - Drivers: *Tiene kilometraje y ciclos*, y si tiene cálculo en SMS.
+  - Drivers: *Tiene kilometraje y ciclos*, y si tiene cálculo de drivers para SMS.
   - Propiedades de categoría: *Comunes a todas las flotas*, *N categorías con propiedades*.
   - Carga de datos: *N de M plantillas cargadas*.
 - *Finalizar configuración* solo se activa con la plantilla de unidades cargada. La configuración pasa a *Activa*.
@@ -211,14 +211,14 @@ La estructura es común a todo el cliente: modificarla afecta a todas las config
 
 ### HU-59 · Ver los drivers de cada configuración
 **Como** jefe de mantenimiento **quiero** ver de un vistazo con qué drivers trabaja cada configuración **para** revisarlos sin entrar en el asistente.
-- Una fila por configuración con estructura: Flota, Configuración (*Única* si la flota tiene una sola estructura), Estructura, Drivers (*Kilometraje, Ciclos*), Cálculo en SMS (*Sí* / *No*), Estado y Acciones.
+- Una fila por configuración con estructura: Flota, Configuración (*Única* si la flota tiene una sola estructura), Estructura, Drivers (*Kilometraje, Ciclos*), Cálculo de drivers para SMS (*Sí* / *No*), Estado y Acciones.
 - Filtros por flota y estructura.
 
-### HU-13 · Modificar los drivers y el cálculo en SMS de una configuración
+### HU-13 · Modificar los drivers y el cálculo de drivers para SMS de una configuración
 **Como** jefe de mantenimiento **quiero** cambiar los drivers de una configuración más adelante **para** ajustarlos cuando cambie la forma de mantener.
-- *Modificar* en el menú de 3 puntos abre el mismo editor del paso 3, con su cálculo en SMS.
+- *Modificar* en el menú de 3 puntos abre el mismo editor del paso 3, con su cálculo de drivers para SMS.
 - Aviso *Solo afecta a esta configuración*: nombra las otras configuraciones que usan la estructura y aclara que no cambian. Si está activa, las plantillas nuevas pedirán los valores iniciales de los drivers añadidos.
-- *Guardar cambios* solo se activa si hay cambios y no deja guardar un cálculo en SMS a medias.
+- *Guardar cambios* solo se activa si hay cambios y no deja guardar un cálculo de drivers para SMS a medias.
 
 ---
 
@@ -279,7 +279,7 @@ Para activos ya dados de alta, montados en una unidad o en almacén. Activos y n
 | ID | Historia | Épica |
 |---|---|---|
 | HU-30 / HU-31 | Añadir o borrar extremos de la estructura de una configuración activa. *Cubierto en parte por HU-41*, desde el catálogo | Modificación de una configuración activa |
-| HU-33 | Asignar propiedades al componente nuevo justo después de modificar la estructura | Modificación de una configuración activa |
+| HU-33 | Asignar propiedades a la categoría nueva justo después de modificar la estructura | Modificación de una configuración activa |
 | HU-34 / HU-35 | Cargar los datos de los activos nuevos en las unidades afectadas y ver las incompletas tras añadir una categoría. *En parte en HU-42* | Modificación de una configuración activa |
 | HU-36 | Cargar los datos de un activo junto con sus hijos a la vez | Modificación de una configuración activa |
 | HU-37 | Recepción en unidad: dar de alta un activo nuevo, con sus hijos, en una unidad | Recepciones (¿módulo Operación?) |
@@ -301,4 +301,4 @@ Para activos ya dados de alta, montados en una unidad o en almacén. Activos y n
 - ¿Se puede finalizar una configuración con huecos sin datos y cargarlos después fuera de configuración?
 - ¿Las recepciones (HU-37, HU-38) son de Configuración o de Operación?
 - Tipos reales de las propiedades de hueco y de las 30 propiedades de categoría nuevas.
-- Formas de cálculo en SMS: confirmar las cuatro y su descripción.
+- Formas de cálculo para SMS: confirmar las cuatro y su descripción.

@@ -13,10 +13,10 @@ Un **cliente** tiene una o varias **flotas**. Cada flota contiene uno o varios *
 Cliente
 ├─ Estructuras (catálogo común del cliente) ← cada una con sus propiedades de hueco
 ├─ Propiedades de categoría (un único juego para todo el cliente)
-└─ Flota (1..n)  ← usa SMS o no
+└─ Flota (1..n)  ← en el prototipo, todas usan SMS
    └─ Configuración / grupo de trenes (1..n)
       ├─ usa → Estructura (1)  → jerarquía de huecos (ver ejemplo)
-      ├─ drivers (propios de esta flota + estructura)
+      ├─ drivers y cálculo de drivers para SMS (propios de esta flota + estructura)
       └─ nº de unidades (trenes) asignadas
 ```
 
@@ -25,8 +25,8 @@ Cliente
 |---|---|
 | **Cliente** | El catálogo de **estructuras**, que puede usar cualquier flota, y un **único juego de propiedades de categoría**, que se aplica a todas las flotas |
 | **Estructura** | Su composición de huecos y **sus propiedades de hueco** (una sola definición por estructura) |
-| **Flota** | Nombre, descripción y si usa SMS |
-| **Configuración** (flota + estructura) | Nombre, la estructura, el nº de unidades, **sus drivers y su cálculo en SMS**, los valores de propiedades de hueco y la carga de datos (plantillas) |
+| **Flota** | Nombre y descripción. En el prototipo, todas usan SMS |
+| **Configuración** (flota + estructura) | Nombre, descripción, la estructura, el nº de unidades, **sus drivers y su cálculo de drivers para SMS**, los valores de propiedades de hueco y la carga de datos (plantillas) |
 
 ### De qué depende cada cosa
 - **Drivers**: de la **estructura y la flota**. Cada configuración marca los suyos sobre la **estructura entera de la unidad**, hueco a hueco (por ejemplo, ciclos en la Puerta 1 del Coche 2). Al marcar un hueco, los que cuelgan de él también lo tienen y lo heredan. Por ejemplo, la flota 1 con la estructura B y la flota 2 con la estructura B pueden tener drivers distintos. No hay catálogo común de drivers: el apartado **Configuración › Drivers** lista cada configuración (flota + estructura) y permite modificar sus drivers sin afectar a las demás.
@@ -79,7 +79,7 @@ Tipos de activo (categorías) que aparecen: Tren, Coche, Motor Coche, Puerta, Mo
 ### Reglas
 - **Varios grupos de trenes pueden compartir la misma estructura.**
 - A cada grupo de trenes se le asigna un **número de unidades (trenes)**, que pertenecen a ese grupo y por tanto siguen su estructura.
-- Un **hueco** es cada posición de la estructura donde se monta un activo. Por ejemplo: "Coche 1 › Bogie delantero › Eje 2 › Rueda izquierda". Las *propiedades de hueco* describen esa posición y las *propiedades de activo* describen el activo montado en ella.
+- Un **hueco** es cada posición de la estructura donde se monta un activo. Por ejemplo: "Coche 1 › Bogie delantero › Eje 2 › Rueda izquierda". Las *propiedades de hueco* describen esa posición.
 - Cada **unidad** se identifica con un **número de serie de 4 dígitos**, por ejemplo `1001` o `3020`.
 
 ## Para quién
@@ -99,7 +99,7 @@ De momento hay tres. La descripción de cada uno es provisional: *por confirmar*
 |---|---|
 | **Consulta** | Buscar y ver activos, unidades, estructuras y su trazabilidad (historial) |
 | **Operación** | Registrar acciones sobre los activos: recepción en almacén, recepción en unidad, montajes y desmontajes… |
-| **Configuración** | Definir clientes, flotas, grupos de trenes, estructuras, categorías y propiedades (de hueco, de activo y de categoría) |
+| **Configuración** | Definir clientes, flotas, grupos de trenes, estructuras, categorías y propiedades (de hueco y de categoría), drivers, almacenes y cambio de número de serie |
 
 ## Nomenclatura acordada (obligatoria)
 Usa **siempre** el término acordado en textos de interfaz, datos, historias y flujos. Los términos anteriores **no deben aparecer** en ningún sitio.
@@ -108,9 +108,9 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 |---|---|
 | Estructura | Árbol / configuración |
 | Propiedad de hueco | Atributo de posición |
-| Propiedad de activo | Atributo de activo |
 | Propiedad de categoría | Atributo de categoría |
 | Categoría | Tipo de componente |
+| Activo | Componente (un activo es una pieza real que ya tiene nº de serie) |
 | Almacén | Taller |
 | Recepción en almacén | Alta de componentes en taller / Recepción en taller |
 | Recepción en unidad | Alta de componentes en unidad |
@@ -122,25 +122,33 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 
 | Término | Significado |
 |---|---|
-| Cliente | Empresa operadora; tiene una o varias flotas |
-| Flota | Conjunto de trenes de un cliente; contiene uno o varios grupos de trenes |
-| Grupo de trenes | Conjunto de trenes de una flota que comparten la misma estructura |
-| Unidad | Un tren concreto de un grupo; se identifica con un nº de serie de 4 dígitos (1001, 3020…) |
-| Estructura | Composición jerárquica de activos que define cómo está formado un tren del grupo |
-| Hueco | Cada posición de la estructura donde se monta un activo |
-| Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
-| Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
-| Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
-| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. La **flota es el paraguas** y puede tener varias configuraciones |
-| Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
-| Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro. Cada hueco tiene dos marcas por driver: **tenerlo** y que sea **heredable** |
-| Propiedad de categoría | Propiedad que se registra para una categoría de activo (y si guarda histórico). Hay un único juego para todo el cliente |
-| Propiedad de hueco | Propiedad que describe una posición de la estructura. La estructura define cuáles tiene cada hueco y cada configuración les da valor (opcional) |
-| Heredable | Marca de un driver en un hueco: su valor viene del padre y no se registra aparte. Por defecto, el km lo **tienen** todos los huecos y es **heredable** en todos menos en la unidad, que no tiene padre |
-| Histórico | Marca de una propiedad de categoría que indica que se guarda la evolución de su valor en el tiempo |
-| Plantilla | Excel que genera la aplicación, por categoría, según la estructura, las propiedades y los drivers, para cargar los datos de los activos |
-| SMS | Herramienta hermana e independiente de Leadmind Trace para **planificar los mantenimientos**. Recibe datos de la configuración de la flota |
-| Recepción en almacén | Dar de alta activos en el almacén |
+| Cliente | También llamado proyecto. Tiene una o varias flotas |
+| Flota | Conjunto de trenes de un cliente. Es el paraguas de una o varias configuraciones |
+| Configuración (grupo de trenes) | Parte de una flota que comparte la misma estructura. Tiene nombre, descripción, estructura, nº de unidades, drivers, cálculo de drivers para SMS, valores de propiedades de hueco y datos cargados. Si la flota tiene una sola estructura, se llama como la flota (configuración única) |
+| Estado de configuración | **En configuración** (alta no finalizada, tenga o no estructura) o **Activa** (finalizada; sus unidades están operativas y puede haber huecos sin activos). La flota sin configuraciones aparece como **Sin configurar** |
+| Unidad | Un tren concreto de una configuración. Se identifica con un nº de serie de 4 dígitos (1001, 3020…) |
+| Estructura | Composición jerárquica de huecos que define cómo está formada una unidad. Es un catálogo común para todas las flotas del cliente |
+| Estructura confirmada (fijada) | Una vez se pasa del paso 1 del asistente, la estructura de la configuración ya no se puede cambiar. Si hace falta otra, se crea de nuevo la configuración |
+| Hueco | Cada posición de la estructura donde se monta un activo. Por ejemplo: Coche 1 › Bogie 1 › Eje 2 › Rueda 1 |
+| Posición | Dónde está un activo (su hueco) dentro de la unidad, desde el tren: Tren › Coche 1 › Bogie 1 |
+| Nº de posición relativa | Número de un hueco respecto a su padre: Tren › Coche 5 › Bogie 1 es el primer bogie del coche 5. Es la que usa el prototipo |
+| Nº de posición absoluta | Número de un hueco respecto al total de huecos de su misma categoría en la unidad: Tren › Coche 5 › Bogie 10 es el décimo bogie del tren |
+| Extremo | Nivel más bajo de cada rama: un hueco sin hijos. Una estructura en uso solo se modifica añadiendo o quitando extremos |
+| Activo | Elemento físico con nº de serie: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… Está montado en un hueco de una unidad o guardado en un almacén |
+| Categoría | Tipo de activo (Coche, Bogie, Eje, Rueda, Gearbox, SIV…) |
+| Propiedad de categoría | Dato que se registra para todos los activos de una categoría. Hay un único juego para todo el cliente y se aplica a todas las flotas |
+| Histórico | Marca de una propiedad de categoría: se guarda la evolución de su valor en el tiempo |
+| Propiedad de hueco | Propiedad que se asigna a un hueco (posición) de la estructura (LOCATION, CAF-CODE…). La estructura define qué huecos la tienen; sus valores se dan en cada configuración y no guardan histórico |
+| Driver | Forma de contar la vida de un activo: kilometraje, ciclos u horas. Son propios de cada configuración |
+| Heredable | Solo para drivers: el valor del driver viene del hueco padre y no se registra aparte. Por defecto, el km lo tienen todos los huecos y es heredable en todos menos en la unidad, que no tiene padre |
+| SMS | Herramienta hermana de Leadmind Trace para planificar los mantenimientos. Recibe los drivers de cada configuración |
+| Cálculo de drivers para SMS | Qué drivers de una configuración se envían a SMS y cómo se calcula cada uno. Opcional y propio de cada configuración |
+| Forma de cálculo | Cómo calcula SMS un driver: por Flota, por Línea, por Categoría o por Categoría y posición |
+| Plantilla | Excel que genera la aplicación, una por categoría, según la estructura, las propiedades de categoría y los drivers, para cargar los datos de los activos. Campos obligatorios: en la plantilla de unidades, nº de serie, km y fecha; en el resto, nº de serie de la unidad, nº de serie del activo y km. Después van los otros drivers elegidos (ciclos, horas) y las propiedades de categoría asignadas |
+| Plantilla de unidades (primer nivel) | Plantilla de la categoría raíz (Tren), con el nº de serie, el km y la fecha de cada unidad. Es obligatoria para finalizar una configuración y para añadir unidades |
+| Almacén | Lugar donde se guardan o mantienen los activos que no están montados en una unidad. Su uso puede ser Almacén, Mantenimiento o los dos |
+| Cambio de número de serie | Sustitución del nº de serie de activos ya dados de alta, de forma masiva con una plantilla o de un activo concreto |
+| Recepción en almacén | Dar de alta activos en un almacén |
 | Recepción en unidad | Dar de alta activos directamente en una unidad |
 
 ## Formatos y convenciones
