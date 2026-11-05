@@ -148,6 +148,18 @@ export function Dialog({
   );
 }
 
+/* ---------- matTooltip ---------- */
+/** Ayuda al pasar el cursor o al enfocar. Aquí, sobre un matButtonIcon con icono info. */
+export function InfoTooltip({ text, label }: { text: string; label: string }) {
+  const id = useId();
+  return (
+    <span className="lm-tooltip-wrap">
+      <IconButton compact icon="info" label={label} aria-describedby={id} />
+      <span role="tooltip" id={id} className="lm-tooltip">{text}</span>
+    </span>
+  );
+}
+
 /* ---------- matMenu ---------- */
 export type MenuItem = { label: string; icon: string; onSelect: () => void; danger?: boolean; disabled?: boolean } | "divider";
 export function Menu({ items, label }: { items: MenuItem[]; label: string }) {

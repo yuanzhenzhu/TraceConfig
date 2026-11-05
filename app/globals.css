@@ -265,3 +265,8 @@ textarea.lm-input { height: auto; min-height: var(--lm-space-90); padding: var(-
 .grow { flex: 1; min-width: 0; }
 .muted { color: var(--lm-sys-on-surface-variant); }
 .wrap { flex-wrap: wrap; }
+
+/* matTooltip */
+.lm-tooltip-wrap { position: relative; display: inline-flex; vertical-align: middle; }
+.lm-tooltip { position: absolute; left: 50%; bottom: calc(100% + var(--lm-space-5)); transform: translateX(-50%); z-index: 40; width: max-content; max-width: 320px; padding: var(--lm-space-5) var(--lm-space-10); border-radius: var(--lm-corner-20); background: var(--lm-sys-inverse-surface); color: var(--lm-sys-inverse-on-surface); font-size: 12px; line-height: 16px; letter-spacing: 0.4px; font-weight: 400; white-space: normal; text-align: left; pointer-events: none; opacity: 0; visibility: hidden; }
+.lm-tooltip-wrap:hover .lm-tooltip, .lm-tooltip-wrap:focus-within .lm-tooltip { opacity: 1; visibility: visible; }

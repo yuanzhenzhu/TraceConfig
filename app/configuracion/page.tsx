@@ -5,9 +5,9 @@
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
-  Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, Loading, Menu, Tag, useSnackbar,
+  Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, InfoTooltip, Loading, Menu, Tag, useSnackbar,
 } from "@/components/ds";
-import { erroresFilas, fecha, filaVacia, unidadesTerminadas, type Configuracion, type FilaConfig, type Flota } from "@/lib/model";
+import { erroresFilas, filaVacia, unidadesTerminadas, type Configuracion, type FilaConfig, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 type Demo = "normal" | "vacio" | "error" | "cargando";
@@ -27,6 +27,8 @@ export default function ListadoPage() {
   // true: nueva flota · Flota: iniciar la configuración de una flota que aún no tiene ninguna
   const [dialogFlota, setDialogFlota] = useState<boolean | Flota>(false);
   const [aDescartar, setADescartar] = useState<Configuracion | null>(null);
+  // Modificar nombre y descripción de una flota o de una configuración
+  const [editando, setEditando] = useState<{ tipo: "flota"; f: Flota } | { tipo: "config"; c: Configuracion } | null>(null);
 
   useEffect(() => {
     const d = new URLSearchParams(window.location.search).get("demo") as Demo | null;
@@ -134,11 +136,9 @@ export default function ListadoPage() {
                 <tr>
                   <th style={{ width: 48 }}><span className="sr-only">Desplegar</span></th>
                   <th>Flota</th>
-                  <th>Descripción</th>
                   <th>Estructura</th>
                   <th className="num">Unidades</th>
                   <th>Estado</th>
-                  <th>Últ. actualización</th>
                   <th className="actions"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
@@ -159,8 +159,12 @@ export default function ListadoPage() {
                               aria-expanded={abierta} onClick={() => setAbiertas((a) => ({ ...a, [f.id]: !abierta }))} />
                           )}
                         </td>
-                        <td className="emph">{f.nombre}</td>
-                        <td>{f.descripcion || "—"}</td>
+                        <td>
+                          <span className="row gap-5">
+                            <span className="emph">{f.nombre}</span>
+                            {f.descripcion && <InfoTooltip text={f.descripcion} label={`Descripción de ${f.nombre}`} />}
+                          </span>
+                        </td>
                         <td className="muted">{todas.length === 0 ? "—" : todas.length === 1 ? store.estructura(todas[0].estructuraId)?.nombre : `${todas.length} configuraciones`}</td>
                         <td className="num">{total || "—"}</td>
                         <td>
@@ -170,13 +174,12 @@ export default function ListadoPage() {
                             {enConf > 0 && <Tag tone="attention" num={enConf}>En configuración</Tag>}
                           </span>
                         </td>
-                        <td />
                         <td className="actions">
                           <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
-                            {todas.length === 0 && <Button variant="text" small onClick={() => setDialogFlota(f)}>Iniciar configuración</Button>}
+                            {todas.length === 0 && <Button variant="tonal" small onClick={() => setDialogFlota(f)}>Iniciar configuración</Button>}
                             <Menu label={`Acciones de ${f.nombre}`} items={[
                               { label: "Añadir configuración", icon: "add", onSelect: () => (todas.length === 0 ? setDialogFlota(f) : nuevaConfig(f.id)) },
-                              { label: "Modificar flota", icon: "edit", onSelect: () => snack("Fuera del alcance de este prototipo"), disabled: false },
+                              { label: "Modificar nombre y descripción", icon: "edit", onSelect: () => setEditando({ tipo: "flota", f }) },
                             ]} />
                           </span>
                         </td>
@@ -189,12 +192,11 @@ export default function ListadoPage() {
                           <tr key={c.id} className="is-child">
                             <td />
                             <td style={{ paddingLeft: "var(--lm-space-30)" }}>
-                              <span className="stack">
+                              <span className="row gap-5">
                                 <span className="emph">{c.nombre}</span>
-                                <span className="lm-body-small muted">{c.descripcion}</span>
+                                {c.descripcion && <InfoTooltip text={c.descripcion} label={`Descripción de ${c.nombre}`} />}
                               </span>
                             </td>
-                            <td />
                             <td>{est?.nombre ?? <span className="muted">Sin elegir</span>}</td>
                             <td className="num">{c.unidades ?? "—"}</td>
                             <td>
@@ -208,17 +210,19 @@ export default function ListadoPage() {
                                 {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                               </span>
                             </td>
-                            <td className="muted">{fecha(c.actualizada)}</td>
                             <td className="actions">
                               <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
-                                {c.estado === "en-configuracion"
-                                  ? <Button variant="outlined" small onClick={() => router.push(`/configuracion/${c.id}`)}>{est ? "Continuar" : "Iniciar configuración"}</Button>
-                                  : <Button variant="text" small onClick={() => router.push(`/configuracion/${c.id}?paso=8`)}>Ver</Button>}
+                                {c.estado === "en-configuracion" && (
+                                  <Button variant="tonal" small onClick={() => router.push(`/configuracion/${c.id}`)}>{est ? "Continuar" : "Iniciar configuración"}</Button>
+                                )}
                                 <Menu label={`Acciones de ${c.nombre}`} items={[
-                                  { label: "Modificar", icon: "edit", onSelect: () => snack("La modificación de configuraciones activas es la épica B") },
-                                  ...(c.estado === "en-configuracion"
-                                    ? ["divider" as const, { label: "Descartar", icon: "delete", danger: true, onSelect: () => setADescartar(c) }]
-                                    : []),
+                                  { label: "Modificar nombre y descripción", icon: "edit", onSelect: () => setEditando({ tipo: "config", c }) },
+                                  ...(c.estado === "activa"
+                                    ? [
+                                      { label: "Consultar", icon: "visibility", onSelect: () => router.push(`/configuracion/${c.id}?paso=8`) },
+                                      { label: "Añadir unidad", icon: "add", onSelect: () => snack("Añadir unidades a una configuración activa está fuera del alcance de este prototipo") },
+                                    ]
+                                    : ["divider" as const, { label: "Eliminar", icon: "delete", danger: true, onSelect: () => setADescartar(c) }]),
                                 ]} />
                               </span>
                             </td>
@@ -270,15 +274,65 @@ export default function ListadoPage() {
         />
       )}
 
+      {editando && (
+        <DialogNombre
+          titulo={editando.tipo === "flota" ? `Modificar ${editando.f.nombre}` : `Modificar ${editando.c.nombre}`}
+          nombre={editando.tipo === "flota" ? editando.f.nombre : editando.c.nombre}
+          descripcion={editando.tipo === "flota" ? editando.f.descripcion : editando.c.descripcion}
+          nombreFijo={editando.tipo === "config" && editando.c.unica ? "La flota tiene una sola estructura: la configuración se llama como la flota. Cambia el nombre de la flota" : undefined}
+          ocupados={editando.tipo === "flota"
+            ? store.flotas.filter((x) => x.id !== editando.f.id).map((x) => x.nombre.trim().toLowerCase())
+            : configs.filter((x) => x.flotaId === editando.c.flotaId && x.id !== editando.c.id).map((x) => x.nombre.trim().toLowerCase())}
+          onClose={() => setEditando(null)}
+          onGuardar={(nombre, descripcion) => {
+            if (editando.tipo === "flota") {
+              store.actualizarFlota(editando.f.id, { nombre, descripcion });
+              // Las configuraciones únicas se llaman como la flota
+              configs.filter((x) => x.flotaId === editando.f.id && x.unica).forEach((x) => store.actualizarConfig(x.id, { nombre }));
+            } else store.actualizarConfig(editando.c.id, { nombre, descripcion });
+            snack(`Cambios guardados en ${nombre}`);
+            setEditando(null);
+          }} />
+      )}
+
       {aDescartar && (
-        <Dialog title="¿Descartar la configuración?" onClose={() => setADescartar(null)}
-          message={`Se eliminará "${aDescartar.nombre}" con su estructura, unidades y datos cargados. Esta acción no se puede deshacer.`}
+        <Dialog title="¿Eliminar la configuración?" onClose={() => setADescartar(null)}
+          message={`Se eliminará "${aDescartar.nombre}" con lo que tenga configurado: unidades, drivers y datos cargados. La estructura sigue en el catálogo. Esta acción no se puede deshacer.`}
           footer={<>
             <Button variant="outlined" onClick={() => setADescartar(null)}>Cancelar</Button>
-            <Button variant="danger" onClick={() => { store.descartarConfig(aDescartar.id); snack(`Configuración "${aDescartar.nombre}" descartada`); setADescartar(null); }}>Descartar</Button>
+            <Button variant="danger" onClick={() => { store.descartarConfig(aDescartar.id); snack(`Configuración "${aDescartar.nombre}" eliminada`); setADescartar(null); }}>Eliminar</Button>
           </>} />
       )}
     </main>
+  );
+}
+
+/** Modificar el nombre y la descripción de una flota o de una configuración. */
+function DialogNombre({ titulo, nombre: ini, descripcion: iniDesc, nombreFijo, ocupados, onClose, onGuardar }: {
+  titulo: string; nombre: string; descripcion: string; nombreFijo?: string; ocupados: string[];
+  onClose: () => void; onGuardar: (nombre: string, descripcion: string) => void;
+}) {
+  const [nombre, setNombre] = useState(ini);
+  const [descripcion, setDescripcion] = useState(iniDesc);
+  const [intentado, setIntentado] = useState(false);
+  const err = nombreFijo ? "" : !nombre.trim() ? "Indica el nombre" : ocupados.includes(nombre.trim().toLowerCase()) ? "Ya existe otro con este nombre" : "";
+  const cambiado = nombre.trim() !== ini || descripcion.trim() !== iniDesc;
+  const guardar = () => { setIntentado(true); if (err) return; onGuardar(nombre.trim(), descripcion.trim()); };
+  return (
+    <Dialog title={titulo} onClose={onClose}
+      footer={<>
+        <Button variant="outlined" onClick={onClose}>Cancelar</Button>
+        <Button disabled={!cambiado} onClick={guardar}>Guardar</Button>
+      </>}>
+      <div className="stack gap-20">
+        <Field label="Nombre" required htmlFor="dn-nombre" error={intentado ? err : ""} support={nombreFijo}>
+          <input id="dn-nombre" className="lm-input" value={nombre} disabled={!!nombreFijo} aria-invalid={intentado && !!err} onChange={(e) => setNombre(e.target.value)} />
+        </Field>
+        <Field label="Descripción" htmlFor="dn-desc">
+          <input id="dn-desc" className="lm-input" value={descripcion} placeholder="Por ejemplo: Flota de metro de la línea 4" onChange={(e) => setDescripcion(e.target.value)} />
+        </Field>
+      </div>
+    </Dialog>
   );
 }
 
