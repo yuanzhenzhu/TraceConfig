@@ -8,7 +8,7 @@
 // - Propiedades de hueco: dependen de los huecos de la estructura.
 
 import { useMemo, useState } from "react";
-import { Button, EmptyState, Field, Icon, SearchInput, Tag } from "./ds";
+import { Button, ButtonToggle, EmptyState, Field, Icon, SearchInput, Tag } from "./ds";
 import { ArbolFilas, iconoCategoria } from "./arbol";
 import { PROPS_CATEGORIA, PROPS_HUECO, categoriasDe, recorrer, rutaDe, type Nodo, type PropiedadesConfig, type PropsHueco } from "@/lib/model";
 
@@ -30,7 +30,16 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
   const [buscaCat, setBuscaCat] = useState("");
   const [buscaProp, setBuscaProp] = useState("");
   const asignadas = valor[sel] ?? [];
-  const props = PROPS_CATEGORIA.filter((p) => p.nombre.toLowerCase().includes(buscaProp.toLowerCase()));
+  // (Prueba) Ver solo lo asignado: en las propiedades de la categoría y en la lista de categorías
+  const [vistaProps, setVistaProps] = useState<"asignadas" | "todas">((valor[cats[0]?.categoria ?? ""] ?? []).length ? "asignadas" : "todas");
+  const [vistaCats, setVistaCats] = useState<"todas" | "con">("todas");
+  const elegir = (c: string) => { setSel(c); setVistaProps((valor[c] ?? []).length ? "asignadas" : "todas"); };
+  const conProps = cats.filter((x) => (valor[x.categoria] ?? []).length > 0).length;
+  const busca = (p: { nombre: string }) => p.nombre.toLowerCase().includes(buscaProp.toLowerCase());
+  const props = vistaProps === "asignadas"
+    ? asignadas.map((a) => PROPS_CATEGORIA.find((p) => p.id === a.propId)!).filter(Boolean).filter(busca)
+    // En Todas, las asignadas primero
+    : [...PROPS_CATEGORIA].filter(busca).sort((a, b) => Number(!asignadas.some((x) => x.propId === a.id)) - Number(!asignadas.some((x) => x.propId === b.id)));
 
   const toggle = (propId: string, on: boolean) => {
     const lista = on ? [...asignadas, { propId, historico: false }] : asignadas.filter((a) => a.propId !== propId);
@@ -42,11 +51,14 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
       <aside className="lm-card stack gap-10" aria-label="Categorías de la estructura">
         <SearchInput label="Buscar categoría" placeholder="Buscar categoría" value={buscaCat} onChange={setBuscaCat} />
+        <ButtonToggle label="Categorías que se muestran" value={vistaCats} onChange={setVistaCats}
+          options={[{ value: "todas", label: `Todas (${cats.length})` }, { value: "con", label: `Con propiedades (${conProps})` }]} />
         <div className="stack" role="listbox" aria-label="Categorías">
-          {cats.filter((x) => x.categoria.toLowerCase().includes(buscaCat.toLowerCase())).map((x) => {
+          {cats.filter((x) => x.categoria.toLowerCase().includes(buscaCat.toLowerCase()))
+            .filter((x) => vistaCats === "todas" || (valor[x.categoria] ?? []).length > 0 || x.categoria === sel).map((x) => {
             const n = (valor[x.categoria] ?? []).length;
             return (
-              <button key={x.categoria} role="option" aria-selected={sel === x.categoria} onClick={() => setSel(x.categoria)}
+              <button key={x.categoria} role="option" aria-selected={sel === x.categoria} onClick={() => elegir(x.categoria)}
                 className="lm-palette-item row gap-10" style={{ cursor: "pointer", background: sel === x.categoria ? "var(--lm-sys-secondary-container)" : undefined }}>
                 <Icon name={iconoCategoria(x.categoria)} size="m" />
                 <span className="grow">{x.categoria}</span>
@@ -57,10 +69,16 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
         </div>
       </aside>
       <div className="lm-card stack gap-15">
-        <div className="row gap-15">
+        <div className="row gap-15 wrap">
           <span className="lm-title-small grow">Propiedades de {sel}</span>
-          <div style={{ width: 280 }}><SearchInput label="Buscar propiedad" placeholder="Buscar propiedad" value={buscaProp} onChange={setBuscaProp} /></div>
+          <ButtonToggle label="Propiedades que se muestran" value={vistaProps} onChange={setVistaProps}
+            options={[{ value: "asignadas", label: `Asignadas (${asignadas.length})` }, { value: "todas", label: `Todas (${PROPS_CATEGORIA.length})` }]} />
+          <div style={{ width: 240 }}><SearchInput label="Buscar propiedad" placeholder="Buscar propiedad" value={buscaProp} onChange={setBuscaProp} /></div>
         </div>
+        {vistaProps === "asignadas" && asignadas.length === 0 ? (
+          <EmptyState icon="list" title={`${sel} no tiene propiedades`} text="Las propiedades se registran para cada activo de esta categoría"
+            action={!soloLectura ? <Button variant="outlined" icon="add" onClick={() => setVistaProps("todas")}>Asignar propiedades</Button> : undefined} />
+        ) : (
         <table className="lm-table">
           <thead><tr><th style={{ width: 48 }}><span className="sr-only">Asignar</span></th><th>Propiedad</th><th>Tipo</th><th>Guardar histórico</th></tr></thead>
           <tbody>
@@ -83,6 +101,7 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
             {props.length === 0 && <tr><td colSpan={4} className="muted">No hay propiedades con ese nombre</td></tr>}
           </tbody>
         </table>
+        )}
       </div>
     </div>
   );

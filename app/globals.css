@@ -270,3 +270,12 @@ textarea.lm-input { height: auto; min-height: var(--lm-space-90); padding: var(-
 .lm-tooltip-wrap { position: relative; display: inline-flex; vertical-align: middle; }
 .lm-tooltip { position: absolute; left: 50%; bottom: calc(100% + var(--lm-space-5)); transform: translateX(-50%); z-index: 40; width: max-content; max-width: 320px; padding: var(--lm-space-5) var(--lm-space-10); border-radius: var(--lm-corner-20); background: var(--lm-sys-inverse-surface); color: var(--lm-sys-inverse-on-surface); font-size: 12px; line-height: 16px; letter-spacing: 0.4px; font-weight: 400; white-space: normal; text-align: left; pointer-events: none; opacity: 0; visibility: hidden; }
 .lm-tooltip-wrap:hover .lm-tooltip, .lm-tooltip-wrap:focus-within .lm-tooltip { opacity: 1; visibility: visible; }
+
+/* matButtonToggle-group (Density -2) */
+.lm-btn-toggle { display: inline-flex; border: 1px solid var(--lm-sys-outline); border-radius: var(--lm-corner-full); overflow: hidden; flex: none; }
+.lm-btn-toggle button { display: inline-flex; align-items: center; gap: var(--lm-space-5); height: var(--lm-space-40); padding: 0 var(--lm-space-15); border: 0; background: transparent; color: var(--lm-sys-on-surface); font: inherit; font-weight: 500; font-size: 14px; letter-spacing: 0.1px; cursor: pointer; white-space: nowrap; }
+.lm-btn-toggle button + button { border-left: 1px solid var(--lm-sys-outline); }
+.lm-btn-toggle button[aria-pressed="true"] { background: var(--lm-sys-secondary-container); color: var(--lm-sys-on-secondary-container); }
+.lm-btn-toggle button:hover { background: color-mix(in srgb, var(--lm-sys-on-surface) 8%, transparent); }
+.lm-btn-toggle button[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--lm-sys-on-secondary-container) 8%, var(--lm-sys-secondary-container)); }
+.lm-btn-toggle button:focus-visible { outline: none; background: color-mix(in srgb, var(--lm-sys-on-surface) 10%, transparent); }

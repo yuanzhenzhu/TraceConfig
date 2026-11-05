@@ -148,6 +148,22 @@ export function Dialog({
   );
 }
 
+/* ---------- matButtonToggle-group ---------- */
+/** Cambiar de vista entre 2 y 5 opciones. La seleccionada lleva un check. */
+export function ButtonToggle<T extends string>({ value, onChange, options, label }: {
+  value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string;
+}) {
+  return (
+    <div className="lm-btn-toggle" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.value} type="button" aria-pressed={value === o.value} onClick={() => onChange(o.value)}>
+          {value === o.value && <Icon name="check" size="m" />}{o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- matTooltip ---------- */
 /** Ayuda al pasar el cursor o al enfocar. Aquí, sobre un matButtonIcon con icono info. */
 export function InfoTooltip({ text, label }: { text: string; label: string }) {
