@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v14";
+const CLAVE = "lm-trace-prototipo-v15";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -22,7 +22,7 @@ function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   };
 }
 
-const flota = (f: Omit<Flota, "sms"> & Partial<Flota>): Flota => ({ sms: null, ...f });
+const flota = (f: Omit<Flota, "sms"> & Partial<Flota>): Flota => ({ sms: [], ...f });
 
 function semilla(): Estado {
   // Propiedades de ejemplo: Estructura 1 tiene seleccionado el código de posición en todos los coches (propiedad de hueco);
@@ -55,7 +55,7 @@ function semilla(): Estado {
   const flotas: Flota[] = [
     flota({
       id: "f1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
-      sms: { ambito: "flota", driver: "km", calculo: "real" },
+      sms: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "categoria" }],
     }),
     flota({ id: "f2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: false }),
     flota({ id: "f3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: true }),

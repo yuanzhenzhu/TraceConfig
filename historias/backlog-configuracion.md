@@ -50,7 +50,7 @@ Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propon
 ### A6. Cálculos en SMS (opcional, según cliente)
 | ID | Historia | Origen |
 |---|---|---|
-| HU-21 | Enviar a SMS los datos de configuración de la flota (flota o línea, driver y forma de cálculo) | T |
+| HU-21 | Indicar, de forma opcional en el paso 3, qué drivers se envían a SMS y cómo se calcula cada uno (flota, línea, categoría, o categoría y posición). Es de la flota: lo comparten todas sus configuraciones | T |
 
 ### A7. Carga de datos mediante plantillas
 | ID | Historia | Origen |

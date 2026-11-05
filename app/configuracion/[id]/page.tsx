@@ -6,9 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
 import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
-import { Paso4, Paso6 } from "@/components/pasos-4-6";
+import { Paso4 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
-import { PASOS, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
+import { PASOS, smsCompleto, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function AsistentePage() {
@@ -29,7 +29,7 @@ export default function AsistentePage() {
     if (!c || paso !== null) return;
     const q = Number(new URLSearchParams(window.location.search).get("paso"));
     const n = q >= 1 && q <= 8 ? q : c.pasoActual;
-    setPaso(n === 5 ? 4 : n); // el antiguo paso 5 (Propiedades de hueco) ya no existe
+    setPaso(n === 5 ? 4 : n === 6 ? 3 : n); // los antiguos pasos 5 (Propiedades de hueco) y 6 (SMS) ya no existen
   }, [c, paso]);
 
   if (!store.listo || (c && paso === null)) return <main className="lm-page"><Loading text="Cargando configuración" /></main>;
@@ -46,7 +46,7 @@ export default function AsistentePage() {
   const set = (cambios: Partial<Configuracion>) => store.actualizarConfig(c.id, cambios);
   const setFlota = (cambios: Partial<Flota>) => store.actualizarFlota(flota.id, cambios);
   const props: PasoProps = { c, set, intentado, est, flota, setFlota };
-  const visibles = PASOS.filter((x) => x.n !== 6 || flota.usaSms);
+  const visibles = PASOS;
   const idx = visibles.findIndex((x) => x.n === p);
   const actual = visibles[idx] ?? visibles[0];
   const siguiente = visibles[idx + 1];
@@ -59,7 +59,7 @@ export default function AsistentePage() {
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
   const estructuraFijada = c.pasoMax > 1;
   const alcanzable = (n: number) => n === 1 || (v1 && c.guardada && estructuraFijada);
-  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers && smsCompleto(flota) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
@@ -92,7 +92,6 @@ export default function AsistentePage() {
       store.actualizarConfig(c.id, { guardada: true });
       snack(`Configuración "${c.nombre}" guardada como En configuración`);
     }
-    if (p === 6 && !flota.sms) setFlota({ sms: { ambito: "flota", driver: "km", calculo: "real" } }); // los valores por defecto que muestra el paso
     if (c.pasosOmitidos.includes(p)) set({ pasosOmitidos: c.pasosOmitidos.filter((x) => x !== p) });
     // Tras validar el paso actual, el siguiente es alcanzable aunque el estado aún no se haya refrescado.
     if (siguiente) irA(siguiente.n, true);
@@ -166,7 +165,6 @@ export default function AsistentePage() {
           {p === 2 && est && <Paso2 {...props} />}
           {p === 3 && est && <Paso3 {...props} />}
           {p === 4 && est && <Paso4 {...props} />}
-          {p === 6 && <Paso6 {...props} />}
           {p === 7 && est && <Paso7 {...props} />}
           {p === 8 && est && <Paso8 c={c} flota={flota} est={est} irA={irA} />}
 

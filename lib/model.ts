@@ -16,7 +16,9 @@ export type DriverId = "km" | "ciclos" | "horas";
 export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por hueco (id del nodo de la estructura)
 export type PropAsignada = { propId: string; historico: boolean };
 export type EstadoPlantilla = "pendiente" | "cargada" | "errores";
-export type Sms = { ambito: "flota" | "linea"; driver: DriverId; calculo: string };
+/** Cálculo de un driver en SMS: primero el driver y después su forma de cálculo. "" = aún sin elegir. */
+export type FormaSms = "flota" | "linea" | "categoria" | "categoria-posicion";
+export type CalculoSms = { driver: DriverId | ""; forma: FormaSms | "" };
 
 export type EstadoConfig = "en-configuracion" | "activa";
 
@@ -62,7 +64,8 @@ export function erroresFilas(filas: FilaConfig[], nombresOcupados: string[] = []
 /** El SMS es de la flota: lo comparten todas sus configuraciones. */
 export type Flota = {
   id: string; nombre: string; descripcion: string; usaSms: boolean;
-  sms: Sms | null;
+  /** Cálculos de drivers en SMS. Son de la flota: los comparten todas sus configuraciones. Vacío = no se envía nada. */
+  sms: CalculoSms[];
 };
 
 /** Propiedades de categoría (por categoría) y de hueco (por hueco: propiedad -> valor, "" = sin valor). */
@@ -110,11 +113,16 @@ export const PROPS_HUECO: { id: string; nombre: string; tipo: string; ejemplo: s
   { id: "plano", nombre: "Referencia de plano", tipo: "Texto", ejemplo: "PL-2231-04" },
 ];
 
-export const FORMAS_CALCULO = [
-  { id: "real", nombre: "Valor real", desc: "Usa los valores registrados del driver" },
-  { id: "media", nombre: "Media diaria", desc: "Estima con la media diaria de la flota o línea" },
-  { id: "planificado", nombre: "Planificado", desc: "Usa el valor previsto en el plan de servicio" },
+/** Formas de calcular un driver en SMS. */
+export const FORMAS_SMS: { id: FormaSms; nombre: string; desc: string }[] = [
+  { id: "flota", nombre: "Flota", desc: "Un único cálculo para toda la flota" },
+  { id: "linea", nombre: "Línea", desc: "Un cálculo por cada línea en la que opera la flota" },
+  { id: "categoria", nombre: "Categoría", desc: "Un cálculo por categoría de activo, por ejemplo, todas las ruedas" },
+  { id: "categoria-posicion", nombre: "Categoría y posición", desc: "Un cálculo por categoría y posición en la unidad, por ejemplo, la rueda 1 del eje 2" },
 ];
+
+/** Los cálculos en SMS están completos si todos tienen driver y forma de cálculo (o no hay ninguno). */
+export const smsCompleto = (f: { sms?: CalculoSms[] | null }) => (f.sms ?? []).every((x) => x.driver && x.forma);
 
 /* ---------- Utilidades de árbol ---------- */
 let seq = 0;
@@ -307,7 +315,6 @@ export const PASOS = [
   { n: 2, titulo: "Valores de propiedades de hueco", obligatorio: false }, // (prueba) las propiedades las define la estructura
   { n: 3, titulo: "Drivers", obligatorio: true },
   { n: 4, titulo: "Propiedades de categoría", obligatorio: false },
-  { n: 6, titulo: "Cálculos en SMS", obligatorio: false },
   { n: 7, titulo: "Carga de datos", obligatorio: true },
   { n: 8, titulo: "Resumen y finalizar", obligatorio: true },
 ];

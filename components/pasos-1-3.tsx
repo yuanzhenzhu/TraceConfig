@@ -10,6 +10,7 @@ import { Banner, Button, EmptyState, Field, Icon } from "./ds";
 import { useRouter } from "next/navigation";
 import { ArbolVista, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
+import { SeccionSms } from "./sms";
 import { ListaPropsHueco, resumenPropiedades } from "./propiedades";
 import {
   contarHuecos, driversIniciales,
@@ -206,11 +207,15 @@ export function Paso2({ c, set, est }: PasoProps) {
 }
 
 /* ---------- Paso 3 ---------- */
-/** Drivers propios de esta configuración (flota + estructura). Otra flota con la misma estructura puede tener otros. */
-export function Paso3({ c, set, est, flota }: PasoProps) {
+/**
+ * Drivers propios de esta configuración (flota + estructura). Otra flota con la misma estructura puede tener otros.
+ * Debajo, opcional, el cálculo de drivers en SMS, que es de la flota.
+ */
+export function Paso3({ c, set, est, flota, setFlota, intentado }: PasoProps) {
   const raiz: Nodo = est!.raiz;
   const valor = c.drivers && c.drivers.estructuraId === est!.id ? c.drivers : { ...driversIniciales(raiz), estructuraId: est!.id };
   return (
+    <div className="stack gap-30">
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Drivers</h2>
       <p className="muted" style={{ margin: 0 }}>
@@ -218,5 +223,8 @@ export function Paso3({ c, set, est, flota }: PasoProps) {
       </p>
       <EditorDrivers raiz={raiz} valor={valor} onChange={(v) => set({ drivers: { ...v, estructuraId: est!.id } })} />
     </section>
+    {/* Cálculo de drivers en SMS: opcional y de la flota (solo si el cliente usa SMS) */}
+    {flota.usaSms && <SeccionSms flota={flota} setFlota={setFlota} configId={c.id} intentado={intentado} />}
+    </div>
   );
 }
