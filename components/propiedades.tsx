@@ -80,7 +80,7 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
             action={!soloLectura ? <Button variant="outlined" icon="add" onClick={() => setVistaProps("todas")}>Asignar propiedades</Button> : undefined} />
         ) : (
         <table className="lm-table">
-          <thead><tr><th style={{ width: 48 }}><span className="sr-only">Asignar</span></th><th>Propiedad</th><th>Tipo</th><th>Guardar histórico</th></tr></thead>
+          <thead><tr><th style={{ width: 48 }}><span className="sr-only">Asignar</span></th><th>Propiedad</th><th>Guardar histórico</th></tr></thead>
           <tbody>
             {props.map((p) => {
               const a = asignadas.find((x) => x.propId === p.id);
@@ -88,7 +88,6 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
                 <tr key={p.id}>
                   <td><label className="lm-check"><input type="checkbox" checked={!!a} disabled={soloLectura} onChange={(e) => toggle(p.id, e.target.checked)} aria-label={`Asignar ${p.nombre} a ${sel}`} /></label></td>
                   <td className={a ? "emph" : ""}>{p.nombre}</td>
-                  <td className="muted">{p.tipo}</td>
                   <td>
                     <label className="lm-toggle lm-toggle--small">
                       <input type="checkbox" role="switch" disabled={soloLectura || !a} checked={!!a?.historico} onChange={(e) => historico(p.id, e.target.checked)} aria-label={`Guardar histórico de ${p.nombre}`} />
@@ -98,7 +97,7 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
                 </tr>
               );
             })}
-            {props.length === 0 && <tr><td colSpan={4} className="muted">No hay propiedades con ese nombre</td></tr>}
+            {props.length === 0 && <tr><td colSpan={3} className="muted">No hay propiedades con ese nombre</td></tr>}
           </tbody>
         </table>
         )}
