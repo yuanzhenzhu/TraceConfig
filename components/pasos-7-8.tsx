@@ -71,11 +71,11 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
         <Banner type="success" title="Plantilla de unidades cargada">Ya puedes guardar: ve al resumen y pulsa Añadir unidades.</Banner>
       ) : (
         <Banner type="attention" title={`Carga de nuevo la plantilla de unidades (${raiz.categoria})`}>
-          Es obligatoria para añadir las unidades: contiene el nº de serie, el km y su fecha de cada una. Si no la cargas y sales, no se guarda ningún cambio.
+          Es obligatoria para añadir las unidades. Si no la cargas y sales, no se guarda ningún cambio.
         </Banner>
       )) : c.estado === "activa" ? null : !primerNivelCargado(c, raiz) ? (
         <Banner type="attention" title="Carga primero la plantilla de unidades (Tren)">
-          Es la única obligatoria para finalizar: contiene el nº de serie, el km y su fecha de cada unidad.
+          Es la única obligatoria para finalizar.
         </Banner>
       ) : (
         <Banner type="success" title="Primer nivel cargado: ya puedes finalizar">
