@@ -13,7 +13,7 @@ Un **cliente** tiene una o varias **flotas**. Cada flota contiene uno o varios *
 Cliente
 ├─ Estructuras (catálogo común del cliente) ← cada una con sus propiedades de hueco
 ├─ Propiedades de categoría (un único juego para todo el cliente)
-└─ Flota (1..n)  ← cálculos en SMS
+└─ Flota (1..n)  ← usa SMS o no
    └─ Configuración / grupo de trenes (1..n)
       ├─ usa → Estructura (1)  → jerarquía de huecos (ver ejemplo)
       ├─ drivers (propios de esta flota + estructura)
@@ -25,8 +25,8 @@ Cliente
 |---|---|
 | **Cliente** | El catálogo de **estructuras**, que puede usar cualquier flota, y un **único juego de propiedades de categoría**, que se aplica a todas las flotas |
 | **Estructura** | Su composición de huecos y **sus propiedades de hueco** (una sola definición por estructura) |
-| **Flota** | Nombre, descripción y **cálculos en SMS** |
-| **Configuración** (flota + estructura) | Nombre, la estructura, el nº de unidades, **sus drivers** y la carga de datos (plantillas) |
+| **Flota** | Nombre, descripción y si usa SMS |
+| **Configuración** (flota + estructura) | Nombre, la estructura, el nº de unidades, **sus drivers y su cálculo en SMS**, los valores de propiedades de hueco y la carga de datos (plantillas) |
 
 ### De qué depende cada cosa
 - **Drivers**: de la **estructura y la flota**. Cada configuración marca los suyos sobre la **estructura entera de la unidad**, hueco a hueco (por ejemplo, ciclos en la Puerta 1 del Coche 2). Al marcar un hueco, los que cuelgan de él también lo tienen y lo heredan. Por ejemplo, la flota 1 con la estructura B y la flota 2 con la estructura B pueden tener drivers distintos. No hay catálogo común de drivers: el apartado **Configuración › Drivers** lista cada configuración (flota + estructura) y permite modificar sus drivers sin afectar a las demás.
@@ -131,7 +131,7 @@ Usa **siempre** el término acordado en textos de interfaz, datos, historias y f
 | Activo | Elemento físico de la estructura: coche, bogie, eje, rueda, motor, puerta, tarjeta electrónica… |
 | Categoría | Tipo de componente o activo (Coche, Bogie, Eje, Rueda, Puerta, Motor Puerta…) |
 | Almacén | Lugar donde se guardan los activos que no están montados en una unidad |
-| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. La **flota es el paraguas** y puede tener varias configuraciones; el SMS es de la flota |
+| Configuración | Una parte de una flota (un grupo de trenes) con su estructura, su nº de unidades, sus drivers y sus datos cargados. La **flota es el paraguas** y puede tener varias configuraciones |
 | Estado de configuración | **En configuración** mientras no se ha finalizado, y **Activa** cuando ya está finalizada. Las unidades de la configuración heredan ese estado. Sustituye a "temporal" y "activo" (propuesta pendiente de validar) |
 | Driver | Forma de contar la vida de un activo. De momento hay tres: **kilometraje (km)**, **ciclos** y **horas**; puede haber más en el futuro. Cada hueco tiene dos marcas por driver: **tenerlo** y que sea **heredable** |
 | Propiedad de categoría | Propiedad que se registra para una categoría de activo (y si guarda histórico). Hay un único juego para todo el cliente |

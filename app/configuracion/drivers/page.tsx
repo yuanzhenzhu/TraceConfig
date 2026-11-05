@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Breadcrumb, Button, EmptyState, Field, Loading, Tag } from "@/components/ds";
 import { ResumenDrivers, cuentaDrivers } from "@/components/drivers";
+import { textoSms } from "@/components/sms";
 import { DRIVERS, fecha } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -29,7 +30,7 @@ export default function DriversPage() {
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Drivers" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Drivers</h1>
-          <span className="muted">Los drivers son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</span>
+          <span className="muted">Los drivers y su cálculo en SMS son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</span>
         </div>
       </div>
 
@@ -61,7 +62,7 @@ export default function DriversPage() {
           <table className="lm-table">
             <thead>
               <tr>
-                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th className="num">Heredables</th>
+                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th className="num">Heredables</th><th>Cálculo en SMS</th>
                 <th>Estado</th><th>Últ. actualización</th><th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
@@ -78,6 +79,7 @@ export default function DriversPage() {
                     <td>{est.nombre}</td>
                     <td>{c.drivers ? <ResumenDrivers valor={c.drivers} /> : <span className="muted">Kilometraje por defecto</span>}</td>
                     <td className="num">{c.drivers ? heredables : "—"}</td>
+                    <td>{f?.usaSms ? (c.sms?.length ? textoSms(c.sms) : <span className="muted">Sin cálculo</span>) : <span className="muted">La flota no usa SMS</span>}</td>
                     <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                     <td className="muted">{fecha(c.actualizada)}</td>
                     <td className="actions">

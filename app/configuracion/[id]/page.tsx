@@ -59,7 +59,7 @@ export default function AsistentePage() {
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
   const estructuraFijada = c.pasoMax > 1;
   const alcanzable = (n: number) => n === 1 || (v1 && c.guardada && estructuraFijada);
-  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers && smsCompleto(flota) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers && smsCompleto(c) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;

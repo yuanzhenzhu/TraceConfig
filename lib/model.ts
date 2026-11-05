@@ -31,6 +31,8 @@ export type Configuracion = {
   unidades: number | null;
   /** Drivers propios de esta configuración (flota + estructura): otra flota con la misma estructura puede tener otros. */
   drivers: DriversConfigEst | null;
+  /** Cálculo en SMS de sus drivers (solo si la flota usa SMS). Como los drivers, es de esta configuración. Vacío = no se envía nada. */
+  sms?: CalculoSms[];
   /** Valores de las propiedades de hueco que define su estructura (opcionales). Por hueco y propiedad. */
   valoresHueco?: PropsHueco;
   plantillas: Record<string, EstadoPlantilla>; // por categoría
@@ -64,8 +66,6 @@ export function erroresFilas(filas: FilaConfig[], nombresOcupados: string[] = []
 /** El SMS es de la flota: lo comparten todas sus configuraciones. */
 export type Flota = {
   id: string; nombre: string; descripcion: string; usaSms: boolean;
-  /** Cálculos de drivers en SMS. Son de la flota: los comparten todas sus configuraciones. Vacío = no se envía nada. */
-  sms: CalculoSms[];
 };
 
 /** Propiedades de categoría (por categoría) y de hueco (por hueco: propiedad -> valor, "" = sin valor). */

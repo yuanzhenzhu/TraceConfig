@@ -10,19 +10,19 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v15";
+const CLAVE = "lm-trace-prototipo-v16";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
-    drivers: null, plantillas: {}, intentosPlantilla: {},
+    drivers: null, sms: [], plantillas: {}, intentosPlantilla: {},
     pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false, unica: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
   };
 }
 
-const flota = (f: Omit<Flota, "sms"> & Partial<Flota>): Flota => ({ sms: [], ...f });
+const flota = (f: Flota): Flota => f;
 
 function semilla(): Estado {
   // Propiedades de ejemplo: Estructura 1 tiene seleccionado el código de posición en todos los coches (propiedad de hueco);
@@ -55,10 +55,9 @@ function semilla(): Estado {
   const flotas: Flota[] = [
     flota({
       id: "f1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
-      sms: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "categoria" }],
     }),
     flota({ id: "f2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: false }),
-    flota({ id: "f3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: true }),
+    flota({ id: "f3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: false }), // en el prototipo solo Metro Línea 1 usa SMS
   ];
   const parcial = plantillasIniciales(e2.raiz);
   parcial["Tren"] = "cargada"; parcial["Coche"] = "cargada"; parcial["Puerta"] = "cargada"; parcial["Rueda"] = "errores";
@@ -66,11 +65,11 @@ function semilla(): Estado {
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "", estructuraId: e1.id, unidades: 16,
       drivers: { ...driversIniciales(e1.raiz), estructuraId: e1.id }, plantillas: todas(e1.raiz), pasoActual: 8,
-      valoresHueco: codigosCoches(e1.raiz, "ML1"), estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
+      valoresHueco: codigosCoches(e1.raiz, "ML1"), sms: [{ driver: "km", forma: "flota" }], estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "", estructuraId: e2.id, unidades: 8,
-      drivers: { ...conCiclos, estructuraId: e2.id }, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
+      drivers: { ...conCiclos, estructuraId: e2.id }, sms: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "categoria" }], plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
@@ -130,7 +129,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [estado, listo]);
 
   const crearFlota = useCallback((f: Pick<Flota, "nombre" | "descripcion">) => {
-    const nueva = flota({ ...f, id: nuevoId("flota"), usaSms: true });
+    const nueva = flota({ ...f, id: nuevoId("flota"), usaSms: false }); // en el prototipo solo Metro Línea 1 usa SMS
     setEstado((s) => ({ ...s, flotas: [...s.flotas, nueva] }));
     return nueva;
   }, []);

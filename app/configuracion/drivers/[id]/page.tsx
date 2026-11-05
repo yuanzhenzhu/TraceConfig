@@ -1,12 +1,13 @@
 "use client";
 
-// Modificar los drivers de una configuración (flota + estructura). Solo le afecta a ella.
+// Modificar los drivers de una configuración (flota + estructura) y su cálculo en SMS. Solo le afecta a ella.
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Banner, Breadcrumb, Button, EmptyState, Loading, Tag, useSnackbar } from "@/components/ds";
 import { EditorDrivers } from "@/components/drivers";
-import { driversIniciales, type DriversConfig } from "@/lib/model";
+import { SeccionSms } from "@/components/sms";
+import { driversIniciales, type CalculoSms, type DriversConfig } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function EditarDriversPage() {
@@ -17,10 +18,13 @@ export default function EditarDriversPage() {
   const c = store.configs.find((x) => x.id === id);
   const est = c ? store.estructura(c.estructuraId) : undefined;
   const [borrador, setBorrador] = useState<DriversConfig | null>(null);
+  const [sms, setSms] = useState<CalculoSms[]>([]);
+  const [intentado, setIntentado] = useState(false);
 
   useEffect(() => {
     if (!store.listo || borrador || !c || !est) return;
     setBorrador(structuredClone(c.drivers && c.drivers.estructuraId === est.id ? c.drivers : driversIniciales(est.raiz)));
+    setSms(structuredClone(c.sms ?? []));
   }, [store.listo, borrador, c, est]);
 
   if (!store.listo || (c && est && !borrador)) return <main className="lm-page"><Loading text="Cargando drivers" /></main>;
@@ -36,11 +40,13 @@ export default function EditarDriversPage() {
   const flota = store.flotas.find((f) => f.id === c.flotaId);
   const nombre = store.etiqueta(c);
   const original = c.drivers ? JSON.stringify([c.drivers.drivers, c.drivers.heredables]) : "";
-  const cambiado = JSON.stringify([borrador.drivers, borrador.heredables]) !== original;
+  const cambiado = JSON.stringify([borrador.drivers, borrador.heredables]) !== original || JSON.stringify(sms) !== JSON.stringify(c.sms ?? []);
   const otras = store.usosDe(est.id).filter((x) => x.id !== c.id);
 
   const guardar = () => {
-    store.actualizarConfig(c.id, { drivers: { ...borrador, estructuraId: est.id } });
+    setIntentado(true);
+    if (sms.some((x) => !x.driver || !x.forma)) return; // cálculo en SMS a medias
+    store.actualizarConfig(c.id, { drivers: { ...borrador, estructuraId: est.id }, sms });
     snack(`Drivers de ${nombre} guardados`);
     router.push("/configuracion/drivers");
   };
@@ -67,6 +73,7 @@ export default function EditarDriversPage() {
         </Banner>
         <section className="lm-surface lm-surface--p24 stack gap-20">
           <EditorDrivers raiz={est.raiz} valor={borrador} onChange={setBorrador} />
+          {flota?.usaSms && <SeccionSms valor={sms} onChange={setSms} intentado={intentado} />}
         </section>
       </div>
 

@@ -1,54 +1,45 @@
 "use client";
 
-// Cálculo de drivers en SMS (HU-21). Sección opcional del paso 3 del asistente.
-// Es de la FLOTA: si una flota tiene varias configuraciones, todas comparten el mismo cálculo.
+// Cálculo de drivers en SMS (HU-21). Va junto a los drivers: en el paso 3 del asistente y en Configuración › Drivers.
+// Como los drivers, es de cada CONFIGURACIÓN (flota + estructura). Solo aparece si la flota usa SMS.
 // Cada cálculo se configura en dos pasos: 1) el driver (km, ciclos u horas) y 2) su forma de cálculo
-// (flota, línea, categoría, o categoría y posición). Se pueden añadir varios, uno por driver.
+// (flota, línea, categoría, o categoría y posición). Se pueden añadir varios, uno por driver. Es opcional.
 
-import { Banner, Button, Field, Icon, IconButton } from "./ds";
-import { DRIVERS, FORMAS_SMS, smsCompleto, type CalculoSms, type DriverId, type Flota, type FormaSms } from "@/lib/model";
-import { useStore } from "@/lib/store";
+import { Button, Field, Icon, IconButton } from "./ds";
+import { DRIVERS, FORMAS_SMS, type CalculoSms, type DriverId, type FormaSms } from "@/lib/model";
 
-export function SeccionSms({ flota, setFlota, configId, intentado }: {
-  flota: Flota; setFlota: (cambios: Partial<Flota>) => void; configId: string; intentado: boolean;
+export function SeccionSms({ valor, onChange, intentado }: {
+  valor: CalculoSms[]; onChange: (v: CalculoSms[]) => void; intentado: boolean;
 }) {
-  const store = useStore();
-  const calculos = flota.sms ?? [];
-  const otras = store.configs.filter((x) => x.flotaId === flota.id && x.id !== configId && x.guardada);
-  const usados = calculos.map((x) => x.driver).filter(Boolean);
-  const guardar = (lista: CalculoSms[]) => setFlota({ sms: lista });
-  const cambiar = (i: number, cambios: Partial<CalculoSms>) => guardar(calculos.map((x, k) => (k === i ? { ...x, ...cambios } : x)));
-  const anadir = () => guardar([...calculos, { driver: "", forma: "" }]);
-  const quitar = (i: number) => guardar(calculos.filter((_, k) => k !== i));
-  const lleno = calculos.length >= DRIVERS.length;
+  const usados = valor.map((x) => x.driver).filter(Boolean);
+  const cambiar = (i: number, cambios: Partial<CalculoSms>) => onChange(valor.map((x, k) => (k === i ? { ...x, ...cambios } : x)));
+  const anadir = () => onChange([...valor, { driver: "", forma: "" }]);
+  const quitar = (i: number) => onChange(valor.filter((_, k) => k !== i));
+  const lleno = valor.length >= DRIVERS.length;
+  const incompleto = valor.some((x) => !x.driver || !x.forma);
 
   return (
-    <section className="lm-surface lm-surface--p24 stack gap-20">
+    <div className="stack gap-20" style={{ borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-20)" }}>
       <div className="row gap-10">
-        <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo de drivers en SMS</h2>
+        <h3 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo en SMS</h3>
         <span className="lm-body-small muted">Opcional</span>
       </div>
       <p className="muted" style={{ margin: 0 }}>
-        Indica qué drivers se envían a SMS, la herramienta de planificación de mantenimientos, y cómo calcula cada uno. Para cada cálculo, elige primero el driver y después su forma de cálculo. Puedes añadir varios: por ejemplo, el kilometraje por flota y los ciclos por categoría.
+        Indica qué drivers de esta configuración se envían a SMS, la herramienta de planificación de mantenimientos, y cómo calcula cada uno. Para cada cálculo, elige primero el driver y después su forma de cálculo. Puedes añadir varios: por ejemplo, el kilometraje por flota y los ciclos por categoría.
       </p>
-      <Banner type="info" title={`Es de la flota ${flota.nombre}`}>
-        {otras.length
-          ? `Lo comparten todas sus configuraciones: si lo cambias aquí, también cambia en ${otras.map((x) => store.etiqueta(x)).join(", ")}.`
-          : "Lo comparten todas sus configuraciones: si la flota tiene más, tendrán el mismo cálculo."}
-      </Banner>
 
-      {calculos.length === 0 ? (
+      {valor.length === 0 ? (
         <div className="lm-card">
           <div className="lm-center" style={{ padding: "var(--lm-space-30) var(--lm-space-20)" }}>
             <Icon name="functions" size="xl" />
             <span>Todavía no se envía ningún driver a SMS</span>
-            <span className="lm-body-small">Si no lo necesitas, continúa con el paso siguiente</span>
+            <span className="lm-body-small">Si no lo necesitas, puedes continuar</span>
             <Button variant="outlined" icon="add" onClick={anadir}>Añadir driver</Button>
           </div>
         </div>
       ) : (
         <>
-          {calculos.map((x, i) => {
+          {valor.map((x, i) => {
             const errDriver = intentado && !x.driver ? "Elige el driver" : "";
             const errForma = intentado && x.driver && !x.forma ? "Elige la forma de cálculo" : "";
             return (
@@ -90,17 +81,17 @@ export function SeccionSms({ flota, setFlota, configId, intentado }: {
           <div className="row gap-10">
             <Button variant="outlined" icon="add" disabled={lleno} onClick={anadir}>Añadir otro driver</Button>
             {lleno && <span className="lm-body-small muted">Ya hay un cálculo para cada driver</span>}
-            {intentado && !smsCompleto(flota) && <span className="lm-body-small" style={{ color: "var(--lm-sys-error)" }}>Completa o quita los cálculos sin terminar</span>}
+            {intentado && incompleto && <span className="lm-body-small" style={{ color: "var(--lm-sys-error)" }}>Completa o quita los cálculos sin terminar</span>}
           </div>
         </>
       )}
-    </section>
+    </div>
   );
 }
 
-/** Texto corto de los cálculos en SMS de una flota (resumen). */
-export function textoSms(flota: Flota) {
-  const lista = (flota.sms ?? []).filter((x) => x.driver && x.forma);
-  if (!lista.length) return "No se envía ningún driver a SMS";
-  return lista.map((x) => `${DRIVERS.find((d) => d.id === x.driver)?.nombre} por ${FORMAS_SMS.find((f) => f.id === x.forma)?.nombre.toLowerCase()}`).join(" · ");
+/** Texto corto de los cálculos en SMS de una configuración (resumen y listados). */
+export function textoSms(lista: CalculoSms[] | undefined) {
+  const ok = (lista ?? []).filter((x) => x.driver && x.forma);
+  if (!ok.length) return "No se envía ningún driver a SMS";
+  return ok.map((x) => `${DRIVERS.find((d) => d.id === x.driver)?.nombre} por ${FORMAS_SMS.find((f) => f.id === x.forma)?.nombre.toLowerCase()}`).join(" · ");
 }

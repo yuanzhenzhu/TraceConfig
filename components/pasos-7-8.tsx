@@ -206,9 +206,8 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
     { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</> },
     { n: 2, titulo: "Valores de propiedades de hueco", contenido: <>{nHuecosProps ? `${huecosConValor(raiz, est.propsHueco ?? {}, c.valoresHueco ?? {})} de ${nHuecosProps} huecos con valores` : `${est.nombre} no tiene propiedades de hueco`}<br />Opcional: los valores son de esta configuración</>, aviso: omitido(2) ? "Paso omitido" : undefined },
-    { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} huecos (${h} heredables)`).join(" · ") || "Sin drivers"}</>, aviso: undefined },
+    { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} huecos (${h} heredables)`).join(" · ") || "Sin drivers"}{flota.usaSms && <><br />SMS: {textoSms(c.sms)}</>}</>, aviso: undefined },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todo el cliente<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
-    ...(flota.usaSms ? [{ n: 3, titulo: "Cálculo de drivers en SMS (de la flota)", contenido: <>{textoSms(flota)}<br />Opcional: lo comparten todas las configuraciones de {flota.nombre}</> }] : []),
     { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c, raiz)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },
   ];
 
