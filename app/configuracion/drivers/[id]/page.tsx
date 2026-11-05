@@ -32,7 +32,7 @@ export default function EditarDriversPage() {
     return (
       <main className="lm-page">
         <EmptyState icon="search_off" title="No se ha encontrado la configuración" text="Puede que se haya descartado o que todavía no tenga estructura"
-          action={<Button onClick={() => router.push("/configuracion/drivers")}>Volver a Drivers</Button>} />
+          action={<Button onClick={() => router.push("/configuracion/drivers")}>Volver a Drivers y cálculo para SMS</Button>} />
       </main>
     );
   }
@@ -55,7 +55,7 @@ export default function EditarDriversPage() {
     <main className="lm-page" style={{ paddingBottom: 120 }}>
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Drivers", href: "/configuracion/drivers" }, { label: nombre }]} />
+          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Drivers y cálculo para SMS", href: "/configuracion/drivers" }, { label: nombre }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>Drivers de {nombre}</h1>
             {c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}

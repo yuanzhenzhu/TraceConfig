@@ -106,7 +106,7 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
             {modo === "nueva" ? (
               <Banner type="info" title="La estructura nueva se crea en Estructuras"
                 actions={<Button variant="outlined" small icon="north_east" onClick={irAEstructuras}>Ir a Estructuras</Button>}>
-                Irás a Configuración › Estructuras para crearla: su composición de huecos y, si quieres, sus propiedades de hueco. Al pulsar Crear y volver al asistente, se añadirá al catálogo del cliente y volverás aquí con ella asignada. Lo que has rellenado en este paso se conserva. Una vez creada, ya no podrás elegir una estructura existente para esta configuración.
+                Irás a Configuración › Estructura y propiedades de hueco para crearla: su composición de huecos y, si quieres, sus propiedades de hueco. Al pulsar Crear y volver al asistente, se añadirá al catálogo del cliente y volverás aquí con ella asignada. Lo que has rellenado en este paso se conserva. Una vez creada, ya no podrás elegir una estructura existente para esta configuración.
               </Banner>
             ) : (
             <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>

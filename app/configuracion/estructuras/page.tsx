@@ -23,8 +23,8 @@ export default function EstructurasPage() {
     <main className="lm-page">
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Estructuras" }]} />
-          <h1 className="lm-headline-small" style={{ margin: 0 }}>Estructuras</h1>
+          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Estructura y propiedades de hueco" }]} />
+          <h1 className="lm-headline-small" style={{ margin: 0 }}>Estructura y propiedades de hueco</h1>
           <span className="muted">Catálogo común del cliente. Un cambio en una estructura afecta a todas las configuraciones que la usan.</span>
         </div>
         <div className="lm-header__actions">

@@ -43,7 +43,7 @@ export default function EditarEstructuraPage() {
   if (!borrador) {
     return (
       <main className="lm-page">
-        <EmptyState icon="search_off" title="No se ha encontrado la estructura" action={<Button onClick={() => router.push("/configuracion/estructuras")}>Volver a Estructuras</Button>} />
+        <EmptyState icon="search_off" title="No se ha encontrado la estructura" action={<Button onClick={() => router.push("/configuracion/estructuras")}>Volver a Estructura y propiedades de hueco</Button>} />
       </main>
     );
   }
@@ -86,7 +86,7 @@ export default function EditarEstructuraPage() {
         <div className="lm-header__titles">
           <Breadcrumb items={cfg
             ? [{ label: "Configuración", href: "/configuracion" }, { label: nombreCfg, href: volverA }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]
-            : [{ label: "Configuración", href: "/configuracion" }, { label: "Estructuras", href: "/configuracion/estructuras" }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]} />
+            : [{ label: "Configuración", href: "/configuracion" }, { label: "Estructura y propiedades de hueco", href: "/configuracion/estructuras" }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{esNueva ? "Nueva estructura" : `Modificar ${original!.nombre}`}</h1>
             {!esNueva && (enUso ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>)}
