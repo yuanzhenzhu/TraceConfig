@@ -1,5 +1,7 @@
 # Backlog: módulo Configuración
 
+> **Versión al día:** `historias-por-epica.md` recoge todas las historias tal como están en el prototipo, agrupadas por épica. Este archivo se conserva como histórico de decisiones.
+
 Borrador sacado de los tableros de Figma (2026-11-03), con la nomenclatura acordada ya aplicada. Cada fila se convertirá en `HU-XX-nombre.md` cuando la trabajemos.
 
 Leyenda del origen: **T** = viene del tablero; **N** = historia nueva que propone Claude porque el flujo la necesita.
