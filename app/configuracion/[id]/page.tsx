@@ -4,7 +4,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
+import { Banner, Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
 import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
 import { Paso4 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
@@ -45,24 +45,30 @@ export default function AsistentePage() {
   const p = paso!;
   const set = (cambios: Partial<Configuracion>) => store.actualizarConfig(c.id, cambios);
   const setFlota = (cambios: Partial<Flota>) => store.actualizarFlota(flota.id, cambios);
-  const props: PasoProps = { c, set, intentado, est, flota, setFlota };
+  const soloLectura = c.estado === "activa"; // Consultar: el asistente entero, sin poder modificar nada
+  const props: PasoProps = { c, set, intentado, est, flota, setFlota, soloLectura };
   const visibles = PASOS;
   const idx = visibles.findIndex((x) => x.n === p);
   const actual = visibles[idx] ?? visibles[0];
   const siguiente = visibles[idx + 1];
   const anterior = visibles[idx - 1];
-  const soloLectura = c.estado === "activa";
   const hermanas = c.guardada ? store.configs.filter((x) => x.flotaId === c.flotaId && x.id !== c.id && x.guardada && x.estado !== "activa") : [];
   const raiz = est?.raiz;
 
   const v1 = paso1Valido(c, est);
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
   const estructuraFijada = c.pasoMax > 1;
-  const alcanzable = (n: number) => n === 1 || (v1 && c.guardada && estructuraFijada);
+  const alcanzable = (n: number) => soloLectura || n === 1 || (v1 && c.guardada && estructuraFijada);
   const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers && smsCompleto(c) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
+    if (soloLectura) { // en consulta solo se navega: no se guarda nada
+      setPaso(n);
+      window.history.replaceState(null, "", `/configuracion/${c.id}?paso=${n}`);
+      window.scrollTo({ top: 0 });
+      return;
+    }
     const cambios: Partial<Configuracion> = { pasoActual: n, pasoMax: Math.max(c.pasoMax, n) };
     if (n === 7 && raiz && !Object.keys(c.plantillas).length) cambios.plantillas = plantillasIniciales(raiz);
     set(cambios);
@@ -106,7 +112,6 @@ export default function AsistentePage() {
     snack(`Configuración "${c.nombre}" guardada`);
     router.push("/configuracion");
   };
-  const pendientesActiva = soloLectura && raiz ? categoriasDe(raiz).some((x) => c.plantillas[x.categoria] !== "cargada") : false;
 
   return (
     <main className="lm-page" style={{ paddingBottom: 120 }}>
@@ -119,7 +124,6 @@ export default function AsistentePage() {
           </span>
         </div>
         <div className="lm-header__actions">
-          {soloLectura && <Button variant="outlined" icon="arrow_back_ios_new" onClick={() => router.push("/configuracion")}>Volver al listado</Button>}
         </div>
       </div>
 
@@ -132,18 +136,21 @@ export default function AsistentePage() {
         </div>
       )}
 
-      {soloLectura && est ? (
-        <div className="stack gap-30">
-          <Paso8 c={c} flota={flota} est={est} irA={irA} soloLectura />
-          {pendientesActiva && <Paso7 {...props} />}
+      {soloLectura && (
+        <div style={{ marginBottom: "var(--lm-space-20)" }}>
+          <Banner type="info" title="Estás consultando una configuración activa">
+            Puedes recorrer todos sus pasos y ver sus datos, pero no modificar nada.
+          </Banner>
         </div>
-      ) : (
+      )}
+
+      {(
         <>
           <nav aria-label="Pasos de la configuración" className="lm-surface" style={{ marginBottom: "var(--lm-space-20)" }}>
             <ol className="lm-stepper" style={{ listStyle: "none", margin: 0 }}>
               {visibles.map((x, i) => {
                 const omit = c.pasosOmitidos.includes(x.n);
-                const hecho = !omit && x.n !== p && x.n < c.pasoMax && valido(x.n);
+                const hecho = !omit && x.n !== p && (soloLectura || (x.n < c.pasoMax && valido(x.n)));
                 const cls = x.n === p ? "is-current" : omit ? "is-skipped" : hecho ? "is-done" : "";
                 return (
                   <li key={x.n} className="row gap-10" style={{ flex: i < visibles.length - 1 ? 1 : undefined }}>
@@ -165,19 +172,24 @@ export default function AsistentePage() {
           {p === 3 && est && <Paso3 {...props} />}
           {p === 4 && est && <Paso4 {...props} />}
           {p === 7 && est && <Paso7 {...props} />}
-          {p === 8 && est && <Paso8 c={c} flota={flota} est={est} irA={irA} />}
+          {p === 8 && est && <Paso8 c={c} flota={flota} est={est} irA={irA} soloLectura={soloLectura} />}
 
           <footer className="lm-footer-bar">
             <div className="row gap-10" style={{ maxWidth: 1360, margin: "0 auto", padding: "var(--lm-space-15) var(--lm-space-30)" }}>
-              <Button variant="text" icon={c.guardada ? undefined : "close"} onClick={guardarYSalir}>{c.guardada ? "Guardar y salir" : "Cancelar"}</Button>
+              {soloLectura
+                ? <Button variant="text" icon="arrow_back_ios_new" onClick={() => router.push("/configuracion")}>Volver al listado</Button>
+                : <Button variant="text" icon={c.guardada ? undefined : "close"} onClick={guardarYSalir}>{c.guardada ? "Guardar y salir" : "Cancelar"}</Button>}
               <span className="grow lm-body-small muted">
                 Paso {idx + 1} de {visibles.length} · {actual.titulo}
+                {soloLectura && " · Solo consulta"}
                 {intentado && !valido(p) && <span style={{ color: "var(--lm-sys-error)" }}> · Revisa los campos marcados</span>}
               </span>
               {anterior && <Button variant="outlined" onClick={() => irA(anterior.n)}>Anterior</Button>}
-              {p === 8
-                ? <Button icon="check" disabled={!primerNivelCargado(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
-                : <Button onClick={() => avanzar()}>Siguiente</Button>}
+              {soloLectura
+                ? siguiente && <Button onClick={() => irA(siguiente.n)}>Siguiente</Button>
+                : p === 8
+                  ? <Button icon="check" disabled={!primerNivelCargado(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
+                  : <Button onClick={() => avanzar()}>Siguiente</Button>}
             </div>
           </footer>
         </>

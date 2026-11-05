@@ -44,7 +44,7 @@ function descargarPlantilla(c: Configuracion, raiz: Nodo, drivers: DriversConfig
   a.click(); URL.revokeObjectURL(url);
 }
 
-export function Paso7({ c, set, est }: PasoProps) {
+export function Paso7({ c, set, est, soloLectura }: PasoProps) {
   const snack = useSnackbar();
   const store = useStore();
   const raiz = est!.raiz;
@@ -60,7 +60,9 @@ export function Paso7({ c, set, est }: PasoProps) {
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Carga de datos</h2>
       <p className="muted" style={{ margin: 0 }}>
-        Descarga la plantilla de cada categoría, rellénala y súbela. Los niveles se habilitan a medida que cargas los anteriores. Puedes cargarlas poco a poco y salir cuando quieras.
+        {soloLectura
+          ? "Estado de las plantillas de cada categoría. Puedes descargar las plantillas, pero no subirlas."
+          : "Descarga la plantilla de cada categoría, rellénala y súbela. Los niveles se habilitan a medida que cargas los anteriores. Puedes cargarlas poco a poco y salir cuando quieras."}
       </p>
       {c.estado === "activa" ? null : !primerNivelCargado(c, raiz) ? (
         <Banner type="attention" title="Carga primero la plantilla de unidades (Tren)">
@@ -98,17 +100,19 @@ export function Paso7({ c, set, est }: PasoProps) {
                 <td>
                   <span className="row gap-10">
                     <Tag tone={ESTADO[est].tone}>{ESTADO[est].txt}</Tag>
-                    {!ok && <span className="lm-body-small muted row gap-5"><Icon name="lock" size="m" />Carga antes el nivel anterior</span>}
-                    {est === "errores" && <Button variant="text" small onClick={() => setErrores(x.categoria)}>Ver errores</Button>}
+                    {!ok && !soloLectura && <span className="lm-body-small muted row gap-5"><Icon name="lock" size="m" />Carga antes el nivel anterior</span>}
+                    {est === "errores" && !soloLectura && <Button variant="text" small onClick={() => setErrores(x.categoria)}>Ver errores</Button>}
                   </span>
                 </td>
                 <td className="actions">
                   <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                     <IconButton icon="file_download" label={`Descargar plantilla de ${x.categoria}`} disabled={!ok}
                       onClick={() => { descargarPlantilla(c, raiz, c.drivers, store.propsCategoria, x.categoria); snack(`Plantilla de ${x.categoria} descargada`); }} />
-                    <Button variant={est === "cargada" ? "text" : "outlined"} small icon="file_upload" disabled={!ok} onClick={() => setSubiendo(x.categoria)}>
-                      {est === "cargada" ? "Reemplazar" : "Subir"}
-                    </Button>
+                    {!soloLectura && (
+                      <Button variant={est === "cargada" ? "text" : "outlined"} small icon="file_upload" disabled={!ok} onClick={() => setSubiendo(x.categoria)}>
+                        {est === "cargada" ? "Reemplazar" : "Subir"}
+                      </Button>
+                    )}
                   </span>
                 </td>
               </tr>
@@ -216,7 +220,7 @@ export function Paso8({ c, flota, est, irA, soloLectura }: { c: Configuracion; f
       {soloLectura ? (
         pendientes.length ? (
           <Banner type="attention" title={`${c.unidades} unidades incompletas`}>
-            La estructura {est.nombre} ha cambiado y faltan los datos de: {pendientes.map((p) => p.categoria).join(", ")}. Cárgalos más abajo.
+            La estructura {est.nombre} ha cambiado y faltan los datos de: {pendientes.map((p) => p.categoria).join(", ")}. 
           </Banner>
         ) : (
           <Banner type="success" title="Configuración activa">Sus unidades están operativas y todos sus datos están cargados.</Banner>

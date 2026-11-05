@@ -243,6 +243,7 @@ export function ListaPropsHueco({ raiz, definicion, valor, onChange }: {
   raiz: Nodo; definicion: PropsHueco; valor?: PropsHueco; onChange?: (v: PropsHueco) => void;
 }) {
   const editable = !!valor && !!onChange;
+  const conValores = !!valor; // con valor y sin onChange: se ven los valores sin poder cambiarlos
   const [prop, setProp] = useState("");
   const [cat, setCat] = useState("");
   const [buscar, setBuscar] = useState("");
@@ -254,7 +255,7 @@ export function ListaPropsHueco({ raiz, definicion, valor, onChange }: {
   });
   const props = PROPS_HUECO.filter((p) => filas.some((f) => f.p.id === p.id));
   const categorias = [...new Set(filas.map((f) => f.n.categoria))];
-  const conValor = editable ? filas.filter((f) => valor![f.n.id]?.[f.p.id]).length : 0;
+  const conValor = conValores ? filas.filter((f) => valor![f.n.id]?.[f.p.id]).length : 0;
   const q = buscar.trim().toLowerCase();
   const lista = filas
     .filter((f) => !prop || f.p.id === prop)
@@ -286,7 +287,7 @@ export function ListaPropsHueco({ raiz, definicion, valor, onChange }: {
         )}
         {(prop || cat || buscar) && <Button variant="text" icon="restart_alt" onClick={limpiar}>Restablecer</Button>}
         <span className="grow" />
-        <span className="lm-body-small muted">{editable ? `${conValor} de ${filas.length} con valor` : `${filas.length} propiedades de hueco`}</span>
+        <span className="lm-body-small muted">{conValores ? `${conValor} de ${filas.length} con valor` : `${filas.length} propiedades de hueco`}</span>
       </div>
       {lista.length === 0 ? (
         <EmptyState icon="search_off" title="No hay resultados" text="Ninguna propiedad coincide con los filtros"
@@ -297,7 +298,7 @@ export function ListaPropsHueco({ raiz, definicion, valor, onChange }: {
             <thead>
               <tr>
                 <th>Propiedad</th><th>Hueco</th><th>Posición</th>
-                {editable && <th style={{ width: 320 }}>Valor</th>}
+                {conValores && <th style={{ width: 320 }}>Valor</th>}
               </tr>
             </thead>
             <tbody>
@@ -306,6 +307,7 @@ export function ListaPropsHueco({ raiz, definicion, valor, onChange }: {
                   <td><span className="emph">{p.nombre}</span> <span className="lm-body-small muted">· {p.tipo}</span></td>
                   <td>{n.nombre}</td>
                   <td className="muted">{posicion}</td>
+                  {conValores && !editable && <td>{valor![n.id]?.[p.id] || <span className="muted">Sin valor</span>}</td>}
                   {editable && (
                     <td>
                       <input className="lm-input lm-input--dense" aria-label={`${p.nombre} de ${posicion}`} value={valor![n.id]?.[p.id] ?? ""}

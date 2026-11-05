@@ -8,9 +8,34 @@
 import { Button, Field, Icon, IconButton } from "./ds";
 import { DRIVERS, FORMAS_SMS, type CalculoSms, type DriverId, type FormaSms } from "@/lib/model";
 
-export function SeccionSms({ valor, onChange, intentado }: {
-  valor: CalculoSms[]; onChange: (v: CalculoSms[]) => void; intentado: boolean;
+export function SeccionSms({ valor, onChange, intentado, soloLectura }: {
+  valor: CalculoSms[]; onChange: (v: CalculoSms[]) => void; intentado: boolean; soloLectura?: boolean;
 }) {
+  if (soloLectura) {
+    const ok = valor.filter((x) => x.driver && x.forma);
+    return (
+      <div className="stack gap-15" style={{ borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-20)" }}>
+        <h3 className="lm-title-medium" style={{ margin: 0 }}>Cálculo en SMS</h3>
+        {ok.length === 0 ? <span className="muted">No se envía ningún driver a SMS</span> : (
+          <table className="lm-table">
+            <thead><tr><th style={{ width: 48 }}>Nº</th><th>Driver</th><th>Forma de cálculo</th></tr></thead>
+            <tbody>
+              {ok.map((x, i) => {
+                const f = FORMAS_SMS.find((y) => y.id === x.forma);
+                return (
+                  <tr key={i}>
+                    <td className="muted">{i + 1}</td>
+                    <td className="emph">{DRIVERS.find((d) => d.id === x.driver)?.nombre}</td>
+                    <td><span className="stack"><span>{f?.nombre}</span><span className="lm-body-small muted">{f?.desc}</span></span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  }
   const usados = valor.map((x) => x.driver).filter(Boolean);
   const cambiar = (i: number, cambios: Partial<CalculoSms>) => onChange(valor.map((x, k) => (k === i ? { ...x, ...cambios } : x)));
   const anadir = () => onChange([...valor, { driver: "", forma: "" }]);

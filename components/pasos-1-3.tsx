@@ -25,10 +25,12 @@ export type PasoProps = {
   est?: Estructura;
   flota: Flota;
   setFlota: (cambios: Partial<Flota>) => void;
+  /** Consulta de una configuración activa: se ve todo, no se puede modificar nada. */
+  soloLectura?: boolean;
 };
 
 /* ---------- Paso 1 ---------- */
-export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
+export function Paso1({ c, set, intentado, est, flota, soloLectura }: PasoProps) {
   const store = useStore();
   // Si la flota tiene una o varias estructuras se indica al crear la flota (dialog Nueva flota).
   const [texto, setTexto] = useState(c.unidades ? String(c.unidades) : "");
@@ -56,11 +58,11 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
             <div className="stack gap-5"><span className="lm-field__label">Nombre</span><span>{flota.nombre} <span className="muted lm-body-small">· la flota tiene una sola estructura</span></span></div>
           ) : (
             <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
-              <input id="c-nombre" className="lm-input" value={c.nombre} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
+              <input id="c-nombre" className="lm-input" value={c.nombre} readOnly={soloLectura} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
             </Field>
           )}
           <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades} support="Entre 1 y 999. Los nº de serie se cargan después, en la plantilla de primer nivel">
-            <input id="u-num" className="lm-input" inputMode="numeric" value={texto} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
+            <input id="u-num" className="lm-input" inputMode="numeric" value={texto} readOnly={soloLectura} aria-invalid={!!errUnidades} placeholder="Por ejemplo: 16"
               onChange={(e) => { setTexto(e.target.value); const v = Number(e.target.value); set({ unidades: Number.isInteger(v) && v >= 1 && v <= 999 ? v : null }); }} />
           </Field>
         </div>
@@ -75,7 +77,9 @@ export function Paso1({ c, set, intentado, est, flota }: PasoProps) {
 
       <section className="lm-surface lm-surface--p24 stack gap-20">
         <h2 className="lm-title-medium" style={{ margin: 0 }}>Estructura</h2>
-        {c.guardada && est && c.pasoMax > 1 ? ( // la estructura queda fijada al pasar del paso 1
+        {soloLectura && est ? (
+          <VistaEstructura est={est} titulo={est.nombre} />
+        ) : c.guardada && est && c.pasoMax > 1 ? ( // la estructura queda fijada al pasar del paso 1
           <>
             <Banner type="info" title="La estructura de esta configuración está confirmada"
               actions={<Link className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion/estructuras/${est.id}`}>Modificar en Estructuras</Link>}>
@@ -184,7 +188,7 @@ export function paso1Valido(c: Configuracion, est: Estructura | undefined) {
 
 /* ---------- Paso 2 ---------- */
 /** Valores de las propiedades de hueco que define la estructura. Son de esta configuración y opcionales. */
-export function Paso2({ c, set, est }: PasoProps) {
+export function Paso2({ c, set, est, soloLectura }: PasoProps) {
   const def = est!.propsHueco ?? {};
   const n = contarConProps(est!);
   return (
@@ -197,9 +201,11 @@ export function Paso2({ c, set, est }: PasoProps) {
       ) : (
         <>
           <p className="muted" style={{ margin: 0 }}>
-            Estas son las propiedades de hueco seleccionadas en {est!.nombre}. Escribe el valor de cada una: los valores son únicos de esta configuración y puedes dejarlos vacíos.
+            {soloLectura
+              ? <>Propiedades de hueco seleccionadas en {est!.nombre} y sus valores en esta configuración.</>
+              : <>Estas son las propiedades de hueco seleccionadas en {est!.nombre}. Escribe el valor de cada una: los valores son únicos de esta configuración y puedes dejarlos vacíos.</>}
           </p>
-          <ListaPropsHueco raiz={est!.raiz} definicion={def} valor={c.valoresHueco ?? {}} onChange={(v) => set({ valoresHueco: v })} />
+          <ListaPropsHueco raiz={est!.raiz} definicion={def} valor={c.valoresHueco ?? {}} onChange={soloLectura ? undefined : (v) => set({ valoresHueco: v })} />
         </>
       )}
     </section>
@@ -211,7 +217,7 @@ export function Paso2({ c, set, est }: PasoProps) {
  * Drivers propios de esta configuración (flota + estructura). Otra flota con la misma estructura puede tener otros.
  * Debajo, en la misma sección y opcional, su cálculo en SMS (también propio de la configuración).
  */
-export function Paso3({ c, set, est, flota, intentado }: PasoProps) {
+export function Paso3({ c, set, est, flota, intentado, soloLectura }: PasoProps) {
   const raiz: Nodo = est!.raiz;
   const valor = c.drivers && c.drivers.estructuraId === est!.id ? c.drivers : { ...driversIniciales(raiz), estructuraId: est!.id };
   return (
@@ -221,9 +227,9 @@ export function Paso3({ c, set, est, flota, intentado }: PasoProps) {
       <p className="muted" style={{ margin: 0 }}>
         Los drivers son propios de esta configuración: de <strong>{flota.nombre}</strong> con <strong>{est!.nombre}</strong>. Otra flota que use {est!.nombre} puede tener otros. Se marcan sobre la estructura entera de la unidad, hueco a hueco. De inicio, el kilometraje en todos los huecos.
       </p>
-      <EditorDrivers raiz={raiz} valor={valor} onChange={(v) => set({ drivers: { ...v, estructuraId: est!.id } })} />
+      <EditorDrivers soloLectura={soloLectura} raiz={raiz} valor={valor} onChange={(v) => set({ drivers: { ...v, estructuraId: est!.id } })} />
       {/* Cálculo en SMS: junto a los drivers, propio de esta configuración y opcional (solo si la flota usa SMS) */}
-      {flota.usaSms && <SeccionSms valor={c.sms ?? []} onChange={(v) => set({ sms: v })} intentado={intentado} />}
+      {flota.usaSms && <SeccionSms soloLectura={soloLectura} valor={c.sms ?? []} onChange={(v) => set({ sms: v })} intentado={intentado} />}
     </section>
     </div>
   );

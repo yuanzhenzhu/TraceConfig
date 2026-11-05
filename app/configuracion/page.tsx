@@ -217,7 +217,7 @@ export default function ListadoPage() {
                                   { label: "Modificar nombre y descripción", icon: "edit", onSelect: () => setEditando({ tipo: "config", c }) },
                                   ...(c.estado === "activa"
                                     ? [
-                                      { label: "Consultar", icon: "visibility", onSelect: () => router.push(`/configuracion/${c.id}?paso=8`) },
+                                      { label: "Consultar", icon: "visibility", onSelect: () => router.push(`/configuracion/${c.id}?paso=1`) },
                                       { label: "Añadir unidad", icon: "add", onSelect: () => snack("Añadir unidades a una configuración activa está fuera del alcance de este prototipo") },
                                     ]
                                     : ["divider" as const, { label: "Eliminar", icon: "delete", danger: true, onSelect: () => setADescartar(c) }]),
