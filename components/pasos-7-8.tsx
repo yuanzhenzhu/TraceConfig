@@ -7,7 +7,7 @@ import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag, useSnackbar } f
 import { iconoCategoria } from "./arbol";
 import {
   DRIVERS, PASOS, PROPS_CATEGORIA, categoriasDe, contarHuecos, driversEfectivos, primerNivelCargado, recorrer,
-  rutaDe, unidadesTerminadas, type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo, type DriversConfig, type PropsCategoria,
+  unidadesTerminadas, type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo, type DriversConfig, type PropsCategoria,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { resumenPropiedades } from "./propiedades";
@@ -22,21 +22,21 @@ const ESTADO: Record<EstadoPlantilla, { tone: "neutral" | "success" | "error"; t
 
 /** Genera la plantilla CSV (separador ;) de una categoría y la descarga. */
 function descargarPlantilla(c: Configuracion, raiz: Nodo, drivers: DriversConfig | null, propsCategoria: PropsCategoria, categoria: string) {
-  const huecos: { id: string; ruta: string }[] = [];
-  recorrer(raiz, (n) => { if (n.categoria === categoria) huecos.push({ id: n.id, ruta: rutaDe(raiz, n.id).join(" > ") || n.nombre }); });
-  // Solo se pide el valor inicial de los drivers propios: si el driver es heredable, el valor viene del padre.
+  const huecos: { id: string }[] = [];
+  recorrer(raiz, (n) => { if (n.categoria === categoria) huecos.push({ id: n.id }); });
+  // El km es obligatorio en todas las plantillas. Además, una columna por cada otro driver (ciclos, horas)
+  // que tenga elegido algún hueco de la categoría, y luego las propiedades de categoría asignadas.
   const ef = driversEfectivos(drivers, raiz);
-  // Los drivers son por hueco: la columna aparece si algún hueco de la categoría tiene ese driver propio (no heredable).
-  const drvs = DRIVERS.filter((d) => huecos.some((h) => ef.drivers[h.id]?.[d.id] && !ef.heredables[h.id]?.[d.id]));
+  const otros = DRIVERS.filter((d) => d.id !== "km" && huecos.some((h) => ef.drivers[h.id]?.[d.id])).map((d) => d.nombre);
   const props = (propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
   const esRaiz = categoria === raiz.categoria;
   const cab = esRaiz
-    ? ["Nº de serie de la unidad", "Fecha de alta", ...drvs.map((d) => `${d.nombre} inicial`), ...props]
-    : ["Nº de serie de la unidad", "Hueco", "Nº de serie del activo", "Fecha de montaje", ...drvs.map((d) => `${d.nombre} inicial`), ...props];
+    ? ["Nº de serie de la unidad", "Km", "Fecha", ...otros, ...props]
+    : ["Nº de serie de la unidad", "Nº de serie del activo", "Km", ...otros, ...props];
   const unidades = Array.from({ length: c.unidades ?? 0 }, (_, i) => (primerNivelCargado(c, raiz) ? String(1001 + i) : ""));
   const filas = esRaiz
     ? unidades.map(() => cab.map(() => ""))
-    : unidades.flatMap((u) => huecos.map((h) => [u, h.ruta, ...cab.slice(2).map(() => "")]));
+    : unidades.flatMap((u) => huecos.map(() => [u, ...cab.slice(1).map(() => "")]));
   const csv = "﻿" + [cab, ...filas].map((f) => f.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a");
@@ -71,11 +71,11 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
         <Banner type="success" title="Plantilla de unidades cargada">Ya puedes guardar: ve al resumen y pulsa Añadir unidades.</Banner>
       ) : (
         <Banner type="attention" title={`Carga de nuevo la plantilla de unidades (${raiz.categoria})`}>
-          Es obligatoria para añadir las unidades: contiene el nº de serie y la fecha de alta de cada una. Si no la cargas y sales, no se guarda ningún cambio.
+          Es obligatoria para añadir las unidades: contiene el nº de serie, el km y su fecha de cada una. Si no la cargas y sales, no se guarda ningún cambio.
         </Banner>
       )) : c.estado === "activa" ? null : !primerNivelCargado(c, raiz) ? (
         <Banner type="attention" title="Carga primero la plantilla de unidades (Tren)">
-          Es la única obligatoria para finalizar: contiene el nº de serie y la fecha de alta de cada unidad.
+          Es la única obligatoria para finalizar: contiene el nº de serie, el km y su fecha de cada unidad.
         </Banner>
       ) : (
         <Banner type="success" title="Primer nivel cargado: ya puedes finalizar">
@@ -168,7 +168,7 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
             <thead><tr><th>Fila</th><th>Columna</th><th>Error</th></tr></thead>
             <tbody>
               <tr><td>14</td><td>Nº de serie del activo</td><td>El nº de serie R-55210 está repetido en la fila 9</td></tr>
-              <tr><td>22</td><td>Fecha de montaje</td><td>La fecha 31/02/2026 no es válida (formato dd/mm/aaaa)</td></tr>
+              <tr><td>22</td><td>Km</td><td>El km es obligatorio</td></tr>
               <tr><td>37</td><td>Nº de serie de la unidad</td><td>La unidad 1012 no existe en esta configuración</td></tr>
             </tbody>
           </table>
