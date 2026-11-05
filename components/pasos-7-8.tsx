@@ -234,12 +234,28 @@ export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configur
   const { nCat: nPropsCat, nHuecos: nHuecosProps } = resumenPropiedades(raiz, { propsCategoria: store.propsCategoria, propsHueco: est.propsHueco ?? {} });
   const omitido = (n: number) => c.pasosOmitidos.includes(n);
 
+  // Textos del resumen (paso 6): solo lo esencial de cada paso.
+  const conDrivers = nDrivers.filter(({ n }) => n > 0).map(({ d }) => d.nombre.toLowerCase());
+  const lista = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}` : xs[0] ?? "");
+  const smsOk = (c.sms ?? []).some((x) => x.driver && x.forma);
+  const catsConProps = cats.filter((x) => (store.propsCategoria[x.categoria] ?? []).length > 0).length;
+
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
-    { n: 1, titulo: "Estructura y unidades", contenido: <>{c.nombre}{c.descripcion && ` · ${c.descripcion}`}<br />{est.nombre}: {contarHuecos(raiz)} huecos por unidad · {c.unidades} unidades<br />{nHuecosProps ? `${nHuecosProps} huecos con propiedades` : "Sin propiedades de hueco"}</> },
-    { n: 2, titulo: "Valores de propiedades de hueco", contenido: <>{nHuecosProps ? `${huecosConValor(raiz, est.propsHueco ?? {}, c.valoresHueco ?? {})} de ${nHuecosProps} huecos con valores` : `${est.nombre} no tiene propiedades de hueco`}<br />Opcional: los valores son de esta configuración</>, aviso: omitido(2) ? "Paso omitido" : undefined },
-    { n: 3, titulo: "Drivers", contenido: <>{c.drivers ? "Propios de esta configuración" : "Kilometraje por defecto"}<br />{nDrivers.filter(({ n }) => n > 0).map(({ d, n, h }) => `${d.nombre}: ${n} huecos (${h} heredables)`).join(" · ") || "Sin drivers"}{flota.usaSms && <><br />SMS: {textoSms(c.sms)}</>}</>, aviso: undefined },
-    { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todo el cliente<br />{nPropsCat ? `${nPropsCat} propiedades asignadas` : "Sin propiedades asignadas"}</>, aviso: omitido(4) ? "Paso omitido" : undefined },
-    { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas · ${unidadesTerminadas(c, raiz)}/${c.unidades} unidades terminadas`, aviso: pendientes.length ? `Pendientes: ${pendientes.map((p) => p.categoria).join(", ")}` : undefined },
+    { n: 1, titulo: "Estructura y unidades", contenido: <>
+      <strong>{c.nombre}</strong>{c.descripcion && ` · ${c.descripcion}`}<br />
+      {est.nombre}{est.descripcion && ` · ${est.descripcion}`}<br />
+      {c.unidades} unidades<br />
+      {nHuecosProps ? "Con propiedades de hueco asignadas" : "Sin propiedades de hueco asignadas"}
+    </> },
+    { n: 2, titulo: "Valores de propiedades de hueco", contenido: nHuecosProps
+      ? `${huecosConValor(raiz, est.propsHueco ?? {}, c.valoresHueco ?? {})} de ${nHuecosProps} huecos con valores`
+      : "No hay propiedades de hueco en esta configuración" },
+    { n: 3, titulo: "Drivers", contenido: <>
+      {conDrivers.length ? `Tiene ${lista(conDrivers)}` : "Sin drivers"}
+      {flota.usaSms && <><br />{smsOk ? "Con cálculo en SMS configurado" : "Sin cálculo en SMS"}</>}
+    </> },
+    { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todas las flotas<br />{catsConProps} {catsConProps === 1 ? "categoría" : "categorías"} con propiedades</> },
+    { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas` },
   ];
 
   return (
