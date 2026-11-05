@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v16";
+const CLAVE = "lm-trace-prototipo-v17";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -56,8 +56,8 @@ function semilla(): Estado {
     flota({
       id: "f1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
     }),
-    flota({ id: "f2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: false }),
-    flota({ id: "f3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: false }), // en el prototipo solo Metro Línea 1 usa SMS
+    flota({ id: "f2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: true }),
+    flota({ id: "f3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: true }), // de momento, en el prototipo todas las flotas usan SMS
   ];
   const parcial = plantillasIniciales(e2.raiz);
   parcial["Tren"] = "cargada"; parcial["Coche"] = "cargada"; parcial["Puerta"] = "cargada"; parcial["Rueda"] = "errores";
@@ -129,7 +129,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [estado, listo]);
 
   const crearFlota = useCallback((f: Pick<Flota, "nombre" | "descripcion">) => {
-    const nueva = flota({ ...f, id: nuevoId("flota"), usaSms: false }); // en el prototipo solo Metro Línea 1 usa SMS
+    const nueva = flota({ ...f, id: nuevoId("flota"), usaSms: true }); // de momento, en el prototipo todas las flotas usan SMS
     setEstado((s) => ({ ...s, flotas: [...s.flotas, nueva] }));
     return nueva;
   }, []);
