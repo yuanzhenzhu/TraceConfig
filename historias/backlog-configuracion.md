@@ -93,6 +93,14 @@ La estructura es común a todo el cliente: modificarla afecta a todas las config
 | HU-60 | Dar valor, de forma opcional, a las propiedades de hueco que define la estructura, propios de cada configuración (paso 2) | N |
 | HU-59 | Ver en el apartado Drivers los drivers de cada configuración (flota + estructura) y modificarlos sin afectar a otras flotas con la misma estructura | N |
 
+## Almacenes y cambio de número de serie (en prueba, 2026-11-05)
+| ID | Historia | Origen |
+|---|---|---|
+| HU-61 | Ver los almacenes del cliente con su ubicación, contacto, teléfono y uso (almacén, mantenimiento) | N |
+| HU-62 | Añadir, modificar y eliminar un almacén (nombre y uso obligatorios) | N |
+| HU-63 | Cambiar el nº de serie de muchos activos con una plantilla: elegir si están en unidades o en almacén y el alcance (todas las flotas, una flota, una unidad, un almacén y, opcionalmente, una categoría), descargarla con los nº de serie actuales, subirla con los nuevos, revisar y aplicar | N |
+| HU-64 | Buscar un activo concreto del cliente por su nº de serie y cambiarlo, sin repetir uno que ya existe | N |
+
 ## Épica B: Modificación de una configuración activa
 | ID | Historia | Origen |
 |---|---|---|
