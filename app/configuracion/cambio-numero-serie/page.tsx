@@ -3,7 +3,7 @@
 // (Prueba) Cambio de número de serie de activos ya dados de alta, en unidades o en almacén.
 // - Con plantilla: se elige el alcance (todas las flotas, una flota, una unidad, o un almacén), se descarga
 //   una plantilla con los nº de serie actuales, se rellena el nuevo y se sube para revisar y aplicar los cambios.
-// - Activo concreto: se filtra (nº de serie, categoría, dónde), se busca y se cambia con doble clic sobre el nº de serie.
+// - Activo concreto: se filtra (nº de serie, categoría), se busca y se cambia con doble clic sobre el nº de serie.
 // Los activos y sus nº de serie son ficticios.
 
 import { useMemo, useRef, useState } from "react";
@@ -212,36 +212,28 @@ function ConPlantilla({ activos, serie, ubicacion, onAplicar }: {
 
 /* ---------- Activo concreto ---------- */
 /**
- * Se filtra por nº de serie actual, categoría y dónde (flotas y almacenes, todas las flotas, una flota, todos los
- * almacenes o uno), se pulsa Buscar y el nº de serie se cambia con doble clic sobre él (Enter guarda, Esc cancela).
+ * Se filtra por nº de serie actual y categoría, se pulsa Buscar y el nº de serie se cambia con doble clic sobre él (Enter guarda, Esc cancela).
  */
 function ActivoConcreto({ activos, serie, ubicacion, onCambiar }: {
   activos: Activo[]; serie: (a: Activo) => string; ubicacion: (a: Activo) => string; onCambiar: (a: Activo, nuevo: string) => void;
 }) {
-  const store = useStore();
   const [texto, setTexto] = useState("");
   const [cat, setCat] = useState("");
-  const [donde, setDonde] = useState("todo"); // todo · flotas · almacenes · f:<id> · a:<id>
-  const [buscado, setBuscado] = useState<{ texto: string; cat: string; donde: string } | null>(null);
+  const [buscado, setBuscado] = useState<{ texto: string; cat: string } | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const [valor, setValor] = useState("");
   const [antes, setAntes] = useState<Record<string, string>>({}); // nº de serie anterior de los cambiados aquí
   const MAX = 50;
 
   const categorias = [...new Set(activos.map((a) => a.categoria))].sort((a, b) => a.localeCompare(b, "es"));
-  const flotas = store.flotas.filter((f) => activos.some((a) => a.flotaId === f.id));
-  const cumple = (a: Activo, f: { texto: string; cat: string; donde: string }) => {
+  const cumple = (a: Activo, f: { texto: string; cat: string }) => {
     if (f.cat && a.categoria !== f.cat) return false;
     if (f.texto && !serie(a).toLowerCase().includes(f.texto.toLowerCase())) return false;
-    if (f.donde === "flotas") return a.donde === "unidad";
-    if (f.donde === "almacenes") return a.donde === "almacen";
-    if (f.donde.startsWith("f:")) return a.flotaId === f.donde.slice(2);
-    if (f.donde.startsWith("a:")) return a.almacenId === f.donde.slice(2);
     return true;
   };
   const res = buscado ? activos.filter((a) => cumple(a, buscado)) : [];
-  const buscar = () => { setBuscado({ texto: texto.trim(), cat, donde }); setEditando(null); };
-  const limpiar = () => { setTexto(""); setCat(""); setDonde("todo"); setBuscado(null); setEditando(null); };
+  const buscar = () => { setBuscado({ texto: texto.trim(), cat }); setEditando(null); };
+  const limpiar = () => { setTexto(""); setCat(""); setBuscado(null); setEditando(null); };
 
   const v = valor.trim();
   const errEdicion = (a: Activo) => !v ? "Indica el nº de serie"
@@ -265,25 +257,12 @@ function ActivoConcreto({ activos, serie, ubicacion, onCambiar }: {
             {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </Field>
-        <Field label="Dónde" htmlFor="ac-donde" style={{ width: 280 }}>
-          <select id="ac-donde" className="lm-select lm-select--dense" value={donde} onChange={(e) => setDonde(e.target.value)}>
-            <option value="todo">Flotas y almacenes</option>
-            <optgroup label="Flotas">
-              <option value="flotas">Todas las flotas</option>
-              {flotas.map((f) => <option key={f.id} value={`f:${f.id}`}>{f.nombre}</option>)}
-            </optgroup>
-            <optgroup label="Almacenes">
-              <option value="almacenes">Todos los almacenes</option>
-              {store.almacenes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.nombre}</option>)}
-            </optgroup>
-          </select>
-        </Field>
         <Button type="submit" icon="search">Buscar</Button>
         {buscado && <Button variant="text" icon="restart_alt" onClick={limpiar}>Restablecer</Button>}
       </form>
 
       {!buscado ? (
-        <EmptyState icon="search" title="Busca los activos que quieres cambiar" text="Filtra por nº de serie, categoría o dónde están y pulsa Buscar" />
+        <EmptyState icon="search" title="Busca los activos que quieres cambiar" text="Filtra por nº de serie o categoría y pulsa Buscar" />
       ) : res.length === 0 ? (
         <EmptyState icon="search_off" title="No hay resultados" text="Ningún activo coincide con los filtros"
           action={<Button variant="outlined" onClick={limpiar}>Restablecer filtros</Button>} />
