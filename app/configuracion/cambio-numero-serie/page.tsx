@@ -3,11 +3,11 @@
 // (Prueba) Cambio de número de serie de activos ya dados de alta, en unidades o en almacén.
 // - Con plantilla: se elige el alcance (todas las flotas, una flota, una unidad, o un almacén), se descarga
 //   una plantilla con los nº de serie actuales, se rellena el nuevo y se sube para revisar y aplicar los cambios.
-// - Activo concreto: se busca un activo por su nº de serie y se cambia.
+// - Activo concreto: se filtra (nº de serie, categoría, dónde), se busca y se cambia con doble clic sobre el nº de serie.
 // Los activos y sus nº de serie son ficticios.
 
 import { useMemo, useRef, useState } from "react";
-import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Icon, IconButton, Menu, SearchInput, Spinner, useSnackbar } from "@/components/ds";
+import { Banner, Breadcrumb, Button, EmptyState, Field, Icon, Spinner, useSnackbar } from "@/components/ds";
 import { descargarCsv, generarActivos, unidadesDe, type Activo } from "@/lib/activos";
 import { useStore } from "@/lib/store";
 
@@ -211,81 +211,119 @@ function ConPlantilla({ activos, serie, ubicacion, onAplicar }: {
 }
 
 /* ---------- Activo concreto ---------- */
+/**
+ * Se filtra por nº de serie actual, categoría y dónde (flotas y almacenes, todas las flotas, una flota, todos los
+ * almacenes o uno), se pulsa Buscar y el nº de serie se cambia con doble clic sobre él (Enter guarda, Esc cancela).
+ */
 function ActivoConcreto({ activos, serie, ubicacion, onCambiar }: {
   activos: Activo[]; serie: (a: Activo) => string; ubicacion: (a: Activo) => string; onCambiar: (a: Activo, nuevo: string) => void;
 }) {
-  const [busca, setBusca] = useState("");
-  const [donde, setDonde] = useState("");
-  const [editando, setEditando] = useState<Activo | null>(null);
-  const q = busca.trim().toLowerCase();
-  const res = q.length < 2 ? [] : activos.filter((a) => (!donde || a.donde === donde) && serie(a).toLowerCase().includes(q));
-  const MAX = 25;
+  const store = useStore();
+  const [texto, setTexto] = useState("");
+  const [cat, setCat] = useState("");
+  const [donde, setDonde] = useState("todo"); // todo · flotas · almacenes · f:<id> · a:<id>
+  const [buscado, setBuscado] = useState<{ texto: string; cat: string; donde: string } | null>(null);
+  const [editando, setEditando] = useState<string | null>(null);
+  const [valor, setValor] = useState("");
+  const [antes, setAntes] = useState<Record<string, string>>({}); // nº de serie anterior de los cambiados aquí
+  const MAX = 50;
+
+  const categorias = [...new Set(activos.map((a) => a.categoria))].sort((a, b) => a.localeCompare(b, "es"));
+  const flotas = store.flotas.filter((f) => activos.some((a) => a.flotaId === f.id));
+  const cumple = (a: Activo, f: { texto: string; cat: string; donde: string }) => {
+    if (f.cat && a.categoria !== f.cat) return false;
+    if (f.texto && !serie(a).toLowerCase().includes(f.texto.toLowerCase())) return false;
+    if (f.donde === "flotas") return a.donde === "unidad";
+    if (f.donde === "almacenes") return a.donde === "almacen";
+    if (f.donde.startsWith("f:")) return a.flotaId === f.donde.slice(2);
+    if (f.donde.startsWith("a:")) return a.almacenId === f.donde.slice(2);
+    return true;
+  };
+  const res = buscado ? activos.filter((a) => cumple(a, buscado)) : [];
+  const buscar = () => { setBuscado({ texto: texto.trim(), cat, donde }); setEditando(null); };
+  const limpiar = () => { setTexto(""); setCat(""); setDonde("todo"); setBuscado(null); setEditando(null); };
+
+  const v = valor.trim();
+  const errEdicion = (a: Activo) => !v ? "Indica el nº de serie"
+    : v.toLowerCase() !== serie(a).toLowerCase() && activos.some((x) => x.id !== a.id && serie(x).toLowerCase() === v.toLowerCase()) ? "Ya existe un activo con este nº de serie" : "";
+  const empezar = (a: Activo) => { setEditando(a.id); setValor(serie(a)); };
+  const guardar = (a: Activo) => {
+    if (errEdicion(a)) return;
+    if (v !== serie(a)) { setAntes((m) => ({ ...m, [a.id]: m[a.id] ?? serie(a) })); onCambiar(a, v); }
+    setEditando(null);
+  };
 
   return (
     <section className="lm-surface lm-surface--p16 stack gap-15">
-      <div className="lm-filters">
-        <div style={{ width: 320 }}><SearchInput label="Buscar por nº de serie" placeholder="Buscar por nº de serie, por ejemplo RU-1001" value={busca} onChange={setBusca} /></div>
-        <Field label="Dónde" htmlFor="ac-donde">
-          <select id="ac-donde" className="lm-select lm-select--dense" value={donde} onChange={(e) => setDonde(e.target.value)}>
-            <option value="">En unidades y en almacén</option>
-            <option value="unidad">Montados en unidades</option>
-            <option value="almacen">En almacén</option>
+      <form className="lm-filters" style={{ alignItems: "flex-end" }} onSubmit={(e) => { e.preventDefault(); buscar(); }}>
+        <Field label="Nº de serie actual" htmlFor="ac-serie" style={{ width: 260 }}>
+          <input id="ac-serie" className="lm-input lm-input--dense" value={texto} placeholder="Por ejemplo: RU-1001" onChange={(e) => setTexto(e.target.value)} />
+        </Field>
+        <Field label="Categoría" htmlFor="ac-cat">
+          <select id="ac-cat" className="lm-select lm-select--dense" value={cat} onChange={(e) => setCat(e.target.value)}>
+            <option value="">Todas las categorías</option>
+            {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </Field>
-      </div>
-      {q.length < 2 ? (
-        <EmptyState icon="search" title="Busca el activo que quieres cambiar" text="Escribe al menos 2 caracteres de su nº de serie actual" />
+        <Field label="Dónde" htmlFor="ac-donde" style={{ width: 280 }}>
+          <select id="ac-donde" className="lm-select lm-select--dense" value={donde} onChange={(e) => setDonde(e.target.value)}>
+            <option value="todo">Flotas y almacenes</option>
+            <optgroup label="Flotas">
+              <option value="flotas">Todas las flotas</option>
+              {flotas.map((f) => <option key={f.id} value={`f:${f.id}`}>{f.nombre}</option>)}
+            </optgroup>
+            <optgroup label="Almacenes">
+              <option value="almacenes">Todos los almacenes</option>
+              {store.almacenes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.nombre}</option>)}
+            </optgroup>
+          </select>
+        </Field>
+        <Button type="submit" icon="search">Buscar</Button>
+        {buscado && <Button variant="text" icon="restart_alt" onClick={limpiar}>Restablecer</Button>}
+      </form>
+
+      {!buscado ? (
+        <EmptyState icon="search" title="Busca los activos que quieres cambiar" text="Filtra por nº de serie, categoría o dónde están y pulsa Buscar" />
       ) : res.length === 0 ? (
-        <EmptyState icon="search_off" title="No hay resultados" text={`Ningún activo tiene un nº de serie con "${busca.trim()}"`} />
+        <EmptyState icon="search_off" title="No hay resultados" text="Ningún activo coincide con los filtros"
+          action={<Button variant="outlined" onClick={limpiar}>Restablecer filtros</Button>} />
       ) : (
         <>
+          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Haz doble clic en un nº de serie para cambiarlo. Enter guarda y Esc cancela.</span>
           <table className="lm-table">
-            <thead><tr><th>Nº de serie</th><th>Categoría</th><th>Ubicación</th><th className="actions"><span className="sr-only">Acciones</span></th></tr></thead>
+            <thead><tr><th style={{ width: 300 }}>Nº de serie</th><th>Categoría</th><th>Ubicación</th></tr></thead>
             <tbody>
-              {res.slice(0, MAX).map((a) => (
-                <tr key={a.id}>
-                  <td className="emph">{serie(a)}</td>
-                  <td>{a.categoria}</td>
-                  <td className="muted">{ubicacion(a)}</td>
-                  <td className="actions">
-                    <Menu label={`Acciones de ${serie(a)}`} items={[{ label: "Cambiar nº de serie", icon: "edit", onSelect: () => setEditando(a) }]} />
-                  </td>
-                </tr>
-              ))}
+              {res.slice(0, MAX).map((a) => {
+                const err = editando === a.id ? errEdicion(a) : "";
+                return (
+                  <tr key={a.id}>
+                    <td>
+                      {editando === a.id ? (
+                        <span className="stack gap-5">
+                          <input className="lm-input lm-input--dense" autoFocus value={valor} aria-label={`Nº de serie nuevo de ${serie(a)}`} aria-invalid={!!err}
+                            onChange={(e) => setValor(e.target.value)} onBlur={() => (err ? setEditando(null) : guardar(a))}
+                            onKeyDown={(e) => { if (e.key === "Enter") guardar(a); if (e.key === "Escape") setEditando(null); }} />
+                          {err && <span className="lm-field__support lm-field__support--error" role="alert">{err}</span>}
+                        </span>
+                      ) : (
+                        <span className="row gap-10" tabIndex={0} role="button" aria-label={`${serie(a)}: doble clic o Enter para cambiarlo`}
+                          title="Doble clic para cambiar" style={{ cursor: "text" }}
+                          onDoubleClick={() => empezar(a)} onKeyDown={(e) => { if (e.key === "Enter") empezar(a); }}>
+                          <span className="emph">{serie(a)}</span>
+                          {antes[a.id] && <span className="lm-body-small muted">antes {antes[a.id]}</span>}
+                        </span>
+                      )}
+                    </td>
+                    <td>{a.categoria}</td>
+                    <td className="muted">{ubicacion(a)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-          {res.length > MAX && <span className="lm-body-small muted">Se muestran {MAX} de {res.length.toLocaleString("es-ES")} activos. Escribe más caracteres para afinar la búsqueda</span>}
+          {res.length > MAX && <span className="lm-body-small muted">Se muestran {MAX} de {res.length.toLocaleString("es-ES")} activos. Afina los filtros para ver menos</span>}
         </>
       )}
-      {editando && (
-        <DialogCambio activo={editando} actual={serie(editando)} ubicacion={ubicacion(editando)}
-          existe={(s) => activos.some((x) => x.id !== editando.id && serie(x).toLowerCase() === s.toLowerCase())}
-          onClose={() => setEditando(null)} onGuardar={(nuevo) => { onCambiar(editando, nuevo); setEditando(null); }} />
-      )}
     </section>
-  );
-}
-
-function DialogCambio({ activo, actual, ubicacion, existe, onClose, onGuardar }: {
-  activo: Activo; actual: string; ubicacion: string; existe: (s: string) => boolean; onClose: () => void; onGuardar: (nuevo: string) => void;
-}) {
-  const [nuevo, setNuevo] = useState("");
-  const v = nuevo.trim();
-  const err = !v ? "" : v.toLowerCase() === actual.toLowerCase() ? "Es el mismo nº de serie que el actual" : existe(v) ? "Ya existe un activo con este nº de serie" : "";
-  return (
-    <Dialog title={`Cambiar nº de serie de ${actual}`} message={`${activo.categoria} · ${ubicacion}`} onClose={onClose}
-      footer={<>
-        <Button variant="outlined" onClick={onClose}>Cancelar</Button>
-        <Button disabled={!v || !!err} onClick={() => onGuardar(v)}>Cambiar nº de serie</Button>
-      </>}>
-      <div className="stack gap-20">
-        <Field label="Nº de serie actual" htmlFor="dc-actual">
-          <input id="dc-actual" className="lm-input" value={actual} readOnly />
-        </Field>
-        <Field label="Nº de serie nuevo" required htmlFor="dc-nuevo" error={err}>
-          <input id="dc-nuevo" className="lm-input" value={nuevo} aria-invalid={!!err} placeholder={`Por ejemplo: ${actual.replace(/\d{3}$/, "900")}`} onChange={(e) => setNuevo(e.target.value)} />
-        </Field>
-      </div>
-    </Dialog>
   );
 }
