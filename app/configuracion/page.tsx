@@ -204,7 +204,6 @@ export default function ListadoPage() {
                                 {c.estado === "activa"
                                   ? <Tag tone="success">Activa</Tag>
                                   : <Tag tone="attention">En configuración</Tag>}
-                                {c.estado === "en-configuracion" && !est && <span className="lm-body-small muted">Sin iniciar</span>}
                                 {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                               </span>
                             </td>
