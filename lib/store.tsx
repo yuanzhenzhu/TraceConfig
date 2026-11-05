@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v19";
+const CLAVE = "lm-trace-prototipo-v20";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -38,7 +38,23 @@ function semilla(): Estado {
     return m;
   };
   const estructuras = ESTRUCTURAS.map((e, i) => ({ ...e, propsHueco: i === 0 ? defCoches(e.raiz) : {}, actualizada: "2026-05-20T08:00:00Z" }));
-  const propsCategoria: PropsCategoria = { Rueda: [{ propId: "diametro", historico: true }, { propId: "fabricante", historico: false }] };
+  // Propiedades de categoría por defecto: 13 categorías con entre 2 y 5 propiedades cada una (h = guarda histórico).
+  const pc = (...l: [string, boolean?][]) => l.map(([propId, h]) => ({ propId, historico: !!h }));
+  const propsCategoria: PropsCategoria = {
+    Tren: pc(["client"], ["attr-sms-start-date"], ["amortization-date"], ["person-responsible"]),
+    Coche: pc(["fabricante"], ["oh-date"], ["oh-km", true]),
+    "Motor Coche": pc(["potencia"], ["tension"], ["attr-hrs", true], ["lubricant"]),
+    Puerta: pc(["fabricante"], ["attr-cyc", true]),
+    "Tarjeta Electrónica": pc(["firmware", true], ["hard-drive"], ["host"]),
+    Bogie: pc(["fabricante"], ["modelo"], ["oh-date"], ["oh-km", true], ["attr-kms", true]),
+    Eje: pc(["serie-fab"], ["material"], ["measuring-point", true]),
+    Rueda: pc(["diametro", true], ["fabricante"], ["sd-mm", true], ["sh-mm", true], ["qr-mm", true]),
+    Pantógrafo: pc(["fabricante"], ["last-calibration"], ["attr-kms", true]),
+    Compresor: pc(["attr-hrs", true], ["lubricant"], ["lubrication-date"]),
+    Gearbox: pc(["lubricant"], ["lubrication-km", true], ["lubrication-date"], ["oh-km", true]),
+    Engine: pc(["potencia"], ["attr-hrs", true], ["nem-warranty-start"]),
+    SIV: pc(["tension"], ["provider-warranty-start"], ["repair-sn"]),
+  };
   const [e1, e2] = estructuras;
   const todas = (raiz: typeof e1.raiz) => Object.fromEntries(categoriasDe(raiz).map((c) => [c.categoria, "cargada" as const]));
 

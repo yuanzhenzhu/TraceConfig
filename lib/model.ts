@@ -85,9 +85,13 @@ export const DRIVERS: { id: DriverId; nombre: string; corto: string }[] = [
   { id: "horas", nombre: "Horas", corto: "Horas" },
 ];
 
+/** Categorías del cliente (30). Las 14 primeras son las de las estructuras de ejemplo; el resto, de la lista del cliente. */
 export const CATEGORIAS = [
   "Tren", "Coche", "Motor Coche", "Puerta", "Motor Puerta", "Tarjeta Electrónica",
   "Bogie", "Motor Bogie", "Eje", "Rueda", "Pantógrafo", "Freno", "Compresor", "Climatizador",
+  "ACR Box", "Breaker", "Cabin HVAC", "Cabin HVAC compresor", "Caliper Brake Trailer", "Caliper Motor Brake",
+  "Caliper spiral", "Condenser fan motor H", "Condenser fan motor P", "Electromagnetic Roller", "Engine",
+  "Gearbox", "HPU", "Impulse motor fan HVAC", "Pantograph motor", "SIV",
 ];
 
 export const PROPS_CATEGORIA: { id: string; nombre: string; tipo: string }[] = [
@@ -103,6 +107,37 @@ export const PROPS_CATEGORIA: { id: string; nombre: string; tipo: string }[] = [
   { id: "potencia", nombre: "Potencia (kW)", tipo: "Número" },
   { id: "tension", nombre: "Tensión nominal (V)", tipo: "Número" },
   { id: "lote", nombre: "Lote", tipo: "Texto" },
+  // De la lista del cliente (los tipos son una suposición)
+  { id: "amortization-date", nombre: "Amortization date", tipo: "Fecha" },
+  { id: "aurawheel-id", nombre: "AURAwheel Id", tipo: "Texto" },
+  { id: "attr-cyc", nombre: "attr.cyc", tipo: "Número" },
+  { id: "attr-gmao-part-code", nombre: "attr.gmao_part_code", tipo: "Texto" },
+  { id: "attr-hrs", nombre: "attr.hrs", tipo: "Número" },
+  { id: "attr-kms", nombre: "attr.kms", tipo: "Número" },
+  { id: "attr-sms-start-date", nombre: "attr.sms_start_date", tipo: "Fecha" },
+  { id: "charge-dock", nombre: "Charge dock", tipo: "Texto" },
+  { id: "client", nombre: "Client", tipo: "Texto" },
+  { id: "functionality", nombre: "Functionality", tipo: "Texto" },
+  { id: "hard-drive", nombre: "Hard drive", tipo: "Texto" },
+  { id: "host", nombre: "Host", tipo: "Texto" },
+  { id: "keyholder-code", nombre: "Keyholder code", tipo: "Texto" },
+  { id: "last-calibration", nombre: "Last calibration", tipo: "Fecha" },
+  { id: "lubricant", nombre: "Lubricant", tipo: "Texto" },
+  { id: "lubrication-date", nombre: "Lubrication date", tipo: "Fecha" },
+  { id: "lubrication-km", nombre: "Lubrication km", tipo: "Número" },
+  { id: "material", nombre: "Material", tipo: "Texto" },
+  { id: "measuring-point", nombre: "Measuring point (mm)", tipo: "Número" },
+  { id: "nem-warranty-start", nombre: "NEM warranty start date", tipo: "Fecha" },
+  { id: "oh-date", nombre: "OH date", tipo: "Fecha" },
+  { id: "oh-km", nombre: "OH km", tipo: "Número" },
+  { id: "person-responsible", nombre: "Person responsible", tipo: "Texto" },
+  { id: "provider-warranty-start", nombre: "Provider warranty start date", tipo: "Fecha" },
+  { id: "qr-mm", nombre: "qR (mm)", tipo: "Número" },
+  { id: "repair-sn", nombre: "Repair SN", tipo: "Texto" },
+  { id: "riftek-sn", nombre: "Riftek SN", tipo: "Texto" },
+  { id: "sap-mileage", nombre: "SAP Mileage", tipo: "Número" },
+  { id: "sd-mm", nombre: "Sd (mm)", tipo: "Número" },
+  { id: "sh-mm", nombre: "Sh (mm)", tipo: "Número" },
 ];
 
 /** Propiedades de hueco del cliente. Los códigos son los reales; el tipo y el ejemplo de cada una son ficticios. */
