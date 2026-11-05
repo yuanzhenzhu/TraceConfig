@@ -105,12 +105,18 @@ export const PROPS_CATEGORIA: { id: string; nombre: string; tipo: string }[] = [
   { id: "lote", nombre: "Lote", tipo: "Texto" },
 ];
 
+/** Propiedades de hueco del cliente. Los códigos son los reales; el tipo y el ejemplo de cada una son ficticios. */
 export const PROPS_HUECO: { id: string; nombre: string; tipo: string; ejemplo: string }[] = [
-  { id: "lado", nombre: "Lado", tipo: "Lista", ejemplo: "Izquierdo" },
-  { id: "codigo-pos", nombre: "Código de posición", tipo: "Texto", ejemplo: "C1-B1-E2-R1" },
-  { id: "par-apriete", nombre: "Par de apriete (Nm)", tipo: "Número", ejemplo: "450" },
-  { id: "orientacion", nombre: "Orientación", tipo: "Lista", ejemplo: "Sentido de la marcha" },
-  { id: "plano", nombre: "Referencia de plano", tipo: "Texto", ejemplo: "PL-2231-04" },
+  { id: "LOCATION", nombre: "LOCATION", tipo: "Texto", ejemplo: "C1-B1-E2-R1" },
+  { id: "VISIBILITY", nombre: "VISIBILITY", tipo: "Lista", ejemplo: "Visible" },
+  { id: "CAF-CODE", nombre: "CAF-CODE", tipo: "Texto", ejemplo: "CAF-30411" },
+  { id: "AUX_POSITION", nombre: "AUX_POSITION", tipo: "Texto", ejemplo: "Lado izquierdo" },
+  { id: "LABEL", nombre: "LABEL", tipo: "Texto", ejemplo: "Rueda delantera" },
+  { id: "VAR_KMS", nombre: "VAR_KMS", tipo: "Número", ejemplo: "1,02" },
+  { id: "VAR_CYC", nombre: "VAR_CYC", tipo: "Número", ejemplo: "1,00" },
+  { id: "VAR_HRS", nombre: "VAR_HRS", tipo: "Número", ejemplo: "0,95" },
+  { id: "CT_GMAO", nombre: "CT_GMAO", tipo: "Texto", ejemplo: "GM-1001-C1" },
+  { id: "KNUCKLE", nombre: "KNUCKLE", tipo: "Texto", ejemplo: "K-04" },
 ];
 
 /** Formas de calcular un driver en SMS. */

@@ -8,7 +8,7 @@
 // - Propiedades de hueco: dependen de los huecos de la estructura.
 
 import { useMemo, useState } from "react";
-import { Button, EmptyState, Icon, SearchInput, Tag } from "./ds";
+import { Button, EmptyState, Field, Icon, SearchInput, Tag } from "./ds";
 import { ArbolFilas, iconoCategoria } from "./arbol";
 import { PROPS_CATEGORIA, PROPS_HUECO, categoriasDe, recorrer, rutaDe, type Nodo, type PropiedadesConfig, type PropsHueco } from "@/lib/model";
 
@@ -88,148 +88,116 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
   );
 }
 
-/* ---------- Propiedades de hueco ---------- */
+/* ---------- Propiedades de hueco: matriz de asignación (Configuración › Estructura y propiedades de hueco) ---------- */
 /**
- * - modo "definir": qué propiedades tiene cada hueco. Es de la estructura (Configuración › Estructuras).
- * - modo "valores": el valor de esas propiedades en una configuración (paso 2 del asistente). Solo se ven
- *   las propiedades que define la estructura (`definicion`) y los valores son opcionales.
+ * (Prueba) Se asignan directamente, sin seleccionar antes los huecos: la estructura en filas y una columna por propiedad.
+ * Encima, un resumen de lo asignado y un atajo para asignar o quitar una propiedad en todos los huecos de una categoría.
+ * Aquí solo se elige qué propiedades tiene cada hueco; sus valores se dan en cada configuración (paso 2 del asistente).
  */
-export function EditorPropsHueco({ raiz, valor, onChange, soloLectura, modo = "definir", definicion }: {
+export function MatrizPropsHueco({ raiz, valor, onChange, soloLectura }: {
   raiz: Nodo; valor: PropsHueco; onChange: (v: PropsHueco) => void; soloLectura?: boolean;
-  modo?: "definir" | "valores"; definicion?: PropsHueco;
 }) {
-  const [sel, setSel] = useState<string[]>([]);
-  const [cat, setCat] = useState("");
-  const def = modo === "valores" ? definicion ?? {} : valor;
-  const definidas = (id: string) => Object.keys(def[id] ?? {});
-  const seleccionable = (id: string) => modo === "definir" || definidas(id).length > 0;
-  const cats = categoriasDe(raiz).filter((x) => {
-    if (modo === "definir") return true;
-    let hay = false; recorrer(raiz, (n) => { if (n.categoria === x.categoria && definidas(n.id).length) hay = true; });
-    return hay;
+  const cats = categoriasDe(raiz);
+  const [prop, setProp] = useState(PROPS_HUECO[0].id);
+  const [cat, setCat] = useState(cats.find((x) => x.nivel > 1)?.categoria ?? cats[0]?.categoria ?? "");
+  const [soloConProps, setSoloConProps] = useState(false);
+  const tiene = (id: string, p: string) => valor[id]?.[p] !== undefined;
+
+  const poner = (ids: string[], p: string, on: boolean) => {
+    const nuevo = { ...valor };
+    ids.forEach((id) => {
+      const actual = { ...(nuevo[id] ?? {}) };
+      if (on) actual[p] = actual[p] ?? ""; else delete actual[p];
+      nuevo[id] = actual;
+    });
+    onChange(nuevo);
+  };
+  const deCategoria = (c: string) => { const ids: string[] = []; recorrer(raiz, (n) => { if (n.categoria === c) ids.push(n.id); }); return ids; };
+
+  // Resumen: por propiedad, cuántos huecos la tienen y de qué categorías
+  const resumen = PROPS_HUECO.map((p) => {
+    const porCat = new Map<string, number>();
+    recorrer(raiz, (n) => { if (tiene(n.id, p.id)) porCat.set(n.categoria, (porCat.get(n.categoria) ?? 0) + 1); });
+    return { p, total: [...porCat.values()].reduce((s, x) => s + x, 0), porCat: [...porCat.entries()] };
   });
-
-  const seleccionarCategoria = (categoria: string) => {
-    const ids: string[] = [];
-    recorrer(raiz, (n) => { if (n.categoria === categoria && seleccionable(n.id)) ids.push(n.id); });
-    setSel(ids);
-  };
-  const toggleHueco = (id: string, on: boolean) => setSel((s) => (on ? [...s, id] : s.filter((x) => x !== id)));
-
-  // Definir: qué huecos de la selección tienen cada propiedad
-  const estadoProp = (propId: string) => {
-    const n = sel.filter((id) => def[id]?.[propId] !== undefined).length;
-    return { todas: n === sel.length && sel.length > 0, algunas: n > 0 && n < sel.length };
-  };
-  const asignar = (propId: string, on: boolean) => {
-    const nuevo = { ...valor };
-    sel.forEach((id) => {
-      const actual = { ...(nuevo[id] ?? {}) };
-      if (on) actual[propId] = ""; else delete actual[propId];
-      nuevo[id] = actual;
-    });
-    onChange(nuevo);
-  };
-
-  // Valores: solo en los huecos de la selección que tienen la propiedad
-  const conProp = (propId: string) => sel.filter((id) => def[id]?.[propId] !== undefined);
-  const valorProp = (propId: string) => {
-    const vs = new Set(conProp(propId).map((id) => valor[id]?.[propId] ?? ""));
-    return { valor: vs.size === 1 ? [...vs][0] : "", varios: vs.size > 1 };
-  };
-  const cambiarValor = (propId: string, v: string) => {
-    const nuevo = { ...valor };
-    conProp(propId).forEach((id) => {
-      const actual = { ...(nuevo[id] ?? {}) };
-      if (v) actual[propId] = v; else delete actual[propId];
-      nuevo[id] = actual;
-    });
-    onChange(nuevo);
-  };
-
-  const cuenta = useMemo(() => {
-    let huecos = 0, conValor = 0;
-    recorrer(raiz, (h) => {
-      const d = Object.keys(def[h.id] ?? {});
-      if (d.length) huecos++;
-      if (d.some((p) => valor[h.id]?.[p])) conValor++;
-    });
-    return { huecos, conValor };
-  }, [def, valor, raiz]);
-  const propsEnSeleccion = modo === "definir" ? PROPS_HUECO : PROPS_HUECO.filter((p) => conProp(p.id).length > 0);
+  const asignadas = resumen.filter((r) => r.total > 0);
+  const totalCat = (c: string) => cats.find((x) => x.categoria === c)?.huecos ?? 0;
+  const COL = 72;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 440px", gap: "var(--lm-space-20)", alignItems: "start" }}>
+    <div className="stack gap-20">
+      {/* Resumen */}
       <div className="lm-card stack gap-10">
-        <div className="row gap-10 wrap">
-          <span className="lm-title-small grow">
-            {modo === "definir" ? `Huecos · ${cuenta.huecos} con propiedades` : `Huecos con propiedades · ${cuenta.conValor} de ${cuenta.huecos} con valores`}
-          </span>
-          <select className="lm-select lm-select--dense" style={{ width: 240 }} aria-label="Seleccionar todos los huecos de una categoría" value={cat}
-            onChange={(e) => { setCat(e.target.value); if (e.target.value) seleccionarCategoria(e.target.value); }}>
-            <option value="">Seleccionar por categoría…</option>
-            {cats.map((x) => <option key={x.categoria} value={x.categoria}>Todos: {x.categoria} ({x.huecos})</option>)}
-          </select>
-          {sel.length > 0 && <Button variant="text" small onClick={() => { setSel([]); setCat(""); }}>Quitar selección</Button>}
-        </div>
-        <div style={{ maxHeight: 520, overflow: "auto" }}>
-          <ArbolFilas raiz={raiz} abiertosIni={3} render={(n) => {
-            const np = definidas(n.id).length;
-            const nv = definidas(n.id).filter((p) => valor[n.id]?.[p]).length;
-            const ok = seleccionable(n.id);
-            return (
-              <label className="lm-check grow" style={{ minHeight: "var(--lm-space-50)" }}>
-                <input type="checkbox" checked={sel.includes(n.id)} disabled={!ok} onChange={(e) => { setCat(""); toggleHueco(n.id, e.target.checked); }} aria-label={`Seleccionar ${n.nombre}`} />
-                <span style={{ fontWeight: n.hijos.length ? 500 : 400 }} className={`grow${ok ? "" : " muted"}`}>{n.nombre}</span>
-                {np > 0 && (modo === "definir"
-                  ? <Tag tone="primary" num={np}>prop.</Tag>
-                  : <Tag tone={nv === np ? "success" : nv ? "attention" : "neutral"}>{nv}/{np} valores</Tag>)}
-              </label>
-            );
-          }} />
-        </div>
+        <span className="lm-title-small">Resumen · {asignadas.length} de {PROPS_HUECO.length} propiedades asignadas</span>
+        {asignadas.length === 0 ? (
+          <span className="muted">Todavía no hay propiedades de hueco asignadas en esta estructura</span>
+        ) : (
+          <table className="lm-table">
+            <thead><tr><th style={{ width: 200 }}>Propiedad</th><th className="num" style={{ width: 100 }}>Huecos</th><th>Dónde</th></tr></thead>
+            <tbody>
+              {asignadas.map(({ p, total, porCat }) => (
+                <tr key={p.id}>
+                  <td className="emph">{p.nombre}</td>
+                  <td className="num">{total}</td>
+                  <td>
+                    <span className="row gap-5 wrap">
+                      {porCat.map(([c, n]) => (
+                        <Tag key={c} tone="primary">{n === totalCat(c) ? `${c}: todos (${n})` : `${c}: ${n} de ${totalCat(c)}`}</Tag>
+                      ))}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      <aside className="lm-card stack gap-15" aria-label="Propiedades de los huecos seleccionados" style={{ position: "sticky", top: "calc(var(--lm-space-60) + var(--lm-space-20))" }}>
-        {sel.length === 0 ? (
-          <div className="lm-center" style={{ padding: "var(--lm-space-50) var(--lm-space-20)" }}>
-            <Icon name="radio_button_checked" size="xl" />
-            <span>{soloLectura ? "Selecciona uno o varios huecos para ver sus propiedades"
-              : modo === "definir" ? "Selecciona uno o varios huecos para asignarles propiedades"
-              : "Selecciona uno o varios huecos para dar valor a sus propiedades"}</span>
-            <span className="lm-body-small">Consejo: usa "Seleccionar por categoría" para elegir, por ejemplo, todas las ruedas a la vez</span>
+      {/* Atajo por categoría */}
+      {!soloLectura && (
+        <div className="row gap-10 wrap" style={{ alignItems: "flex-end" }}>
+          <Field label="Propiedad" htmlFor="mp-prop" style={{ width: 220 }}>
+            <select id="mp-prop" className="lm-select lm-select--dense" value={prop} onChange={(e) => setProp(e.target.value)}>
+              {PROPS_HUECO.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+          </Field>
+          <Field label="Categoría" htmlFor="mp-cat" style={{ width: 240 }}>
+            <select id="mp-cat" className="lm-select lm-select--dense" value={cat} onChange={(e) => setCat(e.target.value)}>
+              {cats.map((x) => <option key={x.categoria} value={x.categoria}>{x.categoria} ({x.huecos})</option>)}
+            </select>
+          </Field>
+          <Button variant="outlined" icon="add" onClick={() => poner(deCategoria(cat), prop, true)}>Asignar a todos</Button>
+          <Button variant="text" icon="remove" onClick={() => poner(deCategoria(cat), prop, false)}>Quitar a todos</Button>
+          <span className="grow" />
+          <label className="lm-check"><input type="checkbox" checked={soloConProps} onChange={(e) => setSoloConProps(e.target.checked)} />Ver solo huecos con propiedades</label>
+        </div>
+      )}
+
+      {/* Matriz */}
+      <div className="lm-card" style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: 300 + COL * PROPS_HUECO.length }}>
+          <div className="row gap-10" style={{ minHeight: "var(--lm-space-50)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
+            <span className="lm-label-medium grow" style={{ paddingLeft: "var(--lm-space-50)" }}>ESTRUCTURA DE LA UNIDAD</span>
+            {PROPS_HUECO.map((p) => (
+              <span key={p.id} className="lm-label-small" title={p.nombre} style={{ width: COL, flex: "none", boxSizing: "border-box", textAlign: "center", overflowWrap: "anywhere", padding: "0 var(--lm-space-5)" }}>{p.nombre}</span>
+            ))}
           </div>
-        ) : (
-          <>
-            <span className="lm-title-small">{sel.length === 1 ? rutaDe(raiz, sel[0]).join(" › ") || raiz.nombre : `${sel.length} huecos seleccionados`}</span>
-            {modo === "valores" && <span className="lm-body-small muted">Los valores son opcionales. Puedes dejarlos vacíos y rellenarlos más adelante.</span>}
-            {propsEnSeleccion.map((p) => {
-              if (modo === "definir") {
-                const e = estadoProp(p.id);
-                return (
-                  <label key={p.id} className="lm-check" style={{ paddingBottom: "var(--lm-space-10)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
-                    <input type="checkbox" checked={e.todas} disabled={soloLectura} ref={(el) => { if (el) el.indeterminate = e.algunas; }} onChange={(ev) => asignar(p.id, ev.target.checked)} />
-                    <span className="grow">{p.nombre}</span>
-                    <span className="lm-body-small muted">{p.tipo}</span>
-                  </label>
-                );
-              }
-              const v = valorProp(p.id);
-              const n = conProp(p.id).length;
-              return (
-                <div key={p.id} className="stack gap-5" style={{ paddingBottom: "var(--lm-space-10)", borderBottom: "1px solid var(--lm-sys-outline-variant)" }}>
-                  <div className="row gap-10">
-                    <span className="grow">{p.nombre}</span>
-                    <span className="lm-body-small muted">{p.tipo}{n < sel.length ? ` · en ${n} de ${sel.length} huecos` : ""}</span>
-                  </div>
-                  <input className="lm-input lm-input--dense" aria-label={`Valor de ${p.nombre}`} value={v.valor} readOnly={soloLectura}
-                    placeholder={v.varios ? "Varios valores" : `Opcional, por ejemplo: ${p.ejemplo}`} onChange={(ev) => cambiarValor(p.id, ev.target.value)} />
-                </div>
-              );
-            })}
-          </>
-        )}
-      </aside>
+          <ArbolFilas raiz={raiz} abiertosIni={3} filtro={soloConProps ? (n) => Object.keys(valor[n.id] ?? {}).length > 0 : undefined} render={(n) => (
+            <>
+              <span className="row gap-10 grow" style={{ whiteSpace: "nowrap", minWidth: 0 }}>
+                <Icon name={iconoCategoria(n.categoria)} size="m" />
+                <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{n.nombre}</span>
+              </span>
+              {PROPS_HUECO.map((p) => (
+                <span key={p.id} style={{ width: COL, flex: "none", display: "flex", justifyContent: "center" }}>
+                  <input type="checkbox" style={{ width: 18, height: 18, accentColor: "var(--lm-sys-primary)" }} disabled={soloLectura}
+                    aria-label={`${p.nombre} en ${n.nombre}`} checked={tiene(n.id, p.id)} onChange={(e) => poner([n.id], p.id, e.target.checked)} />
+                </span>
+              ))}
+            </>
+          )} />
+        </div>
+      </div>
     </div>
   );
 }

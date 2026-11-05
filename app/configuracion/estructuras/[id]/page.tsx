@@ -8,7 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
 import { EditorEstructura } from "@/components/arbol";
-import { EditorPropsHueco, resumenPropiedades } from "@/components/propiedades";
+import { MatrizPropsHueco, resumenPropiedades } from "@/components/propiedades";
 import { clonar, contarHuecos, diferencia, nodo, nuevoId, type Estructura } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -144,7 +144,7 @@ export default function EditarEstructuraPage() {
           ) : (
             <>
               <span className="muted">Elige qué propiedades tiene cada posición de esta estructura (por ejemplo, el lado de una rueda). Las comparten todas las flotas que la usan. Sus valores se dan en cada configuración, en el paso 2 del asistente, y no aparecen en las plantillas.</span>
-              <EditorPropsHueco raiz={borrador.raiz} valor={borrador.propsHueco ?? {}} onChange={(v) => setBorrador({ ...borrador, propsHueco: v })} />
+              <MatrizPropsHueco raiz={borrador.raiz} valor={borrador.propsHueco ?? {}} onChange={(v) => setBorrador({ ...borrador, propsHueco: v })} />
             </>
           )}
         </section>

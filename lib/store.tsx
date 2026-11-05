@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria };
-const CLAVE = "lm-trace-prototipo-v18";
+const CLAVE = "lm-trace-prototipo-v19";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -25,16 +25,16 @@ function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
 const flota = (f: Flota): Flota => f;
 
 function semilla(): Estado {
-  // Propiedades de ejemplo: Estructura 1 tiene seleccionado el código de posición en todos los coches (propiedad de hueco);
+  // Propiedades de ejemplo: Estructura 1 tiene seleccionada LOCATION en todos los coches (propiedad de hueco);
   // cada configuración le da su valor. Y, en las ruedas, diámetro y fabricante (propiedades de categoría).
   const defCoches = (raiz: Estructura["raiz"]) => {
     const m: Record<string, Record<string, string>> = {};
-    recorrer(raiz, (n) => { if (n.categoria === "Coche") m[n.id] = { "codigo-pos": "" }; });
+    recorrer(raiz, (n) => { if (n.categoria === "Coche") m[n.id] = { LOCATION: "" }; });
     return m;
   };
   const codigosCoches = (raiz: Estructura["raiz"], prefijo: string) => {
     const m: Record<string, Record<string, string>> = {};
-    recorrer(raiz, (n) => { if (n.categoria === "Coche") m[n.id] = { "codigo-pos": `${prefijo}-${n.nombre.replace("Coche ", "C")}` }; });
+    recorrer(raiz, (n) => { if (n.categoria === "Coche") m[n.id] = { LOCATION: `${prefijo}-${n.nombre.replace("Coche ", "C")}` }; });
     return m;
   };
   const estructuras = ESTRUCTURAS.map((e, i) => ({ ...e, propsHueco: i === 0 ? defCoches(e.raiz) : {}, actualizada: "2026-05-20T08:00:00Z" }));
