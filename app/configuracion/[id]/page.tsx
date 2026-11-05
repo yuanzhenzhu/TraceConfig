@@ -151,7 +151,6 @@ export default function AsistentePage() {
                       <span className="lm-step__dot">{hecho ? <Icon name="check" /> : omit ? <Icon name="remove" /> : i + 1}</span>
                       <span className="lm-step__label">
                         <span>{x.titulo}</span>
-                        <small>{omit ? "Omitido" : x.obligatorio ? "Obligatorio" : "Opcional"}</small>
                       </span>
                     </button>
                     {i < visibles.length - 1 && <span className="lm-stepper__line" />}
