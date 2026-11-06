@@ -39,8 +39,6 @@ export type Configuracion = {
   unidades: number | null;
   /** Drivers propios de esta configuración (flota + estructura): otra flota con la misma estructura puede tener otros. */
   drivers: DriversConfigEst | null;
-  /** Cálculo de media de sus drivers (Configuración › Drivers; no está en el alta). Como los drivers, es de esta configuración. Opcional. */
-  media?: CalculoMedia[];
   /** Valores de las propiedades de hueco que define su estructura (opcionales). Por hueco y propiedad. */
   valoresHueco?: PropsHueco;
   plantillas: Record<string, EstadoPlantilla>; // por categoría

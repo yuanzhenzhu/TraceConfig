@@ -1,14 +1,13 @@
 "use client";
 
-// Modificar los drivers de una configuración (flota + estructura) y su cálculo de media. Solo le afecta a ella.
-// Dos secciones: Configuración de drivers y Cálculo de media.
+// Modificar los drivers de una configuración (flota + estructura). Solo le afecta a ella.
+// El cálculo de media no es de cada configuración: tiene su propio apartado en Drivers.
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Banner, Breadcrumb, Button, EmptyState, Loading, Tag, useSnackbar } from "@/components/ds";
 import { EditorDrivers } from "@/components/drivers";
-import { SeccionMedia } from "@/components/media";
-import { driversIniciales, mediaCompleta, type CalculoMedia, type DriversConfig } from "@/lib/model";
+import { driversIniciales, type DriversConfig } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function EditarDriversPage() {
@@ -19,13 +18,10 @@ export default function EditarDriversPage() {
   const c = store.configs.find((x) => x.id === id);
   const est = c ? store.estructura(c.estructuraId) : undefined;
   const [borrador, setBorrador] = useState<DriversConfig | null>(null);
-  const [media, setMedia] = useState<CalculoMedia[]>([]);
-  const [intentado, setIntentado] = useState(false);
 
   useEffect(() => {
     if (!store.listo || borrador || !c || !est) return;
     setBorrador(structuredClone(c.drivers && c.drivers.estructuraId === est.id ? c.drivers : driversIniciales(est.raiz)));
-    setMedia(structuredClone(c.media ?? []));
   }, [store.listo, borrador, c, est]);
 
   if (!store.listo || (c && est && !borrador)) return <main className="lm-page"><Loading text="Cargando drivers" /></main>;
@@ -41,13 +37,11 @@ export default function EditarDriversPage() {
   const flota = store.flotas.find((f) => f.id === c.flotaId);
   const nombre = store.etiqueta(c);
   const original = c.drivers ? JSON.stringify([c.drivers.drivers, c.drivers.heredables]) : "";
-  const cambiado = JSON.stringify([borrador.drivers, borrador.heredables]) !== original || JSON.stringify(media) !== JSON.stringify(c.media ?? []);
+  const cambiado = JSON.stringify([borrador.drivers, borrador.heredables]) !== original;
   const otras = store.usosDe(est.id).filter((x) => x.id !== c.id);
 
   const guardar = () => {
-    setIntentado(true);
-    if (!mediaCompleta(media)) return; // cálculo de media a medias
-    store.actualizarConfig(c.id, { drivers: { ...borrador, estructuraId: est.id }, media });
+    store.actualizarConfig(c.id, { drivers: { ...borrador, estructuraId: est.id } });
     snack(`Drivers de ${nombre} guardados`);
     router.push("/configuracion/drivers");
   };
@@ -73,15 +67,7 @@ export default function EditarDriversPage() {
           {c.estado === "activa" && " Al ser una configuración activa, las plantillas nuevas pedirán los valores iniciales de los drivers que añadas."}
         </Banner>
         <section className="lm-surface lm-surface--p24 stack gap-20">
-          <h2 className="lm-title-medium" style={{ margin: 0 }}>Configuración de drivers</h2>
           <EditorDrivers raiz={est.raiz} valor={borrador} onChange={setBorrador} />
-        </section>
-        <section className="lm-surface lm-surface--p24 stack gap-20">
-          <div className="row gap-10">
-            <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo de media</h2>
-            <span className="lm-body-small muted">Opcional</span>
-          </div>
-          <SeccionMedia valor={media} onChange={setMedia} intentado={intentado} />
         </section>
       </div>
 

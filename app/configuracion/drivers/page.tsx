@@ -1,19 +1,22 @@
 "use client";
 
-// Drivers: acceso directo a los drivers de cada configuración (flota + estructura).
-// No hay catálogo común: cada configuración tiene los suyos, aunque comparta estructura con otra flota.
+// Drivers, con dos pestañas:
+// - Configuración de drivers: los drivers de cada configuración (flota + estructura). No hay catálogo común:
+//   cada configuración tiene los suyos, aunque comparta estructura con otra flota.
+// - Cálculo de media: de qué drivers se calcula la media y cómo. Es del cliente, común a todas las configuraciones.
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Breadcrumb, Button, EmptyState, Field, Loading, Menu, Tag } from "@/components/ds";
+import { Breadcrumb, Button, EmptyState, Field, Icon, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
 import { cuentaDrivers } from "@/components/drivers";
-import { tieneMedia } from "@/components/media";
-import { DRIVERS, driversEfectivos } from "@/lib/model";
+import { SeccionMedia } from "@/components/media";
+import { DRIVERS, driversEfectivos, mediaCompleta, type CalculoMedia } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function DriversPage() {
   const store = useStore();
   const router = useRouter();
+  const [pestana, setPestana] = useState<"drivers" | "media">("drivers");
   const [fFlota, setFFlota] = useState("");
   const [fEstructura, setFEstructura] = useState("");
 
@@ -30,10 +33,16 @@ export default function DriversPage() {
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Drivers" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Drivers</h1>
-          <span className="muted">Los drivers y su cálculo de media son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</span>
         </div>
       </div>
 
+      <div className="lm-tabs" role="tablist">
+        <button role="tab" className="lm-tab" aria-selected={pestana === "drivers"} onClick={() => setPestana("drivers")}><Icon name="timelapse" /> Configuración de drivers</button>
+        <button role="tab" className="lm-tab" aria-selected={pestana === "media"} onClick={() => setPestana("media")}><Icon name="functions" /> Cálculo de media</button>
+      </div>
+
+      {pestana === "media" ? <PestanaMedia /> : <>
+      <p className="muted" style={{ margin: "0 0 var(--lm-space-20)" }}>Los drivers son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</p>
       <section className="lm-surface lm-surface--p16">
         <div className="lm-filters">
           <Field label="Flota" htmlFor="d-flota">
@@ -62,7 +71,7 @@ export default function DriversPage() {
           <table className="lm-table">
             <thead>
               <tr>
-                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th>Cálculo de media</th>
+                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th>
                 <th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
@@ -70,17 +79,15 @@ export default function DriversPage() {
               {lista.map((c) => {
                 const f = store.flotas.find((x) => x.id === c.flotaId);
                 const est = store.estructura(c.estructuraId)!;
-                // Solo qué drivers tiene (kilometraje, ciclos, horas) y si tiene cálculo de media
+                // Solo qué drivers tiene (kilometraje, ciclos, horas)
                 const ef = driversEfectivos(c.drivers, est.raiz);
                 const tiene = DRIVERS.filter((d) => cuentaDrivers(ef.drivers, d.id) > 0).map((d) => d.nombre);
-                const media = tieneMedia(c.media);
                 return (
                   <tr key={c.id}>
                     <td className="emph">{f?.nombre}</td>
                     <td>{c.unica ? <span className="muted">Única</span> : c.nombre}</td>
                     <td>{est.nombre}</td>
                     <td>{tiene.length ? tiene.join(", ") : <span className="muted">Sin drivers</span>}</td>
-                    <td>{media ? "Sí" : "No"}</td>
                     <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                     <td className="actions">
                       <Menu label={`Acciones de ${store.etiqueta(c)}`} items={[
@@ -94,6 +101,39 @@ export default function DriversPage() {
           </table>
         )}
       </section>
+      </>}
     </main>
+  );
+}
+
+/** Pestaña Cálculo de media: común a todo el cliente. Se edita sobre un borrador y se guarda. */
+function PestanaMedia() {
+  const store = useStore();
+  const snack = useSnackbar();
+  const [borrador, setBorrador] = useState<CalculoMedia[] | null>(null);
+  const [intentado, setIntentado] = useState(false);
+  if (!store.listo) return <Loading text="Cargando cálculo de media" />;
+  const valor = borrador ?? store.media;
+  const cambiado = JSON.stringify(valor) !== JSON.stringify(store.media);
+  const guardar = () => {
+    setIntentado(true);
+    if (!mediaCompleta(valor)) return;
+    store.guardarMedia(valor.filter((x) => x.driver && x.forma));
+    setBorrador(null); setIntentado(false);
+    snack("Cálculo de media guardado");
+  };
+  return (
+    <section className="lm-surface lm-surface--p24 stack gap-20">
+      <div className="row gap-10">
+        <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo de media</h2>
+        <span className="lm-body-small muted">Opcional · común a todas las configuraciones</span>
+      </div>
+      <SeccionMedia valor={valor} onChange={setBorrador} intentado={intentado} />
+      <div className="row gap-10" style={{ justifyContent: "flex-end", borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-15)" }}>
+        {cambiado && <span className="grow lm-body-small muted">Hay cambios sin guardar</span>}
+        <Button variant="outlined" disabled={!cambiado} onClick={() => { setBorrador(null); setIntentado(false); }}>Descartar cambios</Button>
+        <Button disabled={!cambiado} onClick={guardar}>Guardar cambios</Button>
+      </div>
+    </section>
   );
 }

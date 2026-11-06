@@ -5,17 +5,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
-  type Almacen, type Configuracion, type Estructura, type Flota, type PropsCategoria,
+  type Almacen, type CalculoMedia, type Configuracion, type Estructura, type Flota, type PropsCategoria,
 } from "./model";
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
-type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[] };
-const CLAVE = "lm-trace-prototipo-v22";
+type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[]; media: CalculoMedia[] };
+const CLAVE = "lm-trace-prototipo-v23";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
-    drivers: null, media: [], plantillas: {}, intentosPlantilla: {},
+    drivers: null, plantillas: {}, intentosPlantilla: {},
     pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false, unica: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
@@ -81,11 +81,11 @@ function semilla(): Estado {
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "Trenes de 3 coches entregados en 2019", estructuraId: e1.id, unidades: 16,
       drivers: { ...driversIniciales(e1.raiz), estructuraId: e1.id }, plantillas: todas(e1.raiz), pasoActual: 8,
-      valoresHueco: codigosCoches(e1.raiz, "ML1"), media: [{ driver: "km", forma: "flota" }], estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
+      valoresHueco: codigosCoches(e1.raiz, "ML1"), estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "Trenes de 2 coches para refuerzo en hora punta", estructuraId: e2.id, unidades: 8,
-      drivers: { ...conCiclos, estructuraId: e2.id }, media: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }], plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
+      drivers: { ...conCiclos, estructuraId: e2.id }, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {
@@ -101,7 +101,9 @@ function semilla(): Estado {
     { id: "alm-3", nombre: "Almacén Cocheras Metro Línea 1", ubicacion: "Bilbao", contacto: "Jefe de cocheras", telefono: "944 25 18 30", usos: ["almacen", "mantenimiento"] },
     { id: "alm-4", nombre: "Almacén Tranvía Norte", ubicacion: "Vitoria-Gasteiz", contacto: "Responsable de mantenimiento", telefono: "945 16 22 70", usos: ["mantenimiento"] },
   ];
-  return { flotas, configs, estructuras, propsCategoria, almacenes };
+  // Cálculo de media del cliente (Configuración › Drivers › Cálculo de media): común a todas las configuraciones
+  const media: CalculoMedia[] = [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }];
+  return { flotas, configs, estructuras, propsCategoria, almacenes, media };
 }
 
 type Api = {
@@ -125,6 +127,8 @@ type Api = {
   almacenes: Almacen[];
   guardarAlmacen: (a: Almacen) => void; // crea o modifica
   eliminarAlmacen: (id: string) => void;
+  media: CalculoMedia[]; // cálculo de media del cliente, común a todas las configuraciones
+  guardarMedia: (m: CalculoMedia[]) => void;
   restablecer: () => void;
 };
 
@@ -136,7 +140,7 @@ export const useStore = () => {
 };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], propsCategoria: {}, almacenes: [] });
+  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], propsCategoria: {}, almacenes: [], media: [] });
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
@@ -214,6 +218,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const guardarAlmacen = useCallback((a: Almacen) => {
     setEstado((s) => ({ ...s, almacenes: s.almacenes.some((x) => x.id === a.id) ? s.almacenes.map((x) => (x.id === a.id ? a : x)) : [...s.almacenes, a] }));
   }, []);
+  const guardarMedia = useCallback((media: CalculoMedia[]) => {
+    setEstado((s) => ({ ...s, media }));
+  }, []);
   const eliminarAlmacen = useCallback((id: string) => {
     setEstado((s) => ({ ...s, almacenes: s.almacenes.filter((x) => x.id !== id) }));
   }, []);
@@ -224,7 +231,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const configs = useMemo(() => estado.configs.map((c) => (c.unica ? { ...c, nombre: estado.flotas.find((f) => f.id === c.flotaId)?.nombre ?? "", descripcion: "" } : c)), [estado.configs, estado.flotas]);
 
   const api = useMemo<Api>(() => ({
-    listo, flotas: estado.flotas, configs, propsCategoria: estado.propsCategoria, almacenes: estado.almacenes ?? [],
+    listo, flotas: estado.flotas, configs, propsCategoria: estado.propsCategoria, almacenes: estado.almacenes ?? [], media: estado.media ?? [], guardarMedia,
     guardarAlmacen, eliminarAlmacen,
     estructuras: estado.estructuras.filter((e) => !e.borradorDe),
     estructura: (id) => estado.estructuras.find((e) => e.id === id),
@@ -232,7 +239,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     usosDe: (eid) => configs.filter((c) => c.guardada && c.estructuraId === eid),
     crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig,
     guardarEstructura, eliminarEstructura, guardarPropsCategoria, restablecer,
-  }), [listo, estado, configs, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPropsCategoria, guardarAlmacen, eliminarAlmacen, restablecer]);
+  }), [listo, estado, configs, crearFlota, actualizarFlota, iniciarConfig, actualizarConfig, descartarConfig, guardarEstructura, eliminarEstructura, guardarPropsCategoria, guardarAlmacen, eliminarAlmacen, guardarMedia, restablecer]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

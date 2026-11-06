@@ -1,7 +1,7 @@
 "use client";
 
-// Cálculo de media de los drivers. Solo en Configuración › Drivers (no está en el alta de una configuración).
-// Como los drivers, es de cada CONFIGURACIÓN (flota + estructura). Es opcional.
+// Cálculo de media de los drivers: pestaña propia en Configuración › Drivers (no está en el alta ni en cada configuración).
+// Es del CLIENTE, común a todas las configuraciones. Es opcional.
 // Cada cálculo se configura en dos pasos: 1) el driver (km, ciclos u horas) y 2) su forma de cálculo:
 // por flota o por línea, y en cada caso también por categoría, o por categoría y posición. Uno por driver.
 
@@ -24,7 +24,7 @@ export function SeccionMedia({ valor, onChange, intentado }: {
   return (
     <div className="stack gap-20">
       <p className="muted" style={{ margin: 0 }}>
-        Indica de qué drivers de esta configuración se calcula la media y cómo. Para cada cálculo, elige primero el driver y después su forma de cálculo. Puedes añadir varios: por ejemplo, el kilometraje por flota y los ciclos por línea y categoría.
+        Indica de qué drivers se calcula la media y cómo. Se aplica a todas las configuraciones del cliente. Para cada cálculo, elige primero el driver y después su forma de cálculo. Puedes añadir varios: por ejemplo, el kilometraje por flota y los ciclos por línea y categoría.
       </p>
 
       {valor.length === 0 ? (
@@ -92,6 +92,3 @@ export function SeccionMedia({ valor, onChange, intentado }: {
     </div>
   );
 }
-
-/** ¿Tiene algún cálculo de media completo? (listado de Drivers). */
-export const tieneMedia = (lista: CalculoMedia[] | undefined) => (lista ?? []).some((x) => x.driver && x.forma);
