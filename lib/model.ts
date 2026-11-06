@@ -160,12 +160,22 @@ export const PROPS_HUECO: { id: string; nombre: string; tipo: string; ejemplo: s
   { id: "KNUCKLE", nombre: "KNUCKLE", tipo: "Texto", ejemplo: "K-04" },
 ];
 
+/** Líneas del cliente (ficticias para el prototipo). El cálculo de media se configura por flota o por línea. */
+export const LINEAS: { id: string; nombre: string }[] = [
+  { id: "l1", nombre: "Línea 1" },
+  { id: "l2", nombre: "Línea 2" },
+  { id: "l3", nombre: "Línea 3" },
+];
+export type NivelMedia = "flota" | "linea";
+/** Clave del cálculo de media guardado: "flota:<id>" o "linea:<id>". */
+export const claveMedia = (nivel: NivelMedia, id: string) => `${nivel}:${id}`;
+
 /** Formas de calcular la media de un driver: por flota o por línea, y en cada caso, también por categoría y por posición. */
-export const FORMAS_MEDIA: { id: FormaMedia; nombre: string; desc: string; grupo: "flota" | "linea" }[] = [
+export const FORMAS_MEDIA: { id: FormaMedia; nombre: string; desc: string; grupo: NivelMedia }[] = [
   { id: "flota", grupo: "flota", nombre: "Flota", desc: "Una media para toda la flota" },
   { id: "flota-categoria", grupo: "flota", nombre: "Flota y categoría", desc: "Una media por categoría en la flota, por ejemplo, todas las ruedas" },
   { id: "flota-categoria-posicion", grupo: "flota", nombre: "Flota, categoría y posición", desc: "Una media por categoría y posición en la flota, por ejemplo, la rueda 1 del eje 2" },
-  { id: "linea", grupo: "linea", nombre: "Línea", desc: "Una media por cada línea en la que opera la flota" },
+  { id: "linea", grupo: "linea", nombre: "Línea", desc: "Una media para toda la línea" },
   { id: "linea-categoria", grupo: "linea", nombre: "Línea y categoría", desc: "Una media por categoría en cada línea" },
   { id: "linea-categoria-posicion", grupo: "linea", nombre: "Línea, categoría y posición", desc: "Una media por categoría y posición en cada línea" },
 ];

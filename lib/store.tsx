@@ -10,7 +10,7 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[]; media: Record<string, CalculoMedia[]> };
-const CLAVE = "lm-trace-prototipo-v24";
+const CLAVE = "lm-trace-prototipo-v25";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -101,10 +101,12 @@ function semilla(): Estado {
     { id: "alm-3", nombre: "Almacén Cocheras Metro Línea 1", ubicacion: "Bilbao", contacto: "Jefe de cocheras", telefono: "944 25 18 30", usos: ["almacen", "mantenimiento"] },
     { id: "alm-4", nombre: "Almacén Tranvía Norte", ubicacion: "Vitoria-Gasteiz", contacto: "Responsable de mantenimiento", telefono: "945 16 22 70", usos: ["mantenimiento"] },
   ];
-  // Cálculo de media de cada flota (Configuración › Drivers › Cálculo de media), por id de flota. Cercanías Sur no tiene.
+  // Cálculo de media (Configuración › Drivers › Cálculo de media), por flota o por línea: clave "flota:<id>" o "linea:<id>".
+  // Sin cálculo: Cercanías Sur, Línea 2 y Línea 3.
   const media: Record<string, CalculoMedia[]> = {
-    f1000: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }],
-    f2000: [{ driver: "km", forma: "linea" }],
+    "flota:f1000": [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }],
+    "flota:f2000": [{ driver: "km", forma: "flota" }],
+    "linea:l1": [{ driver: "km", forma: "linea" }, { driver: "horas", forma: "linea-categoria-posicion" }],
   };
   return { flotas, configs, estructuras, propsCategoria, almacenes, media };
 }
@@ -130,8 +132,8 @@ type Api = {
   almacenes: Almacen[];
   guardarAlmacen: (a: Almacen) => void; // crea o modifica
   eliminarAlmacen: (id: string) => void;
-  media: Record<string, CalculoMedia[]>; // cálculo de media de cada flota (por id de flota)
-  guardarMedia: (flotaId: string, m: CalculoMedia[]) => void;
+  media: Record<string, CalculoMedia[]>; // cálculo de media por flota o por línea (clave de claveMedia)
+  guardarMedia: (clave: string, m: CalculoMedia[]) => void;
   restablecer: () => void;
 };
 
@@ -221,8 +223,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const guardarAlmacen = useCallback((a: Almacen) => {
     setEstado((s) => ({ ...s, almacenes: s.almacenes.some((x) => x.id === a.id) ? s.almacenes.map((x) => (x.id === a.id ? a : x)) : [...s.almacenes, a] }));
   }, []);
-  const guardarMedia = useCallback((flotaId: string, m: CalculoMedia[]) => {
-    setEstado((s) => ({ ...s, media: { ...s.media, [flotaId]: m } }));
+  const guardarMedia = useCallback((clave: string, m: CalculoMedia[]) => {
+    setEstado((s) => ({ ...s, media: { ...s.media, [clave]: m } }));
   }, []);
   const eliminarAlmacen = useCallback((id: string) => {
     setEstado((s) => ({ ...s, almacenes: s.almacenes.filter((x) => x.id !== id) }));

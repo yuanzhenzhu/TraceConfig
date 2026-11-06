@@ -1,18 +1,18 @@
 "use client";
 
 // Cálculo de media de los drivers: pestaña propia en Configuración › Drivers (no está en el alta ni en cada configuración).
-// Es de cada FLOTA, común a todas sus configuraciones. Es opcional.
-// Cada cálculo se configura en dos pasos: 1) el driver (km, ciclos u horas) y 2) su forma de cálculo:
-// por flota o por línea, y en cada caso también por categoría, o por categoría y posición. Uno por driver.
+// Primero se elige el nivel (por flota o por línea) y la flota o línea concreta; después, sus cálculos.
+// Cada cálculo: 1) el driver (km, ciclos u horas) y 2) su forma de cálculo, solo las del nivel elegido
+// (Flota / Flota y categoría / Flota, categoría y posición, o lo mismo con Línea). Uno por driver. Es opcional.
 
 import { Button, Field, Icon, IconButton } from "./ds";
-import { DRIVERS, FORMAS_MEDIA, type CalculoMedia, type DriverId, type FormaMedia } from "@/lib/model";
+import { DRIVERS, FORMAS_MEDIA, type CalculoMedia, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
 
 const nombreDriver = (id: DriverId | "") => DRIVERS.find((d) => d.id === id)?.nombre;
 const forma = (id: FormaMedia | "") => FORMAS_MEDIA.find((f) => f.id === id);
 
-export function SeccionMedia({ valor, onChange, intentado }: {
-  valor: CalculoMedia[]; onChange: (v: CalculoMedia[]) => void; intentado: boolean;
+export function SeccionMedia({ valor, onChange, intentado, nivel, nombre }: {
+  valor: CalculoMedia[]; onChange: (v: CalculoMedia[]) => void; intentado: boolean; nivel: NivelMedia; nombre: string;
 }) {
   const usados = valor.map((x) => x.driver).filter(Boolean);
   const cambiar = (i: number, cambios: Partial<CalculoMedia>) => onChange(valor.map((x, k) => (k === i ? { ...x, ...cambios } : x)));
@@ -24,7 +24,7 @@ export function SeccionMedia({ valor, onChange, intentado }: {
   return (
     <div className="stack gap-20">
       <p className="muted" style={{ margin: 0 }}>
-        Indica de qué drivers se calcula la media y cómo. Se aplica a todas las configuraciones de la flota. Para cada cálculo, elige primero el driver y después su forma de cálculo. Puedes añadir varios: por ejemplo, el kilometraje por flota y los ciclos por línea y categoría.
+        Indica de qué drivers se calcula la media en <strong>{nombre}</strong> y cómo. Para cada cálculo, elige primero el driver y después su forma de cálculo. Puedes añadir varios, uno por driver.
       </p>
 
       {valor.length === 0 ? (
@@ -50,7 +50,7 @@ export function SeccionMedia({ valor, onChange, intentado }: {
                   <IconButton icon="delete" label={`Quitar el cálculo ${i + 1}`} onClick={() => quitar(i)} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "var(--lm-space-30)", alignItems: "start" }}>
-                  <Field label="1. Driver" required htmlFor={`media-driver-${i}`} error={errDriver}>
+                  <Field label="Driver" required htmlFor={`media-driver-${i}`} error={errDriver}>
                     <select id={`media-driver-${i}`} className="lm-select" value={x.driver} aria-invalid={!!errDriver}
                       onChange={(e) => cambiar(i, { driver: e.target.value as DriverId })}>
                       <option value="">Elige un driver</option>
@@ -61,19 +61,14 @@ export function SeccionMedia({ valor, onChange, intentado }: {
                   </Field>
                   <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }} disabled={!x.driver}>
                     <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>
-                      2. Forma de cálculo{!x.driver && <span className="muted"> · elige antes el driver</span>}
+                      Forma de cálculo{!x.driver && <span className="muted"> · elige antes el driver</span>}
                     </legend>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--lm-space-10) var(--lm-space-30)" }}>
-                      {(["flota", "linea"] as const).map((g) => (
-                        <div key={g} className="stack gap-10">
-                          <span className="lm-label-medium muted">{g === "flota" ? "POR FLOTA" : "POR LÍNEA"}</span>
-                          {FORMAS_MEDIA.filter((f) => f.grupo === g).map((f) => (
-                            <label key={f.id} className="lm-radio" style={{ alignItems: "flex-start", opacity: x.driver ? 1 : "var(--lm-state-disabled-content)" }}>
-                              <input type="radio" name={`media-forma-${i}`} checked={x.forma === f.id} onChange={() => cambiar(i, { forma: f.id })} />
-                              <span className="lm-radio__text"><span>{f.nombre}</span><span className="lm-radio__support">{f.desc}</span></span>
-                            </label>
-                          ))}
-                        </div>
+                    <div className="stack gap-10">
+                      {FORMAS_MEDIA.filter((f) => f.grupo === nivel).map((f) => (
+                        <label key={f.id} className="lm-radio" style={{ alignItems: "flex-start", opacity: x.driver ? 1 : "var(--lm-state-disabled-content)" }}>
+                          <input type="radio" name={`media-forma-${i}`} checked={x.forma === f.id} onChange={() => cambiar(i, { forma: f.id })} />
+                          <span className="lm-radio__text"><span>{f.nombre}</span><span className="lm-radio__support">{f.desc}</span></span>
+                        </label>
                       ))}
                     </div>
                     {errForma && <span className="lm-field__support lm-field__support--error" role="alert">{errForma}</span>}

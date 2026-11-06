@@ -3,14 +3,14 @@
 // Drivers, con dos pestañas:
 // - Configuración de drivers: los drivers de cada configuración (flota + estructura). No hay catálogo común:
 //   cada configuración tiene los suyos, aunque comparta estructura con otra flota.
-// - Cálculo de media: de qué drivers se calcula la media y cómo. Es de cada flota (común a sus configuraciones).
+// - Cálculo de media: primero por flota o por línea, después la flota o línea concreta y sus cálculos.
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Breadcrumb, Button, EmptyState, Field, Icon, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
+import { Breadcrumb, Button, ButtonToggle, EmptyState, Field, Icon, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
 import { cuentaDrivers } from "@/components/drivers";
 import { SeccionMedia } from "@/components/media";
-import { DRIVERS, driversEfectivos, mediaCompleta, type CalculoMedia } from "@/lib/model";
+import { DRIVERS, LINEAS, claveMedia, driversEfectivos, mediaCompleta, type CalculoMedia, type NivelMedia } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function DriversPage() {
@@ -106,51 +106,71 @@ export default function DriversPage() {
   );
 }
 
-/** Pestaña Cálculo de media: de cada flota. Se elige la flota, se edita sobre un borrador y se guarda. */
+/**
+ * Pestaña Cálculo de media. 1) Nivel: por flota o por línea. 2) La flota o línea concreta. 3) Sus cálculos,
+ * con las formas de cálculo de ese nivel. Se edita sobre un borrador y se guarda.
+ */
 function PestanaMedia() {
   const store = useStore();
   const snack = useSnackbar();
-  const [flotaId, setFlotaId] = useState("");
+  const [nivel, setNivel] = useState<NivelMedia>("flota");
+  const [sel, setSel] = useState<Record<NivelMedia, string>>({ flota: "", linea: "" });
   const [borrador, setBorrador] = useState<CalculoMedia[] | null>(null);
   const [intentado, setIntentado] = useState(false);
   if (!store.listo) return <Loading text="Cargando cálculo de media" />;
-  if (!store.flotas.length) {
-    return <section className="lm-surface lm-surface--p16"><EmptyState icon="train" title="Todavía no hay flotas" text="El cálculo de media se configura para cada flota" /></section>;
-  }
-  const flota = store.flotas.find((f) => f.id === flotaId) ?? store.flotas[0];
-  const guardado = store.media[flota.id] ?? [];
+
+  const opciones = nivel === "flota" ? store.flotas.map((f) => ({ id: f.id, nombre: f.nombre })) : LINEAS;
+  const actual = opciones.find((o) => o.id === sel[nivel]) ?? opciones[0];
+  const clave = actual ? claveMedia(nivel, actual.id) : "";
+  const guardado = store.media[clave] ?? [];
   const valor = borrador ?? guardado;
   const cambiado = JSON.stringify(valor) !== JSON.stringify(guardado);
   const descartar = () => { setBorrador(null); setIntentado(false); };
   const guardar = () => {
     setIntentado(true);
-    if (!mediaCompleta(valor)) return;
-    store.guardarMedia(flota.id, valor.filter((x) => x.driver && x.forma));
+    if (!mediaCompleta(valor) || !actual) return;
+    store.guardarMedia(clave, valor.filter((x) => x.driver && x.forma));
     descartar();
-    snack(`Cálculo de media de ${flota.nombre} guardado`);
+    snack(`Cálculo de media de ${actual.nombre} guardado`);
   };
+  const etiqueta = nivel === "flota" ? "Flota" : "Línea";
+
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <div className="row gap-10">
         <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo de media</h2>
-        <span className="lm-body-small muted">Opcional · de cada flota, común a sus configuraciones</span>
+        <span className="lm-body-small muted">Opcional</span>
       </div>
-      <div className="row gap-15" style={{ alignItems: "flex-end" }}>
+      <div className="row gap-30 wrap" style={{ alignItems: "flex-end" }}>
+        <div className="stack gap-10">
+          <span className="lm-field__label">1. Calcular la media por</span>
+          <ButtonToggle label="Calcular la media por" value={nivel} onChange={(v) => { if (!cambiado) { setNivel(v); descartar(); } }}
+            options={[{ value: "flota", label: "Flota" }, { value: "linea", label: "Línea" }]} />
+        </div>
         <div style={{ width: 320 }}>
-          <Field label="Flota" htmlFor="m-flota">
-            <select id="m-flota" className="lm-select" value={flota.id} disabled={cambiado} onChange={(e) => { setFlotaId(e.target.value); descartar(); }}>
-              {store.flotas.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+          <Field label={`2. ${etiqueta}`} htmlFor="m-sel">
+            <select id="m-sel" className="lm-select" value={actual?.id ?? ""} disabled={cambiado || !opciones.length}
+              onChange={(e) => { setSel({ ...sel, [nivel]: e.target.value }); descartar(); }}>
+              {opciones.map((o) => <option key={o.id} value={o.id}>{o.nombre}</option>)}
             </select>
           </Field>
         </div>
-        {cambiado && <span className="lm-body-small muted" style={{ paddingBottom: "var(--lm-space-10)" }}>Guarda o descarta los cambios para cambiar de flota</span>}
+        {cambiado && <span className="lm-body-small muted" style={{ paddingBottom: "var(--lm-space-10)" }}>Guarda o descarta los cambios para cambiar de {etiqueta.toLowerCase()}</span>}
       </div>
-      <SeccionMedia valor={valor} onChange={setBorrador} intentado={intentado} />
-      <div className="row gap-10" style={{ justifyContent: "flex-end", borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-15)" }}>
-        {cambiado && <span className="grow lm-body-small muted">Hay cambios sin guardar</span>}
-        <Button variant="outlined" disabled={!cambiado} onClick={descartar}>Descartar cambios</Button>
-        <Button disabled={!cambiado} onClick={guardar}>Guardar cambios</Button>
-      </div>
+      {!actual ? (
+        <EmptyState icon="train" title="Todavía no hay flotas" text="Crea una flota en Flotas y configuraciones" />
+      ) : (
+        <>
+          <div style={{ borderTop: "1px solid var(--lm-sys-outline-variant)" }} />
+          <h3 className="lm-title-small" style={{ margin: 0 }}>3. Cálculos de {actual.nombre}</h3>
+          <SeccionMedia key={clave} nivel={nivel} nombre={actual.nombre} valor={valor} onChange={setBorrador} intentado={intentado} />
+          <div className="row gap-10" style={{ justifyContent: "flex-end", borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-15)" }}>
+            {cambiado && <span className="grow lm-body-small muted">Hay cambios sin guardar</span>}
+            <Button variant="outlined" disabled={!cambiado} onClick={descartar}>Descartar cambios</Button>
+            <Button disabled={!cambiado} onClick={guardar}>Guardar cambios</Button>
+          </div>
+        </>
+      )}
     </section>
   );
 }
