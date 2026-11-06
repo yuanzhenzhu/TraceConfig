@@ -10,7 +10,6 @@ import { Banner, Button, EmptyState, Field, Icon } from "./ds";
 import { useRouter } from "next/navigation";
 import { ArbolVista, ResumenArbol } from "./arbol";
 import { EditorDrivers } from "./drivers";
-import { SeccionSms } from "./sms";
 import { ListaPropsHueco, resumenPropiedades } from "./propiedades";
 import {
   contarHuecos, driversIniciales,
@@ -221,7 +220,7 @@ export function Paso2({ c, set, est, soloLectura }: PasoProps) {
 /* ---------- Paso 3 ---------- */
 /**
  * Drivers propios de esta configuración (flota + estructura). Otra flota con la misma estructura puede tener otros.
- * Debajo, en la misma sección y opcional, su cálculo en SMS (también propio de la configuración).
+ * Se marcan por categoría. El cálculo de media no está en el alta: se configura en Configuración › Drivers.
  */
 export function Paso3({ c, set, est, flota, intentado, soloLectura }: PasoProps) {
   const raiz: Nodo = est!.raiz;
@@ -231,11 +230,9 @@ export function Paso3({ c, set, est, flota, intentado, soloLectura }: PasoProps)
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Drivers</h2>
       <p className="muted" style={{ margin: 0 }}>
-        Los drivers son propios de esta configuración: de <strong>{flota.nombre}</strong> con <strong>{est!.nombre}</strong>. Otra flota que use {est!.nombre} puede tener otros. Se marcan sobre la estructura entera de la unidad, hueco a hueco. De inicio, el kilometraje en todos los huecos.
+        Los drivers son propios de esta configuración: de <strong>{flota.nombre}</strong> con <strong>{est!.nombre}</strong>. Otra flota que use {est!.nombre} puede tener otros. Se marcan por categoría y se aplican a todos sus huecos. De inicio, todas las categorías tienen el kilometraje.
       </p>
       <EditorDrivers soloLectura={soloLectura} raiz={raiz} valor={valor} onChange={(v) => set({ drivers: { ...v, estructuraId: est!.id } })} />
-      {/* Cálculo en SMS: junto a los drivers, propio de esta configuración y opcional (solo si la flota usa SMS) */}
-      {flota.usaSms && <SeccionSms soloLectura={soloLectura} valor={c.sms ?? []} onChange={(v) => set({ sms: v })} intentado={intentado} />}
     </section>
     </div>
   );

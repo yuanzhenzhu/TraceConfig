@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Breadcrumb, Button, EmptyState, Field, Loading, Menu, Tag } from "@/components/ds";
 import { cuentaDrivers } from "@/components/drivers";
+import { tieneMedia } from "@/components/media";
 import { DRIVERS, driversEfectivos } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -29,7 +30,7 @@ export default function DriversPage() {
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion" }, { label: "Drivers" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Drivers</h1>
-          <span className="muted">Los drivers y el cálculo de drivers para SMS son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</span>
+          <span className="muted">Los drivers y su cálculo de media son de cada configuración: una flota con una estructura. Dos flotas que usan la misma estructura pueden contar la vida de sus activos de forma distinta.</span>
         </div>
       </div>
 
@@ -61,7 +62,7 @@ export default function DriversPage() {
           <table className="lm-table">
             <thead>
               <tr>
-                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th>Cálculo de drivers para SMS</th>
+                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th><th>Cálculo de media</th>
                 <th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
@@ -69,17 +70,17 @@ export default function DriversPage() {
               {lista.map((c) => {
                 const f = store.flotas.find((x) => x.id === c.flotaId);
                 const est = store.estructura(c.estructuraId)!;
-                // Solo qué drivers tiene (kilometraje, ciclos, horas) y si tiene cálculo en SMS
+                // Solo qué drivers tiene (kilometraje, ciclos, horas) y si tiene cálculo de media
                 const ef = driversEfectivos(c.drivers, est.raiz);
                 const tiene = DRIVERS.filter((d) => cuentaDrivers(ef.drivers, d.id) > 0).map((d) => d.nombre);
-                const sms = !!f?.usaSms && (c.sms ?? []).some((x) => x.driver && x.forma);
+                const media = tieneMedia(c.media);
                 return (
                   <tr key={c.id}>
                     <td className="emph">{f?.nombre}</td>
                     <td>{c.unica ? <span className="muted">Única</span> : c.nombre}</td>
                     <td>{est.nombre}</td>
                     <td>{tiene.length ? tiene.join(", ") : <span className="muted">Sin drivers</span>}</td>
-                    <td>{sms ? "Sí" : "No"}</td>
+                    <td>{media ? "Sí" : "No"}</td>
                     <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                     <td className="actions">
                       <Menu label={`Acciones de ${store.etiqueta(c)}`} items={[

@@ -10,12 +10,12 @@ import {
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[] };
-const CLAVE = "lm-trace-prototipo-v21";
+const CLAVE = "lm-trace-prototipo-v22";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
     id: nuevoId("cfg"), flotaId, nombre: "", descripcion: "", estructuraId: null, unidades: null,
-    drivers: null, sms: [], plantillas: {}, intentosPlantilla: {},
+    drivers: null, media: [], plantillas: {}, intentosPlantilla: {},
     pasosOmitidos: [], pasoActual: 1, pasoMax: 1, estado: "en-configuracion", guardada: false, unica: false,
     actualizada: new Date().toISOString(), ...extra,
     ...(extra.pasoActual && !extra.pasoMax ? { pasoMax: extra.pasoActual } : {}),
@@ -81,11 +81,11 @@ function semilla(): Estado {
     base("f1000", {
       id: "cfg-serie-a", nombre: "Serie A", descripcion: "Trenes de 3 coches entregados en 2019", estructuraId: e1.id, unidades: 16,
       drivers: { ...driversIniciales(e1.raiz), estructuraId: e1.id }, plantillas: todas(e1.raiz), pasoActual: 8,
-      valoresHueco: codigosCoches(e1.raiz, "ML1"), sms: [{ driver: "km", forma: "flota" }], estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
+      valoresHueco: codigosCoches(e1.raiz, "ML1"), media: [{ driver: "km", forma: "flota" }], estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
     }),
     base("f1000", {
       id: "cfg-serie-b", nombre: "Serie B", descripcion: "Trenes de 2 coches para refuerzo en hora punta", estructuraId: e2.id, unidades: 8,
-      drivers: { ...conCiclos, estructuraId: e2.id }, sms: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "categoria" }], plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
+      drivers: { ...conCiclos, estructuraId: e2.id }, media: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }], plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
       guardada: true, actualizada: "2026-10-28T16:30:00Z",
     }),
     base("f2000", {

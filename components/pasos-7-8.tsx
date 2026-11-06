@@ -11,7 +11,6 @@ import {
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { resumenPropiedades } from "./propiedades";
-import { textoSms } from "./sms";
 import type { PasoProps } from "./pasos-1-3";
 
 const ESTADO: Record<EstadoPlantilla, { tone: "neutral" | "success" | "error"; txt: string }> = {
@@ -237,7 +236,6 @@ export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configur
   // Textos del resumen (paso 6): solo lo esencial de cada paso.
   const conDrivers = nDrivers.filter(({ n }) => n > 0).map(({ d }) => d.nombre.toLowerCase());
   const lista = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}` : xs[0] ?? "");
-  const smsOk = (c.sms ?? []).some((x) => x.driver && x.forma);
   const catsConProps = cats.filter((x) => (store.propsCategoria[x.categoria] ?? []).length > 0).length;
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
@@ -252,7 +250,6 @@ export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configur
       : "No hay propiedades de hueco en esta configuración" },
     { n: 3, titulo: "Drivers", contenido: <>
       {conDrivers.length ? `Tiene ${lista(conDrivers)}` : "Sin drivers"}
-      {flota.usaSms && <><br />{smsOk ? "Con cálculo de drivers para SMS configurado" : "Sin cálculo de drivers para SMS"}</>}
     </> },
     { n: 4, titulo: "Propiedades de categoría", contenido: <>Comunes a todas las flotas<br />{catsConProps} {catsConProps === 1 ? "categoría" : "categorías"} con propiedades</> },
     { n: 7, titulo: "Carga de datos", contenido: `${cats.length - pendientes.length} de ${cats.length} plantillas cargadas` },

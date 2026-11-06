@@ -1,6 +1,6 @@
 "use client";
 
-// Paso 4 (Propiedades de categoría). El cálculo de drivers en SMS está en el paso 3 (components/sms.tsx).
+// Paso 4 (Propiedades de categoría). El cálculo de media está en Configuración › Drivers (components/media.tsx).
 // - Propiedades de categoría: únicas para todo el cliente; se editan aquí o en su apartado.
 // - Propiedades de hueco: de cada estructura; se editan en el paso 1, junto a la estructura.
 

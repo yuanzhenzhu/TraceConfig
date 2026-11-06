@@ -16,9 +16,9 @@ export type DriverId = "km" | "ciclos" | "horas";
 export type Drivers = Record<string, Partial<Record<DriverId, boolean>>>; // por hueco (id del nodo de la estructura)
 export type PropAsignada = { propId: string; historico: boolean };
 export type EstadoPlantilla = "pendiente" | "cargada" | "errores";
-/** Cálculo de un driver en SMS: primero el driver y después su forma de cálculo. "" = aún sin elegir. */
-export type FormaSms = "flota" | "linea" | "categoria" | "categoria-posicion";
-export type CalculoSms = { driver: DriverId | ""; forma: FormaSms | "" };
+/** Cálculo de media de un driver: primero el driver y después su forma de cálculo. "" = aún sin elegir. */
+export type FormaMedia = "flota" | "flota-categoria" | "flota-categoria-posicion" | "linea" | "linea-categoria" | "linea-categoria-posicion";
+export type CalculoMedia = { driver: DriverId | ""; forma: FormaMedia | "" };
 
 export type EstadoConfig = "en-configuracion" | "activa";
 
@@ -39,8 +39,8 @@ export type Configuracion = {
   unidades: number | null;
   /** Drivers propios de esta configuración (flota + estructura): otra flota con la misma estructura puede tener otros. */
   drivers: DriversConfigEst | null;
-  /** Cálculo en SMS de sus drivers (solo si la flota usa SMS). Como los drivers, es de esta configuración. Vacío = no se envía nada. */
-  sms?: CalculoSms[];
+  /** Cálculo de media de sus drivers (Configuración › Drivers; no está en el alta). Como los drivers, es de esta configuración. Opcional. */
+  media?: CalculoMedia[];
   /** Valores de las propiedades de hueco que define su estructura (opcionales). Por hueco y propiedad. */
   valoresHueco?: PropsHueco;
   plantillas: Record<string, EstadoPlantilla>; // por categoría
@@ -162,16 +162,18 @@ export const PROPS_HUECO: { id: string; nombre: string; tipo: string; ejemplo: s
   { id: "KNUCKLE", nombre: "KNUCKLE", tipo: "Texto", ejemplo: "K-04" },
 ];
 
-/** Formas de calcular un driver en SMS. */
-export const FORMAS_SMS: { id: FormaSms; nombre: string; desc: string }[] = [
-  { id: "flota", nombre: "Flota", desc: "Un único cálculo para toda la flota" },
-  { id: "linea", nombre: "Línea", desc: "Un cálculo por cada línea en la que opera la flota" },
-  { id: "categoria", nombre: "Categoría", desc: "Un cálculo por categoría de activo, por ejemplo, todas las ruedas" },
-  { id: "categoria-posicion", nombre: "Categoría y posición", desc: "Un cálculo por categoría y posición en la unidad, por ejemplo, la rueda 1 del eje 2" },
+/** Formas de calcular la media de un driver: por flota o por línea, y en cada caso, también por categoría y por posición. */
+export const FORMAS_MEDIA: { id: FormaMedia; nombre: string; desc: string; grupo: "flota" | "linea" }[] = [
+  { id: "flota", grupo: "flota", nombre: "Flota", desc: "Una media para toda la flota" },
+  { id: "flota-categoria", grupo: "flota", nombre: "Flota y categoría", desc: "Una media por categoría en la flota, por ejemplo, todas las ruedas" },
+  { id: "flota-categoria-posicion", grupo: "flota", nombre: "Flota, categoría y posición", desc: "Una media por categoría y posición en la flota, por ejemplo, la rueda 1 del eje 2" },
+  { id: "linea", grupo: "linea", nombre: "Línea", desc: "Una media por cada línea en la que opera la flota" },
+  { id: "linea-categoria", grupo: "linea", nombre: "Línea y categoría", desc: "Una media por categoría en cada línea" },
+  { id: "linea-categoria-posicion", grupo: "linea", nombre: "Línea, categoría y posición", desc: "Una media por categoría y posición en cada línea" },
 ];
 
-/** Los cálculos en SMS están completos si todos tienen driver y forma de cálculo (o no hay ninguno). */
-export const smsCompleto = (f: { sms?: CalculoSms[] | null }) => (f.sms ?? []).every((x) => x.driver && x.forma);
+/** Los cálculos de media están completos si todos tienen driver y forma de cálculo (o no hay ninguno). */
+export const mediaCompleta = (lista: CalculoMedia[] | undefined) => (lista ?? []).every((x) => x.driver && x.forma);
 
 /* ---------- Utilidades de árbol ---------- */
 let seq = 0;

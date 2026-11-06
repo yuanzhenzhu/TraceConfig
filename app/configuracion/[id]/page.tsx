@@ -10,7 +10,7 @@ import { Banner, Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, use
 import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/pasos-1-3";
 import { Paso4 } from "@/components/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/pasos-7-8";
-import { PASOS, smsCompleto, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
+import { PASOS, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function AsistentePage() {
@@ -81,7 +81,7 @@ export default function AsistentePage() {
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
   const estructuraFijada = c.pasoMax > 1;
   const alcanzable = (n: number) => soloLectura || n === 1 || (v1 && c.guardada && estructuraFijada);
-  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers && smsCompleto(c) : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
