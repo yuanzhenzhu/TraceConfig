@@ -3,7 +3,7 @@
 // Drivers, con dos pestañas:
 // - Configuración de drivers: los drivers de cada configuración (flota + estructura). No hay catálogo común:
 //   cada configuración tiene los suyos, aunque comparta estructura con otra flota.
-// - Cálculo de media: de qué drivers se calcula la media y cómo. Es del cliente, común a todas las configuraciones.
+// - Cálculo de media: de qué drivers se calcula la media y cómo. Es de cada flota (común a sus configuraciones).
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -106,32 +106,49 @@ export default function DriversPage() {
   );
 }
 
-/** Pestaña Cálculo de media: común a todo el cliente. Se edita sobre un borrador y se guarda. */
+/** Pestaña Cálculo de media: de cada flota. Se elige la flota, se edita sobre un borrador y se guarda. */
 function PestanaMedia() {
   const store = useStore();
   const snack = useSnackbar();
+  const [flotaId, setFlotaId] = useState("");
   const [borrador, setBorrador] = useState<CalculoMedia[] | null>(null);
   const [intentado, setIntentado] = useState(false);
   if (!store.listo) return <Loading text="Cargando cálculo de media" />;
-  const valor = borrador ?? store.media;
-  const cambiado = JSON.stringify(valor) !== JSON.stringify(store.media);
+  if (!store.flotas.length) {
+    return <section className="lm-surface lm-surface--p16"><EmptyState icon="train" title="Todavía no hay flotas" text="El cálculo de media se configura para cada flota" /></section>;
+  }
+  const flota = store.flotas.find((f) => f.id === flotaId) ?? store.flotas[0];
+  const guardado = store.media[flota.id] ?? [];
+  const valor = borrador ?? guardado;
+  const cambiado = JSON.stringify(valor) !== JSON.stringify(guardado);
+  const descartar = () => { setBorrador(null); setIntentado(false); };
   const guardar = () => {
     setIntentado(true);
     if (!mediaCompleta(valor)) return;
-    store.guardarMedia(valor.filter((x) => x.driver && x.forma));
-    setBorrador(null); setIntentado(false);
-    snack("Cálculo de media guardado");
+    store.guardarMedia(flota.id, valor.filter((x) => x.driver && x.forma));
+    descartar();
+    snack(`Cálculo de media de ${flota.nombre} guardado`);
   };
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <div className="row gap-10">
         <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo de media</h2>
-        <span className="lm-body-small muted">Opcional · común a todas las configuraciones</span>
+        <span className="lm-body-small muted">Opcional · de cada flota, común a sus configuraciones</span>
+      </div>
+      <div className="row gap-15" style={{ alignItems: "flex-end" }}>
+        <div style={{ width: 320 }}>
+          <Field label="Flota" htmlFor="m-flota">
+            <select id="m-flota" className="lm-select" value={flota.id} disabled={cambiado} onChange={(e) => { setFlotaId(e.target.value); descartar(); }}>
+              {store.flotas.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+            </select>
+          </Field>
+        </div>
+        {cambiado && <span className="lm-body-small muted" style={{ paddingBottom: "var(--lm-space-10)" }}>Guarda o descarta los cambios para cambiar de flota</span>}
       </div>
       <SeccionMedia valor={valor} onChange={setBorrador} intentado={intentado} />
       <div className="row gap-10" style={{ justifyContent: "flex-end", borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-15)" }}>
         {cambiado && <span className="grow lm-body-small muted">Hay cambios sin guardar</span>}
-        <Button variant="outlined" disabled={!cambiado} onClick={() => { setBorrador(null); setIntentado(false); }}>Descartar cambios</Button>
+        <Button variant="outlined" disabled={!cambiado} onClick={descartar}>Descartar cambios</Button>
         <Button disabled={!cambiado} onClick={guardar}>Guardar cambios</Button>
       </div>
     </section>

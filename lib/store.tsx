@@ -9,8 +9,8 @@ import {
 } from "./model";
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
-type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[]; media: CalculoMedia[] };
-const CLAVE = "lm-trace-prototipo-v23";
+type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[]; media: Record<string, CalculoMedia[]> };
+const CLAVE = "lm-trace-prototipo-v24";
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -101,8 +101,11 @@ function semilla(): Estado {
     { id: "alm-3", nombre: "Almacén Cocheras Metro Línea 1", ubicacion: "Bilbao", contacto: "Jefe de cocheras", telefono: "944 25 18 30", usos: ["almacen", "mantenimiento"] },
     { id: "alm-4", nombre: "Almacén Tranvía Norte", ubicacion: "Vitoria-Gasteiz", contacto: "Responsable de mantenimiento", telefono: "945 16 22 70", usos: ["mantenimiento"] },
   ];
-  // Cálculo de media del cliente (Configuración › Drivers › Cálculo de media): común a todas las configuraciones
-  const media: CalculoMedia[] = [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }];
+  // Cálculo de media de cada flota (Configuración › Drivers › Cálculo de media), por id de flota. Cercanías Sur no tiene.
+  const media: Record<string, CalculoMedia[]> = {
+    f1000: [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }],
+    f2000: [{ driver: "km", forma: "linea" }],
+  };
   return { flotas, configs, estructuras, propsCategoria, almacenes, media };
 }
 
@@ -127,8 +130,8 @@ type Api = {
   almacenes: Almacen[];
   guardarAlmacen: (a: Almacen) => void; // crea o modifica
   eliminarAlmacen: (id: string) => void;
-  media: CalculoMedia[]; // cálculo de media del cliente, común a todas las configuraciones
-  guardarMedia: (m: CalculoMedia[]) => void;
+  media: Record<string, CalculoMedia[]>; // cálculo de media de cada flota (por id de flota)
+  guardarMedia: (flotaId: string, m: CalculoMedia[]) => void;
   restablecer: () => void;
 };
 
@@ -140,7 +143,7 @@ export const useStore = () => {
 };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], propsCategoria: {}, almacenes: [], media: [] });
+  const [estado, setEstado] = useState<Estado>({ flotas: [], configs: [], estructuras: [], propsCategoria: {}, almacenes: [], media: {} });
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
@@ -218,8 +221,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const guardarAlmacen = useCallback((a: Almacen) => {
     setEstado((s) => ({ ...s, almacenes: s.almacenes.some((x) => x.id === a.id) ? s.almacenes.map((x) => (x.id === a.id ? a : x)) : [...s.almacenes, a] }));
   }, []);
-  const guardarMedia = useCallback((media: CalculoMedia[]) => {
-    setEstado((s) => ({ ...s, media }));
+  const guardarMedia = useCallback((flotaId: string, m: CalculoMedia[]) => {
+    setEstado((s) => ({ ...s, media: { ...s.media, [flotaId]: m } }));
   }, []);
   const eliminarAlmacen = useCallback((id: string) => {
     setEstado((s) => ({ ...s, almacenes: s.almacenes.filter((x) => x.id !== id) }));
@@ -231,7 +234,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const configs = useMemo(() => estado.configs.map((c) => (c.unica ? { ...c, nombre: estado.flotas.find((f) => f.id === c.flotaId)?.nombre ?? "", descripcion: "" } : c)), [estado.configs, estado.flotas]);
 
   const api = useMemo<Api>(() => ({
-    listo, flotas: estado.flotas, configs, propsCategoria: estado.propsCategoria, almacenes: estado.almacenes ?? [], media: estado.media ?? [], guardarMedia,
+    listo, flotas: estado.flotas, configs, propsCategoria: estado.propsCategoria, almacenes: estado.almacenes ?? [], media: estado.media ?? {}, guardarMedia,
     guardarAlmacen, eliminarAlmacen,
     estructuras: estado.estructuras.filter((e) => !e.borradorDe),
     estructura: (id) => estado.estructuras.find((e) => e.id === id),
