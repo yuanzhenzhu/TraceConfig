@@ -3,14 +3,14 @@
 // Drivers, con dos pestañas:
 // - Configuración de drivers: los drivers de cada configuración (flota + estructura). No hay catálogo común:
 //   cada configuración tiene los suyos, aunque comparta estructura con otra flota.
-// - Cálculo de media: primero por flota o por línea, después la flota o línea concreta y sus cálculos.
+// - Cálculo de media: tabla con los cálculos de cada flota o línea; se añaden y modifican en un dialog.
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Breadcrumb, Button, ButtonToggle, EmptyState, Field, Icon, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
+import { Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Icon, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
 import { cuentaDrivers } from "@/components/drivers";
-import { SeccionMedia } from "@/components/media";
-import { DRIVERS, LINEAS, claveMedia, driversEfectivos, mediaCompleta, type CalculoMedia, type NivelMedia } from "@/lib/model";
+import { DialogMedia, nombreDriver, nombreForma, type FilaMedia } from "@/components/media";
+import { DRIVERS, LINEAS, claveMedia, driversEfectivos, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function DriversPage() {
@@ -107,69 +107,94 @@ export default function DriversPage() {
 }
 
 /**
- * Pestaña Cálculo de media. 1) Nivel: por flota o por línea. 2) La flota o línea concreta. 3) Sus cálculos,
- * con las formas de cálculo de ese nivel. Se edita sobre un borrador y se guarda.
+ * Pestaña Cálculo de media: tabla con todos los cálculos (por flota y por línea).
+ * Cada cálculo se añade o modifica en un dialog y se guarda al momento; se elimina con confirmación.
  */
 function PestanaMedia() {
   const store = useStore();
   const snack = useSnackbar();
-  const [nivel, setNivel] = useState<NivelMedia>("flota");
-  const [sel, setSel] = useState<Record<NivelMedia, string>>({ flota: "", linea: "" });
-  const [borrador, setBorrador] = useState<CalculoMedia[] | null>(null);
-  const [intentado, setIntentado] = useState(false);
+  const [filtro, setFiltro] = useState<"todos" | NivelMedia>("todos");
+  const [editando, setEditando] = useState<FilaMedia | "nuevo" | null>(null);
+  const [aEliminar, setAEliminar] = useState<FilaMedia | null>(null);
   if (!store.listo) return <Loading text="Cargando cálculo de media" />;
 
-  const opciones = nivel === "flota" ? store.flotas.map((f) => ({ id: f.id, nombre: f.nombre })) : LINEAS;
-  const actual = opciones.find((o) => o.id === sel[nivel]) ?? opciones[0];
-  const clave = actual ? claveMedia(nivel, actual.id) : "";
-  const guardado = store.media[clave] ?? [];
-  const valor = borrador ?? guardado;
-  const cambiado = JSON.stringify(valor) !== JSON.stringify(guardado);
-  const descartar = () => { setBorrador(null); setIntentado(false); };
-  const guardar = () => {
-    setIntentado(true);
-    if (!mediaCompleta(valor) || !actual) return;
-    store.guardarMedia(clave, valor.filter((x) => x.driver && x.forma));
-    descartar();
-    snack(`Cálculo de media de ${actual.nombre} guardado`);
+  const nombreDestino = (f: { nivel: NivelMedia; destino: string }) =>
+    (f.nivel === "flota" ? store.flotas : LINEAS).find((x) => x.id === f.destino)?.nombre ?? f.destino;
+  // Todas las filas, a partir de lo guardado por flota o línea
+  const filas: FilaMedia[] = Object.entries(store.media).flatMap(([clave, lista]) => {
+    const [nivel, destino] = clave.split(":") as [NivelMedia, string];
+    return lista.filter((x) => x.driver && x.forma).map((x) => ({ nivel, destino, driver: x.driver as DriverId, forma: x.forma as FormaMedia }));
+  });
+  const ordenDriver = (d: DriverId) => DRIVERS.findIndex((x) => x.id === d);
+  const lista = filas
+    .filter((f) => filtro === "todos" || f.nivel === filtro)
+    .sort((a, b) => a.nivel.localeCompare(b.nivel) || nombreDestino(a).localeCompare(nombreDestino(b)) || ordenDriver(a.driver) - ordenDriver(b.driver));
+  const deClave = (nivel: NivelMedia, destino: string) => store.media[claveMedia(nivel, destino)] ?? [];
+
+  const quitar = (f: FilaMedia) => store.guardarMedia(claveMedia(f.nivel, f.destino), deClave(f.nivel, f.destino).filter((x) => x.driver !== f.driver));
+  const guardar = (nueva: FilaMedia) => {
+    const antes = editando !== "nuevo" ? editando : null;
+    const mismaClave = !!antes && antes.nivel === nueva.nivel && antes.destino === nueva.destino;
+    // Si cambia de flota o línea, se quita de la anterior; en la nueva, se sustituye el del mismo driver
+    if (antes && !mismaClave) quitar(antes);
+    const actual = deClave(nueva.nivel, nueva.destino).filter((x) => x.driver !== nueva.driver && !(mismaClave && x.driver === antes!.driver));
+    store.guardarMedia(claveMedia(nueva.nivel, nueva.destino), [...actual, { driver: nueva.driver, forma: nueva.forma }]);
+    setEditando(null);
+    snack(antes ? "Cálculo de media modificado" : `Cálculo de media de ${nombreDestino(nueva)} añadido`);
   };
-  const etiqueta = nivel === "flota" ? "Flota" : "Línea";
 
   return (
-    <section className="lm-surface lm-surface--p24 stack gap-20">
-      <div className="row gap-10">
-        <h2 className="lm-title-medium grow" style={{ margin: 0 }}>Cálculo de media</h2>
-        <span className="lm-body-small muted">Opcional</span>
+    <section className="lm-surface lm-surface--p16 stack gap-15">
+      <div className="row gap-15 wrap">
+        <span className="muted grow">De qué drivers se calcula la media y cómo, para cada flota o línea. Es opcional.</span>
+        <ButtonToggle label="Cálculos que se muestran" value={filtro} onChange={setFiltro}
+          options={[{ value: "todos", label: `Todos (${filas.length})` }, { value: "flota", label: `Por flota (${filas.filter((f) => f.nivel === "flota").length})` }, { value: "linea", label: `Por línea (${filas.filter((f) => f.nivel === "linea").length})` }]} />
+        <Button icon="add" onClick={() => setEditando("nuevo")}>Añadir cálculo de media</Button>
       </div>
-      <div className="row gap-30 wrap" style={{ alignItems: "flex-end" }}>
-        <div className="stack gap-10">
-          <span className="lm-field__label">1. Calcular la media por</span>
-          <ButtonToggle label="Calcular la media por" value={nivel} onChange={(v) => { if (!cambiado) { setNivel(v); descartar(); } }}
-            options={[{ value: "flota", label: "Flota" }, { value: "linea", label: "Línea" }]} />
-        </div>
-        <div style={{ width: 320 }}>
-          <Field label={`2. ${etiqueta}`} htmlFor="m-sel">
-            <select id="m-sel" className="lm-select" value={actual?.id ?? ""} disabled={cambiado || !opciones.length}
-              onChange={(e) => { setSel({ ...sel, [nivel]: e.target.value }); descartar(); }}>
-              {opciones.map((o) => <option key={o.id} value={o.id}>{o.nombre}</option>)}
-            </select>
-          </Field>
-        </div>
-        {cambiado && <span className="lm-body-small muted" style={{ paddingBottom: "var(--lm-space-10)" }}>Guarda o descarta los cambios para cambiar de {etiqueta.toLowerCase()}</span>}
-      </div>
-      {!actual ? (
-        <EmptyState icon="train" title="Todavía no hay flotas" text="Crea una flota en Flotas y configuraciones" />
+
+      {filas.length === 0 ? (
+        <EmptyState icon="functions" title="Todavía no hay cálculos de media" text="Añade uno para una flota o una línea"
+          action={<Button variant="outlined" icon="add" onClick={() => setEditando("nuevo")}>Añadir cálculo de media</Button>} />
+      ) : lista.length === 0 ? (
+        <EmptyState icon="search_off" title="No hay resultados" text={`No hay cálculos ${filtro === "flota" ? "por flota" : "por línea"}`}
+          action={<Button variant="outlined" onClick={() => setFiltro("todos")}>Ver todos</Button>} />
       ) : (
-        <>
-          <div style={{ borderTop: "1px solid var(--lm-sys-outline-variant)" }} />
-          <h3 className="lm-title-small" style={{ margin: 0 }}>3. Cálculos de {actual.nombre}</h3>
-          <SeccionMedia key={clave} nivel={nivel} nombre={actual.nombre} valor={valor} onChange={setBorrador} intentado={intentado} />
-          <div className="row gap-10" style={{ justifyContent: "flex-end", borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-15)" }}>
-            {cambiado && <span className="grow lm-body-small muted">Hay cambios sin guardar</span>}
-            <Button variant="outlined" disabled={!cambiado} onClick={descartar}>Descartar cambios</Button>
-            <Button disabled={!cambiado} onClick={guardar}>Guardar cambios</Button>
-          </div>
-        </>
+        <table className="lm-table">
+          <thead>
+            <tr><th>Calcular por</th><th>Flota o línea</th><th>Driver</th><th>Forma de cálculo</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
+          </thead>
+          <tbody>
+            {lista.map((f) => (
+              <tr key={`${f.nivel}:${f.destino}:${f.driver}`}>
+                <td><Tag tone={f.nivel === "flota" ? "primary" : "neutral"}>{f.nivel === "flota" ? "Flota" : "Línea"}</Tag></td>
+                <td className="emph">{nombreDestino(f)}</td>
+                <td>{nombreDriver(f.driver)}</td>
+                <td>{nombreForma(f.forma)}</td>
+                <td className="actions">
+                  <Menu label={`Acciones del cálculo de ${nombreDriver(f.driver)} en ${nombreDestino(f)}`} items={[
+                    { label: "Modificar", icon: "edit", onSelect: () => setEditando(f) },
+                    { label: "Eliminar", icon: "delete", onSelect: () => setAEliminar(f) },
+                  ]} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {editando && (
+        <DialogMedia fila={editando === "nuevo" ? undefined : editando} flotas={store.flotas.map((x) => ({ id: x.id, nombre: x.nombre }))}
+          usados={(nivel, destino) => deClave(nivel, destino).map((x) => x.driver as DriverId)
+            .filter((d) => !(editando !== "nuevo" && editando.nivel === nivel && editando.destino === destino && editando.driver === d))}
+          onClose={() => setEditando(null)} onGuardar={guardar} />
+      )}
+      {aEliminar && (
+        <Dialog title="¿Eliminar el cálculo de media?" onClose={() => setAEliminar(null)}
+          message={`Se dejará de calcular la media de ${nombreDriver(aEliminar.driver).toLowerCase()} en ${nombreDestino(aEliminar)}.`}
+          footer={<>
+            <Button variant="outlined" onClick={() => setAEliminar(null)}>Cancelar</Button>
+            <Button onClick={() => { quitar(aEliminar); setAEliminar(null); snack("Cálculo de media eliminado"); }}>Eliminar</Button>
+          </>} />
       )}
     </section>
   );

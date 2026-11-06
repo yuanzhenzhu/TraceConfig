@@ -1,89 +1,90 @@
 "use client";
 
 // Cálculo de media de los drivers: pestaña propia en Configuración › Drivers (no está en el alta ni en cada configuración).
-// Primero se elige el nivel (por flota o por línea) y la flota o línea concreta; después, sus cálculos.
-// Cada cálculo: 1) el driver (km, ciclos u horas) y 2) su forma de cálculo, solo las del nivel elegido
-// (Flota / Flota y categoría / Flota, categoría y posición, o lo mismo con Línea). Uno por driver. Es opcional.
+// Se muestra como una tabla con todos los cálculos; cada uno se añade o modifica en un dialog, con los pasos en orden:
+// 1) por flota o por línea, 2) la flota o línea concreta, 3) el driver y 4) su forma de cálculo (solo las de ese nivel).
+// Una flota o línea tiene como mucho un cálculo por driver. Es opcional.
 
-import { Button, Field, Icon, IconButton } from "./ds";
-import { DRIVERS, FORMAS_MEDIA, type CalculoMedia, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
+import { useState } from "react";
+import { Button, Dialog, Field } from "./ds";
+import { DRIVERS, FORMAS_MEDIA, LINEAS, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
 
-const nombreDriver = (id: DriverId | "") => DRIVERS.find((d) => d.id === id)?.nombre;
-const forma = (id: FormaMedia | "") => FORMAS_MEDIA.find((f) => f.id === id);
+/** Un cálculo de media, con su flota o línea. */
+export type FilaMedia = { nivel: NivelMedia; destino: string; driver: DriverId; forma: FormaMedia };
 
-export function SeccionMedia({ valor, onChange, intentado, nivel, nombre }: {
-  valor: CalculoMedia[]; onChange: (v: CalculoMedia[]) => void; intentado: boolean; nivel: NivelMedia; nombre: string;
+export const nombreDriver = (id: DriverId) => DRIVERS.find((d) => d.id === id)?.nombre ?? id;
+export const nombreForma = (id: FormaMedia) => FORMAS_MEDIA.find((f) => f.id === id)?.nombre ?? id;
+
+export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
+  fila?: FilaMedia;
+  flotas: { id: string; nombre: string }[];
+  /** Drivers que ya tienen cálculo en cada flota o línea (clave "flota:<id>" o "linea:<id>"), sin contar el que se modifica. */
+  usados: (nivel: NivelMedia, destino: string) => DriverId[];
+  onClose: () => void;
+  onGuardar: (f: FilaMedia) => void;
 }) {
-  const usados = valor.map((x) => x.driver).filter(Boolean);
-  const cambiar = (i: number, cambios: Partial<CalculoMedia>) => onChange(valor.map((x, k) => (k === i ? { ...x, ...cambios } : x)));
-  const anadir = () => onChange([...valor, { driver: "", forma: "" }]);
-  const quitar = (i: number) => onChange(valor.filter((_, k) => k !== i));
-  const lleno = valor.length >= DRIVERS.length;
-  const incompleto = valor.some((x) => !x.driver || !x.forma);
+  const [nivel, setNivel] = useState<NivelMedia | "">(fila?.nivel ?? "");
+  const [destino, setDestino] = useState(fila?.destino ?? "");
+  const [driver, setDriver] = useState<DriverId | "">(fila?.driver ?? "");
+  const [forma, setForma] = useState<FormaMedia | "">(fila?.forma ?? "");
+
+  const opciones = nivel === "flota" ? flotas : nivel === "linea" ? LINEAS : [];
+  const ocupados = nivel && destino ? usados(nivel, destino) : [];
+  const libres = DRIVERS.filter((d) => !ocupados.includes(d.id));
+  const valido = !!(nivel && destino && driver && forma);
+  const etiqueta = nivel === "linea" ? "Línea" : "Flota";
+
+  const cambiarNivel = (n: NivelMedia) => { if (n !== nivel) { setNivel(n); setDestino(""); setForma(""); } };
+  const cambiarDestino = (d: string) => { setDestino(d); if (driver && nivel && usados(nivel, d).includes(driver)) setDriver(""); };
 
   return (
-    <div className="stack gap-20">
-      <p className="muted" style={{ margin: 0 }}>
-        Indica de qué drivers se calcula la media en <strong>{nombre}</strong> y cómo. Para cada cálculo, elige primero el driver y después su forma de cálculo. Puedes añadir varios, uno por driver.
-      </p>
+    <Dialog large title={fila ? "Modificar cálculo de media" : "Añadir cálculo de media"} onClose={onClose}
+      footer={<>
+        <Button variant="outlined" onClick={onClose}>Cancelar</Button>
+        <Button disabled={!valido} onClick={() => valido && onGuardar({ nivel, destino, driver, forma })}>{fila ? "Guardar" : "Añadir"}</Button>
+      </>}>
+      <div className="stack gap-20">
+        <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>1. Calcular la media por *</legend>
+          <div className="row gap-30">
+            {(["flota", "linea"] as const).map((n) => (
+              <label key={n} className="lm-radio">
+                <input type="radio" name="media-nivel" checked={nivel === n} onChange={() => cambiarNivel(n)} />
+                <span className="lm-radio__text"><span>{n === "flota" ? "Flota" : "Línea"}</span></span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
-      {valor.length === 0 ? (
-        <div className="lm-card">
-          <div className="lm-center" style={{ padding: "var(--lm-space-30) var(--lm-space-20)" }}>
-            <Icon name="functions" size="xl" />
-            <span>Todavía no se calcula la media de ningún driver</span>
-            <span className="lm-body-small">Es opcional</span>
-            <Button variant="outlined" icon="add" onClick={anadir}>Añadir driver</Button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {valor.map((x, i) => {
-            const errDriver = intentado && !x.driver ? "Elige el driver" : "";
-            const errForma = intentado && x.driver && !x.forma ? "Elige la forma de cálculo" : "";
-            return (
-              <div key={i} className="lm-card stack gap-15">
-                <div className="row gap-10">
-                  <span className="lm-title-small grow">
-                    Cálculo {i + 1}{x.driver && x.forma ? ` · ${nombreDriver(x.driver)} por ${forma(x.forma)?.nombre.toLowerCase()}` : ""}
-                  </span>
-                  <IconButton icon="delete" label={`Quitar el cálculo ${i + 1}`} onClick={() => quitar(i)} />
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "var(--lm-space-30)", alignItems: "start" }}>
-                  <Field label="Driver" required htmlFor={`media-driver-${i}`} error={errDriver}>
-                    <select id={`media-driver-${i}`} className="lm-select" value={x.driver} aria-invalid={!!errDriver}
-                      onChange={(e) => cambiar(i, { driver: e.target.value as DriverId })}>
-                      <option value="">Elige un driver</option>
-                      {DRIVERS.map((d) => (
-                        <option key={d.id} value={d.id} disabled={d.id !== x.driver && usados.includes(d.id)}>{d.nombre}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }} disabled={!x.driver}>
-                    <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>
-                      Forma de cálculo{!x.driver && <span className="muted"> · elige antes el driver</span>}
-                    </legend>
-                    <div className="stack gap-10">
-                      {FORMAS_MEDIA.filter((f) => f.grupo === nivel).map((f) => (
-                        <label key={f.id} className="lm-radio" style={{ alignItems: "flex-start", opacity: x.driver ? 1 : "var(--lm-state-disabled-content)" }}>
-                          <input type="radio" name={`media-forma-${i}`} checked={x.forma === f.id} onChange={() => cambiar(i, { forma: f.id })} />
-                          <span className="lm-radio__text"><span>{f.nombre}</span><span className="lm-radio__support">{f.desc}</span></span>
-                        </label>
-                      ))}
-                    </div>
-                    {errForma && <span className="lm-field__support lm-field__support--error" role="alert">{errForma}</span>}
-                  </fieldset>
-                </div>
-              </div>
-            );
-          })}
-          <div className="row gap-10">
-            <Button variant="outlined" icon="add" disabled={lleno} onClick={anadir}>Añadir otro driver</Button>
-            {lleno && <span className="lm-body-small muted">Ya hay un cálculo para cada driver</span>}
-            {intentado && incompleto && <span className="lm-body-small" style={{ color: "var(--lm-sys-error)" }}>Completa o quita los cálculos sin terminar</span>}
-          </div>
-        </>
-      )}
-    </div>
+        <Field label={`2. ${etiqueta}`} required htmlFor="media-destino">
+          <select id="media-destino" className="lm-select" value={destino} disabled={!nivel} onChange={(e) => cambiarDestino(e.target.value)}>
+            <option value="">{nivel ? `Elige una ${etiqueta.toLowerCase()}` : "Elige antes flota o línea"}</option>
+            {opciones.map((o) => <option key={o.id} value={o.id}>{o.nombre}</option>)}
+          </select>
+        </Field>
+
+        <Field label="3. Driver" required htmlFor="media-driver"
+          support={destino && !libres.length ? "Esta flota o línea ya tiene un cálculo para cada driver" : undefined}>
+          <select id="media-driver" className="lm-select" value={driver} disabled={!destino} onChange={(e) => setDriver(e.target.value as DriverId)}>
+            <option value="">{destino ? "Elige un driver" : `Elige antes la ${etiqueta.toLowerCase()}`}</option>
+            {DRIVERS.map((d) => (
+              <option key={d.id} value={d.id} disabled={ocupados.includes(d.id)}>{d.nombre}{ocupados.includes(d.id) ? " (ya tiene cálculo)" : ""}</option>
+            ))}
+          </select>
+        </Field>
+
+        <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }} disabled={!nivel || !driver}>
+          <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>
+            4. Forma de cálculo *{(!nivel || !driver) && <span className="muted"> · elige antes el driver</span>}
+          </legend>
+          {(nivel ? FORMAS_MEDIA.filter((f) => f.grupo === nivel) : FORMAS_MEDIA.filter((f) => f.grupo === "flota")).map((f) => (
+            <label key={f.id} className="lm-radio" style={{ alignItems: "flex-start", opacity: nivel && driver ? 1 : "var(--lm-state-disabled-content)" }}>
+              <input type="radio" name="media-forma" checked={forma === f.id} onChange={() => setForma(f.id)} />
+              <span className="lm-radio__text"><span>{f.nombre}</span><span className="lm-radio__support">{f.desc}</span></span>
+            </label>
+          ))}
+        </fieldset>
+      </div>
+    </Dialog>
   );
 }
