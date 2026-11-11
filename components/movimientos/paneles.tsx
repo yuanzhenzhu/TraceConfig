@@ -38,11 +38,13 @@ export function Panel({ titulo, subtitulo, accion, children }: { titulo: string;
 }
 
 /** Árbol de la unidad en lista. marcas: serie -> etiqueta ("Sale" / "Entra"); vacios: rutas que quedan vacías. */
-export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 440, soloLectura, marcas = {}, vacios = new Set<string>(), abrirHasta, elegible }: {
+export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 440, soloLectura, marcas = {}, vacios = new Set<string>(), abrirHasta, elegible, hueco }: {
   raiz: Nodo; unidad: string; activos: Record<string, ActivoM>; sel: SeleccionUnidad; onSel: (s: SeleccionUnidad) => void; busca: string; alto?: number;
   soloLectura?: boolean; marcas?: Record<string, "Sale" | "Entra">; vacios?: Set<string>; abrirHasta?: string;
   /** Si se indica, devuelve el motivo por el que un activo no se puede marcar (o null si se puede). */
   elegible?: (a: ActivoM) => string | null;
+  /** Modo hueco: se elige una posición vacía cuyo padre está ocupado (Montaje en unidad), en lugar de un activo. */
+  hueco?: { sel: string; onSel: (ruta: string, categoria: string) => void };
 }) {
   const { activoDe, rutaDe } = useMemo(() => huecosConActivo(raiz, unidad, activos), [raiz, unidad, activos]);
   const [cerrados, setCerrados] = useState<Record<string, boolean>>(() => {
@@ -92,13 +94,19 @@ export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 4
         const on = !soloLectura && marcado(a?.serie);
         const marca = a ? marcas[a.serie] : undefined;
         return (
-          <div key={n.id} role="treeitem" aria-level={nivel + 1} className="row" style={{ ...fila(on || !!marca), cursor: a && !soloLectura ? "pointer" : "default", paddingLeft: `calc(var(--lm-space-15) + ${nivel} * var(--lm-space-20))` }}
-            onClick={() => a && pulsar(a, n)}>
+          <div key={n.id} role="treeitem" aria-level={nivel + 1} className="row" style={{ ...fila(on || !!marca || (!!hueco && hueco.sel === ruta)), cursor: a && !soloLectura && !hueco ? "pointer" : "default", paddingLeft: `calc(var(--lm-space-15) + ${nivel} * var(--lm-space-20))` }}
+            onClick={() => a && !hueco && pulsar(a, n)}>
             {!q && n.hijos.length ? (
               <IconButton compact icon={cerrados[n.id] ? "chevron_right" : "expand_more"} label={`${cerrados[n.id] ? "Desplegar" : "Plegar"} ${n.nombre}`}
                 onClick={(e) => { e.stopPropagation(); setCerrados((c) => ({ ...c, [n.id]: !c[n.id] })); }} />
             ) : <span style={{ width: "var(--lm-space-40)" }} />}
-            {!soloLectura && (
+            {hueco && (() => {
+              const p = ruta.split(SEP).slice(0, -1).join(SEP);
+              const libre = !a && (!p || Object.values(activos).some((x) => x.lugar.tipo === "unidad" && x.lugar.unidad === unidad && x.lugar.hueco === p));
+              return <input type="radio" name={`hueco-${unidad}`} disabled={!libre} checked={hueco.sel === ruta} title={a ? "Ocupado" : libre ? undefined : "Su padre está vacío"}
+                onChange={() => hueco.onSel(ruta, n.categoria)} onClick={(e) => e.stopPropagation()} aria-label={`Elegir el hueco ${ruta}`} />;
+            })()}
+            {!soloLectura && !hueco && (
               <input type="checkbox" disabled={!a || (!on && !hijos.has(a.serie) && !!elegible?.(a))} title={a && !on && !hijos.has(a.serie) ? elegible?.(a) ?? undefined : undefined} checked={on} onChange={() => a && pulsar(a, n)} onClick={(e) => e.stopPropagation()}
                 aria-label={`${on ? "Desmarcar" : "Marcar"} ${ruta}`} />
             )}
@@ -114,9 +122,10 @@ export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 4
 }
 
 /** Activos del almacén en lista. Con conHijos, sus activos montados debajo; en los ejes, Rotar. */
-export function PanelAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado, onRotar, alto = 440, marcas = {}, soloLectura }: {
+export function PanelAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado, onRotar, alto = 440, marcas = {}, soloLectura, sinRotar, detalle }: {
   candidatos: ActivoM[]; activos: Record<string, ActivoM>; sel: string; onSel: (s: string) => void; conHijos: boolean;
   rotado: boolean; onRotar: (s: string) => void; alto?: number; marcas?: Record<string, "Sale" | "Entra">; soloLectura?: boolean;
+  sinRotar?: boolean; detalle?: (a: ActivoM) => string;
 }) {
   return (
     <div role="listbox" aria-label="Activos del almacén" style={lista(alto)}>
@@ -130,10 +139,10 @@ export function PanelAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado
           <div key={a.serie} role="option" aria-selected={on} style={{ borderBottom: "1px solid var(--lm-sys-outline-variant)", background: on || marca ? "var(--lm-sys-secondary-container)" : undefined }}>
             <div className="row" style={{ ...fila(false), cursor: soloLectura ? "default" : "pointer" }} onClick={() => !soloLectura && onSel(a.serie)}>
               {!soloLectura && <input type="radio" name="sel-almacen" checked={on} onChange={() => onSel(a.serie)} onClick={(e) => e.stopPropagation()} aria-label={`Elegir ${a.categoria} ${a.serie}`} />}
-              <span className="grow" style={{ fontWeight: 500 }}>{a.categoria} {a.serie}</span>
+              <span className="grow"><span style={{ fontWeight: 500 }}>{a.categoria} {a.serie}</span>{detalle && <span className="lm-body-small muted"> · {detalle(a)}</span>}</span>
               {girado && <Tag tone="info">Rotado 180°</Tag>}
               <span className="lm-body-small muted" style={{ width: 150, textAlign: "right" }}>{textoDriver(a)}</span>
-              {!soloLectura && conHijos && a.categoria === "Eje" && desc.length > 1 && (
+              {!soloLectura && !sinRotar && conHijos && a.categoria === "Eje" && desc.length > 1 && (
                 <span onClick={(e) => e.stopPropagation()}>
                   <Button variant={girado ? "tonal" : "text"} small onClick={() => onRotar(a.serie)}>{girado ? "Deshacer" : "Rotar"}</Button>
                 </span>

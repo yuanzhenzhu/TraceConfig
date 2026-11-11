@@ -51,7 +51,14 @@ export const TIPOS = {
   intercambioUU: "Intercambio entre unidades",
   intercambioMU: "Intercambio dentro de la unidad",
   rotacionBogie: "Rotación de bogies",
+  montajeUnidad: "Montaje en unidad",
+  montajeAlmacen: "Montaje en almacén",
+  desmontajeUnidad: "Desmontaje de unidad",
+  desmontajeAlmacen: "Desmontaje en almacén",
 } as const;
+
+/** Id de un grupo de movimientos seguidos (montaje de varios hijos en una sola acción). */
+export const nuevoGrupo = () => `G-${Date.now().toString(36)}`;
 
 /* ---------- Fechas ---------- */
 const p2 = (n: number) => String(n).padStart(2, "0");
@@ -230,6 +237,59 @@ export function planRotacion(activos: Record<string, ActivoM>, serie: string): P
     serie: e.a.serie, categoria: e.a.categoria, antes: e.a.lugar, despues: { tipo: "unidad", unidad, hueco: `${hueco}${SEP}${m[e.rel]}` }, conPadre: true,
   }));
   return filas.length ? { filas } : { filas: [], error: "Al rotar no cambia la posición de ningún activo" };
+}
+
+/* ---------- Montajes y desmontajes (HU-M07, HU-M08, HU-M10, HU-M11) ---------- */
+const fila = (a: ActivoM, despues: Lugar, conPadre: boolean): FilaMov => ({ serie: a.serie, categoria: a.categoria, antes: a.lugar, despues, conPadre });
+
+/** Montaje en unidad: un activo del almacén (con lo que lleva montado) entra en un hueco libre. huecos: rutas de la estructura de la unidad. */
+export function planMontajeUnidad(activos: Record<string, ActivoM>, unidad: string, hueco: string, serie: string, huecos: Set<string>): PlanIntercambio {
+  const B = activos[serie];
+  if (!B || B.lugar.tipo !== "almacen") return { filas: [] };
+  const d = descendientes(activos, B);
+  const fuera = d.find((e) => !huecos.has(`${hueco}${SEP}${e.rel}`));
+  if (fuera) return { filas: [], error: `El ${B.categoria.toLowerCase()} ${B.serie} trae ${fuera.a.categoria.toLowerCase()} ${fuera.a.serie} en ${fuera.rel}, una posición que no existe en la estructura de la unidad` };
+  return { filas: [fila(B, { tipo: "unidad", unidad, hueco }, false), ...d.map((e) => fila(e.a, { tipo: "unidad", unidad, hueco: `${hueco}${SEP}${e.rel}` }, true))] };
+}
+
+/** Desmontaje de unidad: el activo sale con todo lo que lleva montado, a un almacén (suelto) o de baja. */
+export function planDesmontajeUnidad(activos: Record<string, ActivoM>, serie: string, destino: { almacenId: string } | "baja", hijosDeBaja: boolean, almacenHijos: string): PlanIntercambio {
+  const A = activos[serie];
+  if (!A || A.lugar.tipo !== "unidad") return { filas: [] };
+  const d = descendientes(activos, A);
+  const { unidad } = A.lugar;
+  const padreDe = (h: string) => Object.values(activos).find((x) => x.lugar.tipo === "unidad" && x.lugar.unidad === unidad && x.lugar.hueco === h)?.serie;
+  if (destino === "baja") {
+    if (!hijosDeBaja && d.length && !almacenHijos) return { filas: [], error: "Elige el almacén al que van sus activos montados, o dalos de baja también" };
+    return { filas: [fila(A, { tipo: "baja" }, false), ...d.map((e) => fila(e.a, hijosDeBaja ? { tipo: "baja" }
+      : e.rel.includes(SEP) ? { tipo: "almacen", almacenId: almacenHijos, padre: padreDe(padreRuta((e.a.lugar as { hueco: string }).hueco)), enHueco: nombreFinal(e.rel) }
+        : { tipo: "almacen", almacenId: almacenHijos }, true))] };
+  }
+  return { filas: [fila(A, { tipo: "almacen", almacenId: destino.almacenId }, false), ...d.map((e) => fila(e.a, {
+    tipo: "almacen", almacenId: destino.almacenId, padre: padreDe(padreRuta((e.a.lugar as { hueco: string }).hueco)) ?? A.serie, enHueco: nombreFinal(e.rel),
+  }, true))] };
+}
+
+/** Montaje en almacén: un activo suelto se monta en una posición libre de otro activo del mismo almacén. */
+export function planMontajeAlmacen(activos: Record<string, ActivoM>, padre: string, posicion: string, serie: string): PlanIntercambio {
+  const P = activos[padre], H = activos[serie];
+  if (!P || !H || P.lugar.tipo !== "almacen" || H.lugar.tipo !== "almacen") return { filas: [] };
+  if (H.lugar.padre) return { filas: [], error: `El ${H.categoria.toLowerCase()} ${H.serie} ya está montado en ${H.lugar.padre}` };
+  return { filas: [fila(H, { tipo: "almacen", almacenId: P.lugar.almacenId, padre: P.serie, enHueco: posicion }, false)] };
+}
+
+/** Desmontaje en almacén: un activo montado en otro queda suelto en el mismo almacén (con lo que lleva montado). */
+export function planDesmontajeAlmacen(activos: Record<string, ActivoM>, serie: string): PlanIntercambio {
+  const A = activos[serie];
+  if (!A || A.lugar.tipo !== "almacen" || !A.lugar.padre) return { filas: [] };
+  return { filas: [fila(A, { tipo: "almacen", almacenId: A.lugar.almacenId }, false)] };
+}
+
+/** Posiciones que puede tener montadas un activo de una categoría, según las estructuras (p. ej. Eje: Rueda 1, Rueda 2…). */
+export function posicionesDe(raices: Nodo[], categoria: string): { nombre: string; categoria: string }[] {
+  let mejor: Nodo | null = null;
+  raices.forEach((r) => recorrer(r, (n) => { if (n.categoria === categoria && (!mejor || n.hijos.length > mejor.hijos.length)) mejor = n; }));
+  return mejor ? (mejor as Nodo).hijos.map((h) => ({ nombre: h.nombre, categoria: h.categoria })) : [];
 }
 
 /* ---------- Estado inicial ---------- */

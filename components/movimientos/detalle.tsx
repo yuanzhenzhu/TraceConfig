@@ -33,6 +33,8 @@ export function resumenActivos(m: Movimiento) {
   const principales = m.filas.filter((f) => !f.conPadre);
   const hijos = m.filas.length - principales.length;
   const n = (f: FilaMov) => `${f.categoria} ${f.serie}`;
+  // Rotación: todas las filas son activos montados que cambian de posición
+  if (!principales.length) return `${m.filas.length} activos cambian de posición`;
   const base = principales.length === 2 ? `${n(principales[0])} ⇄ ${n(principales[1])}`
     : principales.length === 1 ? n(principales[0])
       : `${n(principales[0])} y ${principales.length - 1} más`;
