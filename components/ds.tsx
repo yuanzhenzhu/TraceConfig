@@ -233,9 +233,8 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
 }
 
 /* ---------- navbar ---------- */
-/** Módulos de Leadmind Trace: una ruta cada uno, enlazados desde la navbar. */
+/** Módulos de Leadmind Trace enlazados en la navbar. Configuración se abre desde el icono de ajustes. */
 export const MODULOS = [
-  { href: "/configuracion", label: "Configuración" },
   { href: "/consulta", label: "Consulta" },
   { href: "/movimientos", label: "Movimientos" },
   { href: "/registros", label: "Registros" },
@@ -243,9 +242,10 @@ export const MODULOS = [
 
 export function Navbar() {
   const path = usePathname();
+  const enConfig = path === "/configuracion" || path.startsWith("/configuracion/");
   return (
     <header className="lm-navbar">
-      <Link href="/configuracion" className="lm-navbar__brand">
+      <Link href="/consulta" className="lm-navbar__brand">
         <Icon name="train" />
         Leadmind <small>Trace</small>
       </Link>
@@ -257,7 +257,10 @@ export function Navbar() {
       </nav>
       <span className="lm-navbar__spacer" />
       <IconButton icon="notifications" label="Notificaciones" />
-      <IconButton icon="settings" label="Ajustes" />
+      <Link href="/configuracion" className="lm-icon-btn" aria-label="Configuración" title="Configuración"
+        aria-current={enConfig ? "page" : undefined}>
+        <Icon name="settings" filled={enConfig} />
+      </Link>
       <span className="lm-navbar__user">
         <span className="lm-avatar" aria-label="Usuario: Jefa de mantenimiento">JM</span>
       </span>

@@ -161,6 +161,7 @@ textarea.lm-input { height: auto; min-height: var(--lm-space-90); padding: var(-
 .lm-navbar__module:focus-visible { outline: none; background: color-mix(in srgb, var(--lm-sys-on-secondary) calc(var(--lm-state-focus) * 100%), transparent); box-shadow: 0 0 0 2px var(--lm-sys-on-secondary); }
 .lm-navbar__module[aria-current="page"] { background: var(--lm-sys-secondary-container); color: var(--lm-sys-on-secondary-container); }
 .lm-navbar .lm-icon-btn { color: var(--lm-sys-on-secondary); }
+.lm-navbar .lm-icon-btn[aria-current="page"] { background: var(--lm-sys-secondary-container); color: var(--lm-sys-on-secondary-container); }
 .lm-navbar__user { display: flex; align-items: center; gap: var(--lm-space-10); }
 .lm-avatar { width: var(--lm-space-40); height: var(--lm-space-40); border-radius: 50%; background: var(--lm-sys-primary-container); color: var(--lm-sys-on-primary-container); display: inline-flex; align-items: center; justify-content: center; font-weight: 500; font-size: 14px; }
 
