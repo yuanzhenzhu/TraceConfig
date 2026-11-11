@@ -58,12 +58,12 @@ export function TablaArbolUnidad({ raiz, unidad, activos, sel, onSel, busca, alt
   }
   return (
     <div style={marco(alto)}>
-      <table className="lm-table">
+      <table className="lm-table lm-table--dense">
         <thead style={cabecera}>
-          <tr><th>Posición</th><th>Categoría</th><th>Nº de serie</th><th>Driver</th></tr>
+          <tr><th>Posición</th><th>Nº de serie</th><th>Driver</th></tr>
         </thead>
         <tbody>
-          {!filas.length && <tr><td colSpan={4} className="muted">Ningún activo de la unidad {unidad} coincide con &quot;{busca}&quot;</td></tr>}
+          {!filas.length && <tr><td colSpan={3} className="muted">Ningún activo de la unidad {unidad} coincide con &quot;{busca}&quot;</td></tr>}
           {filas.map(({ n, nivel }) => {
             const a = activoDe(n);
             const on = marcado(a?.serie);
@@ -80,7 +80,6 @@ export function TablaArbolUnidad({ raiz, unidad, activos, sel, onSel, busca, alt
                     <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{q ? rutaDe(n) : n.nombre}</span>
                   </span>
                 </td>
-                <td>{n.categoria}</td>
                 <td className={a ? "emph" : "muted"}>{a ? a.serie : "Vacío"}</td>
                 <td className="muted">{textoDriver(a)}</td>
               </tr>
@@ -99,7 +98,7 @@ export function TablaAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado
 }) {
   return (
     <div style={marco(alto)}>
-      <table className="lm-table">
+      <table className="lm-table lm-table--dense">
         <thead style={cabecera}>
           <tr><th>Nº de serie</th><th>Categoría</th><th>Driver</th><th className="actions"><span className="sr-only">Rotar</span></th></tr>
         </thead>
@@ -131,12 +130,9 @@ export function TablaAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado
             const filasHijos = desc.map((d) => (
               <tr key={`${a.serie}>${d.a.serie}`} className="is-child" onClick={() => onSel(a.serie)} style={{ cursor: "pointer", background: fondo }}>
                 <td>
-                  <span style={sangria(d.rel.split(SEP).length + 1)}>
-                    <span className="muted">{d.a.serie}</span>
-                    <span className="lm-body-small muted"> · {girado && nuevaPos[d.rel] !== d.rel ? <>{d.rel} → <strong>{nuevaPos[d.rel]}</strong></> : d.rel}</span>
-                  </span>
+                  <span className="muted" style={sangria(d.rel.split(SEP).length + 1)}>{d.a.serie}</span>
                 </td>
-                <td className="muted">{d.a.categoria}</td>
+                <td className="muted">{girado && nuevaPos[d.rel] !== d.rel ? <>{d.rel} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{nuevaPos[d.rel]}</strong></> : d.rel}</td>
                 <td className="muted">{textoDriver(d.a)}</td>
                 <td />
               </tr>

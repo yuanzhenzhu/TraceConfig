@@ -141,6 +141,8 @@ textarea.lm-input { height: auto; min-height: var(--lm-space-90); padding: var(-
 .lm-table tbody tr:hover td { background: color-mix(in srgb, var(--lm-sys-on-surface) 8%, transparent); }
 .lm-table tr.is-child td { background: var(--lm-sys-surface-container-low); }
 .lm-table tr.is-child:hover td { background: color-mix(in srgb, var(--lm-sys-on-surface) 8%, var(--lm-sys-surface-container-low)); }
+.lm-table--dense td { height: var(--lm-space-40); }
+.lm-table--dense th { height: var(--lm-space-40); }
 .lm-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .lm-table .actions { text-align: right; white-space: nowrap; width: 1%; }
 .lm-table .emph { font-weight: 500; }
