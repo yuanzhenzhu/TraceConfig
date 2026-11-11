@@ -94,7 +94,7 @@ export default function IntercambioUnidadAlmacen() {
     <main className="lm-page">
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Movimientos", href: "/movimientos" }, { label: "Intercambios" }, { label: "Entre unidad y almacén" }]} />
+          <Breadcrumb items={[{ label: "Movimientos", href: "/movimientos" }, { label: "Intercambio entre unidad y almacén" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Intercambio entre unidad y almacén</h1>
           <span className="lm-body-medium muted">Cambia un activo montado en una unidad por otro de la misma categoría que está en un almacén.</span>
         </div>

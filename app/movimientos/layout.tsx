@@ -1,6 +1,6 @@
 "use client";
 
-// Módulo Movimientos: navlist lateral agrupado por acción, sin iconos (ver documentos/movimientos/flujos/movimientos.md).
+// Módulo Movimientos: navlist lateral sin iconos; los grupos se separan con una línea (ver documentos/movimientos/flujos/movimientos.md).
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,8 +15,7 @@ export default function MovimientosLayout({ children }: { children: React.ReactN
         <nav className="stack gap-5">
           {GRUPOS.map((g, i) => (
             <div key={i} className="stack gap-5">
-              {g.titulo === "" && <hr className="lm-divider" style={{ margin: "var(--lm-space-10) 0" }} />}
-              {g.titulo && <span className="lm-label-small muted" style={{ padding: "var(--lm-space-15) var(--lm-space-20) 0" }}>{g.titulo.toUpperCase()}</span>}
+              {i > 0 && <hr className="lm-divider" style={{ margin: "var(--lm-space-10) 0" }} />}
               {g.items.map((a) => {
                 const on = path === a.href;
                 return (

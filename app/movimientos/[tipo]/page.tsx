@@ -15,7 +15,7 @@ export default function MovimientoPendiente() {
     <main className="lm-page">
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Movimientos", href: "/movimientos" }, ...(item.grupo ? [{ label: item.grupo }] : []), { label: item.label }]} />
+          <Breadcrumb items={[{ label: "Movimientos", href: "/movimientos" }, { label: item.label }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>{item.label}</h1>
         </div>
       </div>
