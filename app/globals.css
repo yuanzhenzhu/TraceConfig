@@ -54,6 +54,7 @@ a { color: var(--lm-sys-primary); }
   display: inline-flex; align-items: center; justify-content: center;
   width: var(--lm-space-50); height: var(--lm-space-50); border-radius: var(--lm-corner-full);
   border: 0; background: transparent; color: var(--lm-sys-on-surface-variant); cursor: pointer; position: relative;
+  text-decoration: none; /* también cuando es un enlace (icono de Configuración en la navbar) */
 }
 .lm-icon-btn--compact { width: var(--lm-space-40); height: var(--lm-space-40); }
 .lm-icon-btn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: currentColor; opacity: 0; pointer-events: none; }
