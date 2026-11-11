@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Breadcrumb, Button, ButtonToggle, Dialog } from "@/components/ds";
 
 export function CabeceraPantalla({ miga, titulo, texto, valido, onRegistrar, hayDatos, selector, accion = "Registrar movimiento" }: {
-  miga: string; titulo: string; texto: string; valido: boolean; onRegistrar: () => void; hayDatos: boolean; selector?: ReactNode; accion?: string;
+  miga: string; titulo: string; texto: string; valido: boolean; onRegistrar?: () => void; hayDatos: boolean; selector?: ReactNode; accion?: string;
 }) {
   const router = useRouter();
   const [descartar, setDescartar] = useState(false);
@@ -20,10 +20,10 @@ export function CabeceraPantalla({ miga, titulo, texto, valido, onRegistrar, hay
           <h1 className="lm-headline-small" style={{ margin: 0 }}>{titulo}</h1>
           <span className="lm-body-medium muted">{texto}</span>
         </div>
-        <div className="lm-header__actions">
+        {onRegistrar && <div className="lm-header__actions">
           <Button variant="outlined" onClick={() => (hayDatos ? setDescartar(true) : router.push("/movimientos"))}>Cancelar</Button>
           <Button icon="check" disabled={!valido} onClick={onRegistrar}>{accion}</Button>
-        </div>
+        </div>}
       </div>
       {selector && <div className="row gap-15" style={{ marginBottom: "var(--lm-space-20)" }}>{selector}</div>}
       {descartar && (

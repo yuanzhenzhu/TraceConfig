@@ -82,7 +82,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
   const elegible = (i: number) => (a: ActivoM) => {
     const otro = act(1 - i);
     if (!otro) return null;
-    if (a.categoria !== otro.categoria) return `Solo ${otro.categoria.toLowerCase()}s, como el marcado en el otro lado`;
+    if (a.categoria !== otro.categoria) return `Solo ${otro.categoria.replace(/^./, (c) => c.toLowerCase())}s, como el marcado en el otro lado`;
     if (misma && a.lugar.tipo === "unidad" && otro.lugar.tipo === "unidad" && (a.serie === otro.serie || a.lugar.hueco.startsWith(otro.lugar.hueco + SEP) || otro.lugar.hueco.startsWith(a.lugar.hueco + SEP)))
       return "Está en la rama marcada en el otro lado";
     return null;
@@ -126,11 +126,11 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
     const a = act(i);
     if (vista === "despues") {
       const otro = act(1 - i);
-      return otro && a?.lugar.tipo === "unidad" ? <>En {a.lugar.hueco} queda el <strong>{otro.categoria.toLowerCase()} {otro.serie}</strong>{vac[i].size ? ` · ${vac[i].size} huecos quedan vacíos` : ""}</> : "";
+      return otro && a?.lugar.tipo === "unidad" ? <>En {a.lugar.hueco} queda el <strong>{otro.categoria.replace(/^./, (c) => c.toLowerCase())} {otro.serie}</strong>{vac[i].size ? ` · ${vac[i].size} huecos quedan vacíos` : ""}</> : "";
     }
-    if (!a) return i === 1 && A ? `Marca un ${A.categoria.toLowerCase()} para intercambiar` : "Marca el activo; sus activos montados se marcan con él";
+    if (!a) return i === 1 && A ? `Marca un ${A.categoria.replace(/^./, (c) => c.toLowerCase())} para intercambiar` : "Marca el activo; sus activos montados se marcan con él";
     const d = descendientes(mov.activos, a), n = d.filter((x) => !sel[i]!.quedan.includes(x.a.serie)).length;
-    return <>Marcado: <strong>{a.categoria.toLowerCase()} {a.serie}</strong>{d.length ? (n === d.length ? ` con sus ${d.length} activos montados` : n ? ` con ${n} de sus ${d.length} activos montados` : " sin sus activos montados") : ""}{rot[i] && rotable(i) ? " · rotado 180°" : ""}</>;
+    return <>Marcado: <strong>{a.categoria.replace(/^./, (c) => c.toLowerCase())} {a.serie}</strong>{d.length ? (n === d.length ? ` con sus ${d.length} activos montados` : n ? ` con ${n} de sus ${d.length} activos montados` : " sin sus activos montados") : ""}{rot[i] && rotable(i) ? " · rotado 180°" : ""}</>;
   };
 
   const panel = (i: number) => {
@@ -145,7 +145,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
               <PanelUnidad key={`${i}-${u}`} raiz={inf.raiz} unidad={u} activos={mov.activos} sel={sel[i]} onSel={elegir(i)} busca={busca[i]} elegible={elegible(i)} alto={400} />
               {rotable(i) && (
                 <div className="row gap-10" style={{ padding: "var(--lm-space-10) var(--lm-space-15)", borderTop: "1px solid var(--lm-sys-outline-variant)" }}>
-                  <span className="grow lm-body-small muted">Rotar el {act(i)!.categoria.toLowerCase()} {act(i)!.serie} (180°): sus activos montados cambian de lado</span>
+                  <span className="grow lm-body-small muted">Rotar el {act(i)!.categoria.replace(/^./, (c) => c.toLowerCase())} {act(i)!.serie} (180°): sus activos montados cambian de lado</span>
                   <Button variant={rot[i] ? "tonal" : "text"} small onClick={() => { setRot((x) => set(x, i, !x[i])); }}>{rot[i] ? "Deshacer rotación" : "Rotar"}</Button>
                 </div>
               )}

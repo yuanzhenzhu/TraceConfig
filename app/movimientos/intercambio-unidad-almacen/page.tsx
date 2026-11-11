@@ -215,7 +215,7 @@ export default function IntercambioUnidadAlmacen() {
         {/* Unidad y almacén, lado a lado */}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
           <Panel titulo={`Unidad ${unidad || ""} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? <>En {A?.lugar.tipo === "unidad" ? A.lugar.hueco : ""} queda el <strong>{B?.categoria.toLowerCase()} {B?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}{vaciosRutas.size ? ` · ${vaciosRutas.size} huecos quedan vacíos` : ""}</> : A ? <>Marcado: <strong>{A.categoria.toLowerCase()} {A.serie}</strong>{hijosA.length ? (modo === "todos" ? ` con sus ${hijosA.length} activos montados` : modo === "parte" ? ` con ${nViajan} de sus ${hijosA.length} activos montados (${hijosA.length - nViajan} se quedan en la unidad)` : " sin sus activos montados") : ""} · sale de la unidad</> : "Marca el activo que sale; sus activos montados se marcan con él"}
+            subtitulo={vista === "despues" ? <>En {A?.lugar.tipo === "unidad" ? A.lugar.hueco : ""} queda el <strong>{B?.categoria.replace(/^./, (c) => c.toLowerCase())} {B?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}{vaciosRutas.size ? ` · ${vaciosRutas.size} huecos quedan vacíos` : ""}</> : A ? <>Marcado: <strong>{A.categoria.replace(/^./, (c) => c.toLowerCase())} {A.serie}</strong>{hijosA.length ? (modo === "todos" ? ` con sus ${hijosA.length} activos montados` : modo === "parte" ? ` con ${nViajan} de sus ${hijosA.length} activos montados (${hijosA.length - nViajan} se quedan en la unidad)` : " sin sus activos montados") : ""} · sale de la unidad</> : "Marca el activo que sale; sus activos montados se marcan con él"}
             accion={uInfo && vista === "antes" ? <SearchInput label="Buscar en la unidad por nº de serie" placeholder="Nº de serie" value={buscaU} onChange={setBuscaU} /> : undefined}>
             {!uInfo ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad arriba" />
               : <>
@@ -235,7 +235,7 @@ export default function IntercambioUnidadAlmacen() {
           <span className="row" aria-hidden="true" style={{ alignSelf: "center", color: "var(--lm-sys-on-surface-variant)" }}><Icon name="swap_vert" /></span>
 
           <Panel titulo={`${almacen ? t.nombreAlmacen(almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? <>Queda el <strong>{A?.categoria.toLowerCase()} {A?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}, que sale de la unidad</> : !A ? "Marca antes lo que sale de la unidad" : B ? <>Elegido: <strong>{B.categoria.toLowerCase()} {B.serie}</strong>{rotar && modoHijos ? " rotado 180°" : ""} · entra en la unidad</> : modo === "todos" ? `Elige un ${A.categoria.toLowerCase()} con activos montados` : modo === "parte" ? `Elige un ${A.categoria.toLowerCase()} que encaje con lo que se queda en la unidad` : `Elige un ${A.categoria.toLowerCase()} sin activos montados`}
+            subtitulo={vista === "despues" ? <>Queda el <strong>{A?.categoria.replace(/^./, (c) => c.toLowerCase())} {A?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}, que sale de la unidad</> : !A ? "Marca antes lo que sale de la unidad" : B ? <>Elegido: <strong>{B.categoria.replace(/^./, (c) => c.toLowerCase())} {B.serie}</strong>{rotar && modoHijos ? " rotado 180°" : ""} · entra en la unidad</> : modo === "todos" ? `Elige un ${A.categoria.replace(/^./, (c) => c.toLowerCase())} con activos montados` : modo === "parte" ? `Elige un ${A.categoria.replace(/^./, (c) => c.toLowerCase())} que encaje con lo que se queda en la unidad` : `Elige un ${A.categoria.replace(/^./, (c) => c.toLowerCase())} sin activos montados`}
             accion={almacen && A && vista === "antes" ? <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={buscaA} onChange={setBuscaA} /> : undefined}>
             {!almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indica el almacén arriba" />
               : !A ? <EmptyState icon="arrow_left" title="Marca lo que sale" text="Aquí aparecerán los activos de la misma categoría" />
@@ -243,7 +243,7 @@ export default function IntercambioUnidadAlmacen() {
                   ? <PanelAlmacen candidatos={almacenDespues} activos={despues} sel="" onSel={() => {}} conHijos={modoHijos} rotado={false} onRotar={() => {}} soloLectura
                       marcas={Object.fromEntries([[A.serie, "Sale" as const]])} />
                   : !delAlmacen.length ? (
-                    <EmptyState icon={buscaA ? "search_off" : "domain"} title={buscaA ? "No hay resultados" : modo === "parte" ? `No hay ${A.categoria.toLowerCase()}s que encajen` : `No hay ${A.categoria.toLowerCase()}s ${modoHijos ? "con" : "sin"} activos montados`}
+                    <EmptyState icon={buscaA ? "search_off" : "domain"} title={buscaA ? "No hay resultados" : modo === "parte" ? `No hay ${A.categoria.replace(/^./, (c) => c.toLowerCase())}s que encajen` : `No hay ${A.categoria.replace(/^./, (c) => c.toLowerCase())}s ${modoHijos ? "con" : "sin"} activos montados`}
                       text={buscaA ? "Ningún activo coincide con el nº de serie" : modo === "parte" ? "Ningún activo del almacén encaja con lo que se queda en la unidad (sin chocar y sin dejar activos sin su padre): marca o desmarca otros activos montados, o elige otro almacén" : modoHijos ? "Desmarca sus activos montados para cambiar solo el activo, o elige otro almacén" : "Elige otro almacén"} />
                   ) : (
                     <PanelAlmacen candidatos={delAlmacen} activos={mov.activos} sel={selA} conHijos={modoHijos} rotado={rotar}
@@ -267,7 +267,7 @@ export default function IntercambioUnidadAlmacen() {
         {plan?.error && <Banner type="error" title={plan.error} />}
         {vaciosRutas.size > 0 && (
           <Banner type="attention" title={`${vaciosRutas.size === 1 ? "Queda 1 hueco vacío" : `Quedan ${vaciosRutas.size} huecos vacíos`} en la unidad ${unidad}`}>
-            {[...vaciosRutas].join(" · ")}. El {B?.categoria.toLowerCase()} {B?.serie} no tiene activos para esas posiciones; podrás montarlos después con Montaje.
+            {[...vaciosRutas].join(" · ")}. El {B?.categoria.replace(/^./, (c) => c.toLowerCase())} {B?.serie} no tiene activos para esas posiciones; podrás montarlos después con Montaje.
           </Banner>
         )}
       </div>

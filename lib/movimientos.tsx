@@ -37,6 +37,7 @@ export type Movimiento = {
   estado: "registrado" | "anulado";
   anulado?: { fecha: string; por: string };
   grupo?: string; // movimientos seguidos: mismo grupo
+  motivo?: string; // fin de vida
   por: string;
 };
 
@@ -55,6 +56,8 @@ export const TIPOS = {
   montajeAlmacen: "Montaje en almacén",
   desmontajeUnidad: "Desmontaje de unidad",
   desmontajeAlmacen: "Desmontaje en almacén",
+  envio: "Envío entre almacenes",
+  finVida: "Fin de vida",
 } as const;
 
 /** Id de un grupo de movimientos seguidos (montaje de varios hijos en una sola acción). */
@@ -146,7 +149,7 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
   // Lo que se queda ocupa sus posiciones: el que entra no puede traer activos en ellas
   const posQuedan = new Set(dA.filter((d) => quedan.has(d.a.serie)).map((d) => d.rel));
   const choque = dB.find((d) => posQuedan.has(relB[d.a.serie]));
-  if (choque) return { filas: [], error: `El ${B.categoria.toLowerCase()} ${B.serie} trae un activo en ${relB[choque.a.serie]}, que se queda ocupado en la unidad: elige otro o marca también ese activo` };
+  if (choque) return { filas: [], error: `El ${B.categoria.replace(/^./, (c) => c.toLowerCase())} ${B.serie} trae un activo en ${relB[choque.a.serie]}, que se queda ocupado en la unidad: elige otro o marca también ese activo` };
   // Lo que se queda necesita a su padre: si su padre sale, el que entra tiene que traer otro en esa posición
   const posEntran = new Set(dB.map((d) => relB[d.a.serie]));
   const huerfano = dA.find((d) => {
@@ -156,7 +159,7 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
   });
   if (huerfano) {
     const p = padreRuta(huerfano.rel);
-    return { filas: [], error: `${huerfano.a.categoria} ${huerfano.a.serie} (${huerfano.rel}) se quedaría sin su padre: ${p} sale y el ${B.categoria.toLowerCase()} ${B.serie} no trae otro en esa posición. Marca también lo que cuelga de ${p} o desmarca ${p}` };
+    return { filas: [], error: `${huerfano.a.categoria} ${huerfano.a.serie} (${huerfano.rel}) se quedaría sin su padre: ${p} sale y el ${B.categoria.replace(/^./, (c) => c.toLowerCase())} ${B.serie} no trae otro en esa posición. Marca también lo que cuelga de ${p} o desmarca ${p}` };
   }
 
   // A y los que viajan pasan al sitio de B en el almacén; B y sus hijos, al hueco de A.
@@ -201,9 +204,9 @@ export function planIntercambioUU(activos: Record<string, ActivoM>, l1: Lado, l2
   // Lo que llega a una posición no puede chocar con lo que se queda allí, ni dejar a nadie sin su padre
   const comprobar = (llega: typeof dA, destino: typeof dA, quien: ActivoM, donde: ActivoM) => {
     const choque = llega.viajan.find((e) => destino.posQuedan.has(llega.nueva[e.a.serie]));
-    if (choque) return `El ${quien.categoria.toLowerCase()} ${quien.serie} trae un activo en ${llega.nueva[choque.a.serie]}, que se queda ocupado junto al ${donde.categoria.toLowerCase()} ${donde.serie}`;
+    if (choque) return `El ${quien.categoria.replace(/^./, (c) => c.toLowerCase())} ${quien.serie} trae un activo en ${llega.nueva[choque.a.serie]}, que se queda ocupado junto al ${donde.categoria.replace(/^./, (c) => c.toLowerCase())} ${donde.serie}`;
     const huerf = destino.d.find((e) => destino.posQuedan.has(e.rel) && padreRuta(e.rel) && !destino.posQuedan.has(padreRuta(e.rel)) && !llega.posLlegan.has(padreRuta(e.rel)));
-    if (huerf) return `${huerf.a.categoria} ${huerf.a.serie} (${huerf.rel}) se quedaría sin su padre: ${padreRuta(huerf.rel)} sale y el ${quien.categoria.toLowerCase()} ${quien.serie} no trae otro en esa posición`;
+    if (huerf) return `${huerf.a.categoria} ${huerf.a.serie} (${huerf.rel}) se quedaría sin su padre: ${padreRuta(huerf.rel)} sale y el ${quien.categoria.replace(/^./, (c) => c.toLowerCase())} ${quien.serie} no trae otro en esa posición`;
     return "";
   };
   const e1 = comprobar(dB, dA, B, A) || comprobar(dA, dB, A, B);
@@ -248,7 +251,7 @@ export function planMontajeUnidad(activos: Record<string, ActivoM>, unidad: stri
   if (!B || B.lugar.tipo !== "almacen") return { filas: [] };
   const d = descendientes(activos, B);
   const fuera = d.find((e) => !huecos.has(`${hueco}${SEP}${e.rel}`));
-  if (fuera) return { filas: [], error: `El ${B.categoria.toLowerCase()} ${B.serie} trae ${fuera.a.categoria.toLowerCase()} ${fuera.a.serie} en ${fuera.rel}, una posición que no existe en la estructura de la unidad` };
+  if (fuera) return { filas: [], error: `El ${B.categoria.replace(/^./, (c) => c.toLowerCase())} ${B.serie} trae ${fuera.a.categoria.replace(/^./, (c) => c.toLowerCase())} ${fuera.a.serie} en ${fuera.rel}, una posición que no existe en la estructura de la unidad` };
   return { filas: [fila(B, { tipo: "unidad", unidad, hueco }, false), ...d.map((e) => fila(e.a, { tipo: "unidad", unidad, hueco: `${hueco}${SEP}${e.rel}` }, true))] };
 }
 
@@ -274,7 +277,7 @@ export function planDesmontajeUnidad(activos: Record<string, ActivoM>, serie: st
 export function planMontajeAlmacen(activos: Record<string, ActivoM>, padre: string, posicion: string, serie: string): PlanIntercambio {
   const P = activos[padre], H = activos[serie];
   if (!P || !H || P.lugar.tipo !== "almacen" || H.lugar.tipo !== "almacen") return { filas: [] };
-  if (H.lugar.padre) return { filas: [], error: `El ${H.categoria.toLowerCase()} ${H.serie} ya está montado en ${H.lugar.padre}` };
+  if (H.lugar.padre) return { filas: [], error: `El ${H.categoria.replace(/^./, (c) => c.toLowerCase())} ${H.serie} ya está montado en ${H.lugar.padre}` };
   return { filas: [fila(H, { tipo: "almacen", almacenId: P.lugar.almacenId, padre: P.serie, enHueco: posicion }, false)] };
 }
 
@@ -290,6 +293,28 @@ export function posicionesDe(raices: Nodo[], categoria: string): { nombre: strin
   let mejor: Nodo | null = null;
   raices.forEach((r) => recorrer(r, (n) => { if (n.categoria === categoria && (!mejor || n.hijos.length > mejor.hijos.length)) mejor = n; }));
   return mejor ? (mejor as Nodo).hijos.map((h) => ({ nombre: h.nombre, categoria: h.categoria })) : [];
+}
+
+/* ---------- Envío entre almacenes (HU-M09) y fin de vida (HU-M12) ---------- */
+/** Envío: un activo suelto va a otro almacén con todo lo que lleva montado (siguen montados en él). */
+export function planEnvio(activos: Record<string, ActivoM>, serie: string, destino: string): PlanIntercambio {
+  const A = activos[serie];
+  if (!A || A.lugar.tipo !== "almacen") return { filas: [] };
+  if (A.lugar.padre) return { filas: [], error: `El ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie} está montado en ${A.lugar.padre}: desmóntalo antes` };
+  if (A.lugar.almacenId === destino) return { filas: [], error: "Elige un almacén de destino distinto del de origen" };
+  const d = descendientes(activos, A);
+  return { filas: [fila(A, { tipo: "almacen", almacenId: destino }, false), ...d.map((e) => fila(e.a, { ...(e.a.lugar as Extract<Lugar, { tipo: "almacen" }>), almacenId: destino }, true))] };
+}
+
+/** Fin de vida: un activo suelto de un almacén queda De baja; sus activos montados, también o sueltos en el almacén. */
+export function planBaja(activos: Record<string, ActivoM>, serie: string, incluirHijos: boolean): PlanIntercambio {
+  const A = activos[serie];
+  if (!A || A.lugar.tipo !== "almacen") return { filas: [] };
+  if (A.lugar.padre) return { filas: [], error: `El ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie} está montado en ${A.lugar.padre}: desmóntalo antes` };
+  const alm = A.lugar.almacenId;
+  const d = descendientes(activos, A);
+  return { filas: [fila(A, { tipo: "baja" }, false), ...d.map((e) => fila(e.a, incluirHijos ? { tipo: "baja" }
+    : e.rel.includes(SEP) ? (e.a.lugar as Extract<Lugar, { tipo: "almacen" }>) : { tipo: "almacen", almacenId: alm }, true)).filter((x) => JSON.stringify(x.antes) !== JSON.stringify(x.despues))] };
 }
 
 /* ---------- Estado inicial ---------- */

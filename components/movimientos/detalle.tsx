@@ -120,7 +120,7 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
         <Button onClick={() => { mov.anular(m.id); onClose(); snack(`Movimiento ${m.id} anulado`); }}>Anular movimiento</Button>
       </>}>
       <div className="stack gap-10">
-        {principales.map((f) => <span key={f.serie}>El {f.categoria.toLowerCase()} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}
+        {principales.map((f) => <span key={f.serie}>El {f.categoria.replace(/^./, (c) => c.toLowerCase())} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}
         {hijos > 0 && <span>Sus {hijos} activos montados vuelven también a su posición anterior.</span>}
         <span className="muted">El movimiento seguirá en el historial, tachado.</span>
       </div>

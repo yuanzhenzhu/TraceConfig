@@ -72,7 +72,7 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
         <AhoraDespues vista={vista} setVista={setVista} ok={planOk} texto="Elige un hueco libre y el activo que se monta; después podrás ver cómo queda." />
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
           <Panel titulo={`Unidad ${cab.unidad || ""} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? <>En {hueco?.ruta} queda montado el <strong>{B?.categoria.toLowerCase()} {B?.serie}</strong></> : hueco ? <>Hueco elegido: <strong>{hueco.ruta}</strong> ({hueco.categoria})</> : "Elige un hueco libre (su padre tiene que estar ocupado)"}>
+            subtitulo={vista === "despues" ? <>En {hueco?.ruta} queda montado el <strong>{B?.categoria.replace(/^./, (c) => c.toLowerCase())} {B?.serie}</strong></> : hueco ? <>Hueco elegido: <strong>{hueco.ruta}</strong> ({hueco.categoria})</> : "Elige un hueco libre (su padre tiene que estar ocupado)"}>
             {!cab.info ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad arriba" /> : (
               <>
                 <div hidden={vista === "despues" && planOk}>
@@ -87,12 +87,12 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
             )}
           </Panel>
           <Panel titulo={`${cab.almacen ? t.nombreAlmacen(cab.almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? `El ${B?.categoria.toLowerCase()} ${B?.serie} sale del almacén` : !hueco ? "Elige antes el hueco" : B ? <>Elegido: <strong>{B.categoria.toLowerCase()} {B.serie}</strong>{descendientes(mov.activos, B).length ? ` con sus ${descendientes(mov.activos, B).length} activos montados` : ""}</> : `${hueco.categoria}s sueltos`}
+            subtitulo={vista === "despues" ? `El ${B?.categoria.replace(/^./, (c) => c.toLowerCase())} ${B?.serie} sale del almacén` : !hueco ? "Elige antes el hueco" : B ? <>Elegido: <strong>{B.categoria.replace(/^./, (c) => c.toLowerCase())} {B.serie}</strong>{descendientes(mov.activos, B).length ? ` con sus ${descendientes(mov.activos, B).length} activos montados` : ""}</> : `${hueco.categoria}s sueltos`}
             accion={cab.almacen && hueco && vista === "antes" ? <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
             {!cab.almacen ? <EmptyState icon="domain" title="Elige el almacén de origen" text="Indícalo arriba" />
               : !hueco ? <EmptyState icon="arrow_left" title="Elige un hueco libre" text="Aquí aparecerán los activos sueltos de esa categoría" />
-                : vista === "despues" ? <EmptyState icon="check" title={`Sale ${B?.categoria.toLowerCase()} ${B?.serie}`} text="Queda montado en la unidad" />
-                  : !candidatos.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : `No hay ${hueco.categoria.toLowerCase()}s sueltos`} text={busca ? "Ningún activo coincide" : "Elige otro almacén"} />
+                : vista === "despues" ? <EmptyState icon="check" title={`Sale ${B?.categoria.replace(/^./, (c) => c.toLowerCase())} ${B?.serie}`} text="Queda montado en la unidad" />
+                  : !candidatos.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : `No hay ${hueco.categoria.replace(/^./, (c) => c.toLowerCase())}s sueltos`} text={busca ? "Ningún activo coincide" : "Elige otro almacén"} />
                     : <PanelAlmacen candidatos={candidatos} activos={mov.activos} sel={selA} onSel={setSelA} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420} />}
           </Panel>
         </div>
@@ -165,7 +165,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
         <AhoraDespues vista={vista} setVista={setVista} ok={planOk} texto="Elige el padre y al menos un activo para montar; después podrás ver cómo queda." />
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
           <Panel titulo={`${cab.almacen ? t.nombreAlmacen(cab.almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? <>Así queda el <strong>{P?.categoria.toLowerCase()} {P?.serie}</strong></> : P ? <>Padre: <strong>{P.categoria.toLowerCase()} {P.serie}</strong></> : "Elige el activo en el que se monta (con posiciones libres)"}
+            subtitulo={vista === "despues" ? <>Así queda el <strong>{P?.categoria.replace(/^./, (c) => c.toLowerCase())} {P?.serie}</strong></> : P ? <>Padre: <strong>{P.categoria.replace(/^./, (c) => c.toLowerCase())} {P.serie}</strong></> : "Elige el activo en el que se monta (con posiciones libres)"}
             accion={cab.almacen && vista === "antes" ? <SearchInput label="Buscar el padre por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
             {!cab.almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indícalo arriba" />
               : vista === "despues" && P ? <PanelAlmacen candidatos={[despues[P.serie]]} activos={despues} sel="" onSel={() => {}} conHijos sinRotar rotado={false} onRotar={() => {}} soloLectura alto={420} marcas={{ [P.serie]: "Entra" }} />
@@ -173,13 +173,13 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
                   : <PanelAlmacen candidatos={padres} activos={mov.activos} sel={padre} onSel={(s) => { setPadre(s); setAsig({}); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420}
                       detalle={(a) => `Libres: ${libres(a.serie).map((x) => x.nombre).join(", ")}`} />}
           </Panel>
-          <Panel titulo="Activos que se montan" subtitulo={P ? `Una fila por posición libre del ${P.categoria.toLowerCase()} ${P.serie}. Varios se registran como movimientos seguidos.` : "Elige antes el padre"}>
+          <Panel titulo="Activos que se montan" subtitulo={P ? `Una fila por posición libre del ${P.categoria.replace(/^./, (c) => c.toLowerCase())} ${P.serie}. Varios se registran como movimientos seguidos.` : "Elige antes el padre"}>
             {!P ? <EmptyState icon="arrow_left" title="Elige el padre" text="Aquí aparecerán sus posiciones libres" /> : (
               <div className="stack gap-15" style={{ padding: "var(--lm-space-15)" }}>
                 {libres(P.serie).map((pos) => {
                   const ops = sueltos(pos.categoria).filter((a) => !Object.entries(asig).some(([p, s]) => p !== pos.nombre && s === a.serie));
                   return (
-                    <Field key={pos.nombre} label={`${pos.nombre} (${pos.categoria})`} htmlFor={`pos-${pos.nombre}`} support={ops.length ? undefined : `No hay ${pos.categoria.toLowerCase()}s sueltos en el almacén`}>
+                    <Field key={pos.nombre} label={`${pos.nombre} (${pos.categoria})`} htmlFor={`pos-${pos.nombre}`} support={ops.length ? undefined : `No hay ${pos.categoria.replace(/^./, (c) => c.toLowerCase())}s sueltos en el almacén`}>
                       <select id={`pos-${pos.nombre}`} className="lm-select lm-select--dense" value={asig[pos.nombre] ?? ""} disabled={vista === "despues" || !ops.length}
                         onChange={(e) => setAsig((x) => ({ ...x, [pos.nombre]: e.target.value }))}>
                         <option value="">Sin montar</option>
@@ -196,7 +196,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
       </div>
       {confirmar && (
         <Dialog large title={elegidas.length > 1 ? `¿Registrar ${elegidas.length} montajes seguidos?` : "¿Registrar el montaje?"} onClose={() => setConfirmar(false)}
-          message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · en el ${P?.categoria.toLowerCase()} ${P?.serie}${elegidas.length > 1 ? " · un movimiento por activo, enlazados" : ""}`}
+          message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · en el ${P?.categoria.replace(/^./, (c) => c.toLowerCase())} ${P?.serie}${elegidas.length > 1 ? " · un movimiento por activo, enlazados" : ""}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={filas} />
         </Dialog>
