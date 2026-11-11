@@ -209,15 +209,18 @@ export function Menu({ items, label }: { items: MenuItem[]; label: string }) {
 }
 
 /* ---------- MatSnackBar (proveedor global) ---------- */
-const SnackCtx = createContext<(text: string) => void>(() => {});
+/** Acción opcional del snackbar (botón de texto, como en Material 3). */
+export type SnackAccion = { label: string; onClick: () => void };
+const SnackCtx = createContext<(text: string, accion?: SnackAccion) => void>(() => {});
 export const useSnackbar = () => useContext(SnackCtx);
 export function SnackbarProvider({ children }: { children: ReactNode }) {
   const [text, setText] = useState<string | null>(null);
+  const [accion, setAccion] = useState<SnackAccion | undefined>();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const show = useCallback((t: string) => {
-    setText(t);
+  const show = useCallback((t: string, a?: SnackAccion) => {
+    setText(t); setAccion(a);
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => setText(null), 4000);
+    timer.current = setTimeout(() => setText(null), a ? 6000 : 4000);
   }, []);
   return (
     <SnackCtx.Provider value={show}>
@@ -225,6 +228,7 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
       {text && (
         <div className="lm-snackbar" role="status" aria-live="polite">
           <span className="lm-snackbar__text">{text}</span>
+          {accion && <button type="button" className="lm-btn lm-btn--text" onClick={() => { setText(null); accion.onClick(); }}>{accion.label}</button>}
           <IconButton icon="close" label="Cerrar aviso" compact onClick={() => setText(null)} />
         </div>
       )}

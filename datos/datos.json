@@ -1,5 +1,5 @@
 {
- "version": "f49676c358",
+ "version": "ea7d309d2b",
  "flotas": [
   {
    "nombre": "Metro Línea 1",
@@ -8618,7 +8618,7 @@
   {
    "numero": "M-001",
    "fecha": "20-08-2026 12:09",
-   "tipo": "Intercambio en la misma unidad",
+   "tipo": "Intercambio dentro de la unidad",
    "serie": "082801-0001",
    "categoria": "Rueda",
    "origen": "3220",
@@ -8629,7 +8629,7 @@
   {
    "numero": "M-001",
    "fecha": "20-08-2026 12:09",
-   "tipo": "Intercambio en la misma unidad",
+   "tipo": "Intercambio dentro de la unidad",
    "serie": "082801-0003",
    "categoria": "Rueda",
    "origen": "3220",
@@ -8673,7 +8673,7 @@
   {
    "numero": "M-004",
    "fecha": "25-08-2026 05:32",
-   "tipo": "Montaje",
+   "tipo": "Montaje en unidad",
    "serie": "COMP-0511",
    "categoria": "Compresor",
    "origen": "Almacén Stock Urbos 100",
@@ -8706,7 +8706,7 @@
   {
    "numero": "M-006",
    "fecha": "29-08-2026 22:55",
-   "tipo": "Desmontaje",
+   "tipo": "Desmontaje de unidad",
    "serie": "HVAC-0074",
    "categoria": "Motor ventilador condensadora HVAC",
    "origen": "3230",
@@ -8725,11 +8725,11 @@
    "icono": "train"
   },
   {
-   "nombre": "Montaje",
+   "nombre": "Montaje en unidad",
    "icono": "add"
   },
   {
-   "nombre": "Desmontaje",
+   "nombre": "Desmontaje de unidad",
    "icono": "remove"
   },
   {
@@ -8741,12 +8741,28 @@
    "icono": "swap_vert"
   },
   {
-   "nombre": "Intercambio en la misma unidad",
+   "nombre": "Intercambio dentro de la unidad",
    "icono": "sync"
   },
   {
    "nombre": "Envío entre almacenes",
    "icono": "north_east"
+  },
+  {
+   "nombre": "Montaje en almacén",
+   "icono": "add"
+  },
+  {
+   "nombre": "Desmontaje en almacén",
+   "icono": "remove"
+  },
+  {
+   "nombre": "Rotación de bogies",
+   "icono": "sync"
+  },
+  {
+   "nombre": "Fin de vida",
+   "icono": "block"
   }
  ]
 }
