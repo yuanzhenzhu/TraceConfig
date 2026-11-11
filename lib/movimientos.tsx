@@ -48,6 +48,8 @@ type Estado = { activos: Record<string, ActivoM>; movimientos: Movimiento[]; km:
 export const USUARIO = "JM"; // usuario del prototipo
 export const TIPOS = {
   intercambioUA: "Intercambio entre unidad y almacén",
+  intercambioUU: "Intercambio entre unidades",
+  intercambioMU: "Intercambio dentro de la unidad",
 } as const;
 
 /* ---------- Fechas ---------- */
@@ -164,6 +166,52 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
     if (despues && JSON.stringify(despues) !== JSON.stringify(a.lugar)) filas.push({ serie: a.serie, categoria: a.categoria, antes: a.lugar, despues, conPadre });
   };
   add(A, false); dA.forEach((d) => add(d.a, true)); add(B, false); dB.forEach((d) => add(d.a, true));
+  return { filas };
+}
+
+/* ---------- Plan del intercambio entre dos posiciones de unidad (HU-M04 y HU-M05) ---------- */
+/** Un lado del intercambio: el activo marcado, los activos montados que se quedan y si se rota (180°). */
+export type Lado = { serie: string; quedan: Set<string>; rotar: boolean };
+
+export function planIntercambioUU(activos: Record<string, ActivoM>, l1: Lado, l2: Lado): PlanIntercambio {
+  const A = activos[l1.serie], B = activos[l2.serie];
+  if (!A || !B || A.lugar.tipo !== "unidad" || B.lugar.tipo !== "unidad") return { filas: [] };
+  if (A.serie === B.serie) return { filas: [], error: "Elige dos activos distintos" };
+  if (A.categoria !== B.categoria) return { filas: [], error: `Categorías diferentes: no se puede intercambiar un ${A.categoria} con un ${B.categoria}` };
+  const hA = A.lugar.hueco, hB = B.lugar.hueco, uA = A.lugar.unidad, uB = B.lugar.unidad;
+  if (uA === uB && (hA.startsWith(hB + SEP) || hB.startsWith(hA + SEP))) return { filas: [], error: "No se puede intercambiar un activo con otro que lleva montado o en el que está montado" };
+
+  // Para cada lado: posiciones que viajan (con la rotación aplicada) y posiciones que se quedan
+  const datos = (x: ActivoM, l: Lado) => {
+    const d = descendientes(activos, x);
+    const viajan = d.filter((e) => !l.quedan.has(e.a.serie));
+    const nueva: Record<string, string> = Object.fromEntries(viajan.map((e) => [e.a.serie, e.rel]));
+    if (l.rotar) { const m = espejo(viajan.map((e) => ({ rel: e.rel, categoria: e.a.categoria }))); viajan.forEach((e) => { nueva[e.a.serie] = m[e.rel]; }); }
+    return { d, viajan, nueva, posQuedan: new Set(d.filter((e) => l.quedan.has(e.a.serie)).map((e) => e.rel)), posLlegan: new Set(viajan.map((e) => nueva[e.a.serie])) };
+  };
+  const dA = datos(A, l1), dB = datos(B, l2);
+  // Lo que llega a una posición no puede chocar con lo que se queda allí, ni dejar a nadie sin su padre
+  const comprobar = (llega: typeof dA, destino: typeof dA, quien: ActivoM, donde: ActivoM) => {
+    const choque = llega.viajan.find((e) => destino.posQuedan.has(llega.nueva[e.a.serie]));
+    if (choque) return `El ${quien.categoria.toLowerCase()} ${quien.serie} trae un activo en ${llega.nueva[choque.a.serie]}, que se queda ocupado junto al ${donde.categoria.toLowerCase()} ${donde.serie}`;
+    const huerf = destino.d.find((e) => destino.posQuedan.has(e.rel) && padreRuta(e.rel) && !destino.posQuedan.has(padreRuta(e.rel)) && !llega.posLlegan.has(padreRuta(e.rel)));
+    if (huerf) return `${huerf.a.categoria} ${huerf.a.serie} (${huerf.rel}) se quedaría sin su padre: ${padreRuta(huerf.rel)} sale y el ${quien.categoria.toLowerCase()} ${quien.serie} no trae otro en esa posición`;
+    return "";
+  };
+  const e1 = comprobar(dB, dA, B, A) || comprobar(dA, dB, A, B);
+  if (e1) return { filas: [], error: e1 };
+
+  const nuevo: Record<string, Lugar> = {};
+  nuevo[A.serie] = { tipo: "unidad", unidad: uB, hueco: hB };
+  dA.viajan.forEach((e) => { nuevo[e.a.serie] = { tipo: "unidad", unidad: uB, hueco: `${hB}${SEP}${dA.nueva[e.a.serie]}` }; });
+  nuevo[B.serie] = { tipo: "unidad", unidad: uA, hueco: hA };
+  dB.viajan.forEach((e) => { nuevo[e.a.serie] = { tipo: "unidad", unidad: uA, hueco: `${hA}${SEP}${dB.nueva[e.a.serie]}` }; });
+  const filas: FilaMov[] = [];
+  const add = (a: ActivoM, conPadre: boolean) => {
+    const despues = nuevo[a.serie];
+    if (despues && JSON.stringify(despues) !== JSON.stringify(a.lugar)) filas.push({ serie: a.serie, categoria: a.categoria, antes: a.lugar, despues, conPadre });
+  };
+  add(A, false); dA.viajan.forEach((e) => add(e.a, true)); add(B, false); dB.viajan.forEach((e) => add(e.a, true));
   return { filas };
 }
 

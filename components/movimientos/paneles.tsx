@@ -38,9 +38,11 @@ export function Panel({ titulo, subtitulo, accion, children }: { titulo: string;
 }
 
 /** Árbol de la unidad en lista. marcas: serie -> etiqueta ("Sale" / "Entra"); vacios: rutas que quedan vacías. */
-export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 440, soloLectura, marcas = {}, vacios = new Set<string>(), abrirHasta }: {
+export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 440, soloLectura, marcas = {}, vacios = new Set<string>(), abrirHasta, elegible }: {
   raiz: Nodo; unidad: string; activos: Record<string, ActivoM>; sel: SeleccionUnidad; onSel: (s: SeleccionUnidad) => void; busca: string; alto?: number;
   soloLectura?: boolean; marcas?: Record<string, "Sale" | "Entra">; vacios?: Set<string>; abrirHasta?: string;
+  /** Si se indica, devuelve el motivo por el que un activo no se puede marcar (o null si se puede). */
+  elegible?: (a: ActivoM) => string | null;
 }) {
   const { activoDe, rutaDe } = useMemo(() => huecosConActivo(raiz, unidad, activos), [raiz, unidad, activos]);
   const [cerrados, setCerrados] = useState<Record<string, boolean>>(() => {
@@ -71,6 +73,7 @@ export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 4
       onSel({ ...sel, quedan: [...quedan] });
       return;
     }
+    if (elegible?.(a)) return;
     onSel({ padre: a.serie, quedan: [] });
     setCerrados((c) => { const x = { ...c }; recorrer(n, (h) => { delete x[h.id]; }); return x; });
   };
@@ -96,13 +99,13 @@ export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 4
                 onClick={(e) => { e.stopPropagation(); setCerrados((c) => ({ ...c, [n.id]: !c[n.id] })); }} />
             ) : <span style={{ width: "var(--lm-space-40)" }} />}
             {!soloLectura && (
-              <input type="checkbox" disabled={!a} checked={on} onChange={() => a && pulsar(a, n)} onClick={(e) => e.stopPropagation()}
+              <input type="checkbox" disabled={!a || (!on && !hijos.has(a.serie) && !!elegible?.(a))} title={a && !on && !hijos.has(a.serie) ? elegible?.(a) ?? undefined : undefined} checked={on} onChange={() => a && pulsar(a, n)} onClick={(e) => e.stopPropagation()}
                 aria-label={`${on ? "Desmarcar" : "Marcar"} ${ruta}`} />
             )}
             <span className="grow" style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{q ? ruta : n.nombre}</span>
             {vacios.has(ruta) ? <Tag tone="warning">Queda vacío</Tag>
               : <span style={{ width: 130, fontWeight: a ? 500 : 400 }} className={a ? undefined : "muted"}>{a ? a.serie : "Vacío"}</span>}
-            <span className="lm-body-small muted" style={{ width: 110, textAlign: "right" }}>{textoDriver(a)}</span>
+            <span className="lm-body-small muted" style={{ width: 150, textAlign: "right" }}>{textoDriver(a)}</span>
           </div>
         );
       })}
@@ -129,7 +132,7 @@ export function PanelAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado
               {!soloLectura && <input type="radio" name="sel-almacen" checked={on} onChange={() => onSel(a.serie)} onClick={(e) => e.stopPropagation()} aria-label={`Elegir ${a.categoria} ${a.serie}`} />}
               <span className="grow" style={{ fontWeight: 500 }}>{a.categoria} {a.serie}</span>
               {girado && <Tag tone="info">Rotado 180°</Tag>}
-              <span className="lm-body-small muted" style={{ width: 110, textAlign: "right" }}>{textoDriver(a)}</span>
+              <span className="lm-body-small muted" style={{ width: 150, textAlign: "right" }}>{textoDriver(a)}</span>
               {!soloLectura && conHijos && a.categoria === "Eje" && desc.length > 1 && (
                 <span onClick={(e) => e.stopPropagation()}>
                   <Button variant={girado ? "tonal" : "text"} small onClick={() => onRotar(a.serie)}>{girado ? "Deshacer" : "Rotar"}</Button>
