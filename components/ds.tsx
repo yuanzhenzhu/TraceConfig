@@ -261,9 +261,6 @@ export function Navbar() {
         aria-current={enConfig ? "page" : undefined}>
         <Icon name="settings" filled={enConfig} />
       </Link>
-      <span className="lm-navbar__user">
-        <span className="lm-avatar" aria-label="Usuario: Jefa de mantenimiento">JM</span>
-      </span>
     </header>
   );
 }
