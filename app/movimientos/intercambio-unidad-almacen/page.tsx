@@ -6,15 +6,15 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Loading, SearchInput, Tag, useSnackbar } from "@/components/ds";
-import { TablaAntesDespues } from "@/components/movimientos/detalle";
-import { TablaAlmacen, TablaArbolUnidad } from "@/components/movimientos/tablas";
+import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Loading, SearchInput, Tag, useSnackbar } from "@/components/ds";
+import { ResultadoIntercambio } from "@/components/movimientos/resultado";
+import { TablaAlmacen, TablaArbolUnidad, type SeleccionUnidad } from "@/components/movimientos/tablas";
 import {
   TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUA, textoFecha, useMovimientos, useTextos,
 } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 
-const ROTABLES = ["Eje", "Bogie"];
+// En este intercambio solo se rotan ejes (en el almacén, antes de montarlo)
 const driverExtra = (categoria?: string) => (!categoria ? null : categoria.startsWith("Motor") ? "horas" : categoria === "Puerta" ? "ciclos" : null);
 
 export default function IntercambioUnidadAlmacen() {
@@ -32,9 +32,8 @@ export default function IntercambioUnidadAlmacen() {
   const [km, setKm] = useState("");
   const [extra, setExtra] = useState(""); // horas o ciclos
   const [almacen, setAlmacen] = useState("");
-  const [selU, setSelU] = useState("");
+  const [selU, setSelU] = useState<SeleccionUnidad>(null);
   const [selA, setSelA] = useState("");
-  const [conHijos, setConHijos] = useState(true);
   const [rotar, setRotar] = useState(false);
   const [buscaU, setBuscaU] = useState("");
   const [buscaA, setBuscaA] = useState("");
@@ -46,7 +45,7 @@ export default function IntercambioUnidadAlmacen() {
   const unidadesFlota = mov.unidades.filter((u) => u.flotaId === flota);
   const uInfo = mov.unidades.find((u) => u.serie === unidad);
   const iso = `${fecha}T${hora}`;
-  const A = selU ? mov.activos[selU] : undefined;
+  const A = selU ? mov.activos[selU.padre] : undefined;
   const B = selA ? mov.activos[selA] : undefined;
 
   // Validaciones de "Cuándo y dónde"
@@ -73,25 +72,29 @@ export default function IntercambioUnidadAlmacen() {
 
   // Activos montados en el que sale y candidatos del almacén: con hijos, los que tienen activos montados; sin hijos, los que no
   const hijosA = useMemo(() => (A ? descendientes(mov.activos, A) : []), [A, mov.activos]);
-  const modoHijos = hijosA.length > 0 && conHijos;
+  const modoHijos = hijosA.length > 0 && !!selU?.conHijos;
   const delAlmacen = useMemo(() => Object.values(mov.activos)
     .filter((a) => A && a.lugar.tipo === "almacen" && a.lugar.almacenId === almacen && a.categoria === A.categoria)
     .filter((a) => (descendientes(mov.activos, a).length > 0) === modoHijos)
     .filter((a) => !buscaA || a.serie.toLowerCase().includes(buscaA.toLowerCase()))
     .sort((a, b) => a.serie.localeCompare(b.serie)), [mov.activos, almacen, A, buscaA, modoHijos]);
 
-  const plan = A && B ? planIntercambioUA(mov.activos, A.serie, B.serie, modoHijos, modoHijos && rotar && ROTABLES.includes(B.categoria)) : null;
+  const plan = A && B ? planIntercambioUA(mov.activos, A.serie, B.serie, modoHijos, modoHijos && rotar && B.categoria === "Eje") : null;
   const valido = cabeceraOk && !!plan && !plan.error && plan.filas.length > 0;
   const hayDatos = !!(flota || unidad || km || almacen || selU || selA);
 
-  const elegirUnidad = (s: string) => { setSelU(s); setSelA(""); setRotar(false); setExtra(""); setConHijos(true); };
+  const elegirUnidad = (s: SeleccionUnidad) => {
+    if (!s || s.padre !== selU?.padre) setExtra("");
+    if (!s || s.padre !== selU?.padre || s.conHijos !== selU?.conHijos) { setSelA(""); setRotar(false); }
+    setSelU(s);
+  };
   const registrar = () => {
     if (!plan) return;
     const m = mov.registrar({
       tipo: TIPOS.intercambioUA, fecha: iso, almacenes: [almacen], filas: plan.filas,
       registros: [{ unidad, km: kmNum, ...(tipoExtra === "horas" ? { horas: extraNum } : tipoExtra === "ciclos" ? { ciclos: extraNum } : {}) }],
     });
-    setConfirmar(false); setSelU(""); setSelA(""); setRotar(false); setExtra(""); setIntentado(false); setBuscaU(""); setBuscaA("");
+    setConfirmar(false); setSelU(null); setSelA(""); setRotar(false); setExtra(""); setIntentado(false); setBuscaU(""); setBuscaA("");
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
@@ -123,13 +126,13 @@ export default function IntercambioUnidadAlmacen() {
               <input id="hora" type="time" className="lm-input" value={hora} onChange={(e) => setHora(e.target.value)} />
             </Field>
             <Field label="Flota" required htmlFor="flota" error={intentado ? errores.flota : ""} style={{ width: 200 }}>
-              <select id="flota" className="lm-select" value={flota} onChange={(e) => { setFlota(e.target.value); setUnidad(""); elegirUnidad(""); }}>
+              <select id="flota" className="lm-select" value={flota} onChange={(e) => { setFlota(e.target.value); setUnidad(""); elegirUnidad(null); }}>
                 <option value="">Elige una flota</option>
                 {flotasConUnidades.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
               </select>
             </Field>
             <Field label="Unidad" required htmlFor="unidad" error={intentado ? errores.unidad : ""} style={{ width: 150 }}>
-              <select id="unidad" className="lm-select" value={unidad} disabled={!flota} onChange={(e) => { setUnidad(e.target.value); elegirUnidad(""); }}>
+              <select id="unidad" className="lm-select" value={unidad} disabled={!flota} onChange={(e) => { setUnidad(e.target.value); elegirUnidad(null); }}>
                 <option value="">{flota ? "Elige" : "Elige la flota"}</option>
                 {unidadesFlota.map((u) => <option key={u.serie} value={u.serie}>{u.serie}</option>)}
               </select>
@@ -168,59 +171,54 @@ export default function IntercambioUnidadAlmacen() {
           )}
         </section>
 
-        {/* 2 · Qué activos: a) en la unidad · b) con o sin sus activos montados · c) en el almacén */}
+        {/* 2 · Qué activos: lo que sale de la unidad y lo que entra del almacén */}
         <section className="lm-surface lm-surface--p24 stack gap-20" aria-labelledby="b2">
           <h2 id="b2" className="lm-title-medium" style={{ margin: 0 }}>2. Qué activos</h2>
 
           <div className="stack gap-10">
             <div className="row gap-10">
-              <span className="lm-title-small grow">a. Activo que sale de la unidad{unidad ? ` ${unidad}` : ""}</span>
+              <span className="stack grow">
+                <span className="lm-title-small">Sale de la unidad{unidad ? ` ${unidad}` : ""}</span>
+                <span className="lm-body-small muted">Marca el activo que sale: sus activos montados se marcan con él. Desmárcalos para cambiar solo el activo.</span>
+              </span>
               {uInfo && <SearchInput label="Buscar en la unidad por nº de serie" placeholder="Nº de serie" value={buscaU} onChange={setBuscaU} />}
             </div>
             {!uInfo ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad en el bloque 1" />
               : <TablaArbolUnidad key={unidad} raiz={uInfo.raiz} unidad={unidad} activos={mov.activos} sel={selU} onSel={elegirUnidad} busca={buscaU} alto={360} />}
+            {A && (
+              <span className="lm-body-medium">
+                Sale el <strong>{A.categoria.toLowerCase()} {A.serie}</strong>
+                {hijosA.length ? (modoHijos ? ` con sus ${hijosA.length} activos montados` : `, sin sus ${hijosA.length} activos montados (se quedan en la unidad)`) : ""}.
+              </span>
+            )}
+            {A && tipoExtra && (
+              <Field label={tipoExtra === "horas" ? "Horas" : "Ciclos"} htmlFor="extra" error={errores.extra}
+                support={`Opcional${previoExtra != null ? ` · último registro: ${formatoKm(previoExtra)}` : ""}`} style={{ width: 230 }}>
+                <input id="extra" className="lm-input" inputMode="numeric" value={extra} onChange={(e) => setExtra(e.target.value.replace(/[^\d]/g, ""))} />
+              </Field>
+            )}
           </div>
 
           {A && (
             <div className="stack gap-10">
-              <span className="lm-title-small">b. ¿Qué se intercambia?</span>
-              {hijosA.length ? (
-                <>
-                  <ButtonToggle label="Qué se intercambia" value={conHijos ? "con" : "sin"} onChange={(v) => { setConHijos(v === "con"); setSelA(""); setRotar(false); }}
-                    options={[{ value: "con", label: `${A.categoria} con sus activos montados` }, { value: "sin", label: `Solo el ${A.categoria.toLowerCase()}` }]} />
-                  <span className="lm-body-small muted">
-                    {conHijos
-                      ? `El ${A.categoria.toLowerCase()} ${A.serie} sale con ${hijosA.length} activos montados (${hijosA.map((d) => `${d.a.categoria} ${d.a.serie}`).join(", ")}). En el almacén solo aparecen ${A.categoria.toLowerCase()}s con sus activos montados.`
-                      : `Sus ${hijosA.length} activos montados se quedan en la unidad y pasan a estar montados en el ${A.categoria.toLowerCase()} que entra. En el almacén solo aparecen ${A.categoria.toLowerCase()}s sin activos montados.`}
-                  </span>
-                </>
-              ) : <span className="lm-body-small muted">El {A.categoria.toLowerCase()} {A.serie} no tiene activos montados: en el almacén aparecen los {A.categoria.toLowerCase()}s sin activos montados.</span>}
-              {tipoExtra && (
-                <Field label={tipoExtra === "horas" ? "Horas" : "Ciclos"} htmlFor="extra" error={errores.extra}
-                  support={`Opcional${previoExtra != null ? ` · último registro: ${formatoKm(previoExtra)}` : ""}`} style={{ width: 230 }}>
-                  <input id="extra" className="lm-input" inputMode="numeric" value={extra} onChange={(e) => setExtra(e.target.value.replace(/[^\d]/g, ""))} />
-                </Field>
-              )}
-            </div>
-          )}
-
-          {A && (
-            <div className="stack gap-10">
               <div className="row gap-10">
-                <span className="lm-title-small grow">c. Activo que entra desde {almacen ? t.nombreAlmacen(almacen) : "el almacén"}</span>
+                <span className="stack grow">
+                  <span className="lm-title-small">Entra desde {almacen ? t.nombreAlmacen(almacen) : "el almacén"}</span>
+                  <span className="lm-body-small muted">
+                    {modoHijos ? `${A.categoria}s con sus activos montados.${A.categoria === "Eje" ? " Puedes rotar el eje antes de montarlo." : ""}` : `${A.categoria}s sin activos montados.`}
+                  </span>
+                </span>
                 {almacen && <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={buscaA} onChange={setBuscaA} />}
               </div>
               {!almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indica el almacén en el bloque 1" />
                 : !delAlmacen.length ? (
                   <EmptyState icon={buscaA ? "search_off" : "domain"} title={buscaA ? "No hay resultados" : `No hay ${A.categoria.toLowerCase()}s ${modoHijos ? "con" : "sin"} activos montados en ${t.nombreAlmacen(almacen)}`}
-                    text={buscaA ? "Ningún activo coincide con el nº de serie" : modoHijos ? "Prueba con «Solo el activo» o elige otro almacén" : "Elige otro almacén"} />
-                ) : <TablaAlmacen candidatos={delAlmacen} activos={mov.activos} sel={selA} onSel={(s) => { setSelA(s); setRotar(false); }} conHijos={modoHijos} alto={360} />}
-              {B && modoHijos && ROTABLES.includes(B.categoria) && (
-                <label className="lm-check">
-                  <input type="checkbox" checked={rotar} onChange={(e) => setRotar(e.target.checked)} />
-                  <span>Rotar el {B.categoria.toLowerCase()} {B.serie} en el almacén (180°): sus activos montados cambian de lado</span>
-                </label>
-              )}
+                    text={buscaA ? "Ningún activo coincide con el nº de serie" : modoHijos ? "Desmarca sus activos montados para cambiar solo el activo, o elige otro almacén" : "Elige otro almacén"} />
+                ) : (
+                  <TablaAlmacen candidatos={delAlmacen} activos={mov.activos} sel={selA} conHijos={modoHijos} alto={360} rotado={rotar}
+                    onSel={(s) => { if (s !== selA) setRotar(false); setSelA(s); }}
+                    onRotar={(s) => { if (s !== selA) { setSelA(s); setRotar(true); } else setRotar((r) => !r); }} />
+                )}
             </div>
           )}
         </section>
@@ -229,8 +227,8 @@ export default function IntercambioUnidadAlmacen() {
         <section className="lm-surface lm-surface--p24 stack gap-15" aria-labelledby="b3">
           <h2 id="b3" className="lm-title-medium" style={{ margin: 0 }}>3. Resultado</h2>
           {plan?.error ? <Banner type="error" title={plan.error} />
-            : plan && plan.filas.length ? <TablaAntesDespues filas={plan.filas} />
-              : <span className="muted">Elige un activo de la unidad y otro del almacén para ver dónde queda cada uno.</span>}
+            : plan && plan.filas.length ? <ResultadoIntercambio filas={plan.filas} unidad={unidad} almacen={almacen} />
+              : <span className="muted">Marca lo que sale de la unidad y elige lo que entra del almacén para ver el intercambio.</span>}
           {!cabeceraOk && plan && !plan.error && <Banner type="attention" title="Completa el bloque 1 para registrar el movimiento" />}
         </section>
       </div>
@@ -242,7 +240,7 @@ export default function IntercambioUnidadAlmacen() {
             <Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button>
             <Button onClick={registrar}>Registrar</Button>
           </>}>
-          <TablaAntesDespues filas={plan.filas} />
+          <ResultadoIntercambio filas={plan.filas} unidad={unidad} almacen={almacen} />
         </Dialog>
       )}
       {descartar && (
