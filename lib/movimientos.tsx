@@ -50,6 +50,7 @@ export const TIPOS = {
   intercambioUA: "Intercambio entre unidad y almacén",
   intercambioUU: "Intercambio entre unidades",
   intercambioMU: "Intercambio dentro de la unidad",
+  rotacionBogie: "Rotación de bogies",
 } as const;
 
 /* ---------- Fechas ---------- */
@@ -213,6 +214,22 @@ export function planIntercambioUU(activos: Record<string, ActivoM>, l1: Lado, l2
   };
   add(A, false); dA.viajan.forEach((e) => add(e.a, true)); add(B, false); dB.viajan.forEach((e) => add(e.a, true));
   return { filas };
+}
+
+/* ---------- Rotación de bogies (HU-M06) ---------- */
+/** Giro de 180° de un bogie en su posición: no cambia de padre ningún activo, pero sí la posición de todos sus activos montados. */
+export function planRotacion(activos: Record<string, ActivoM>, serie: string): PlanIntercambio {
+  const B = activos[serie];
+  if (!B || B.lugar.tipo !== "unidad") return { filas: [] };
+  if (B.categoria !== "Bogie") return { filas: [], error: "Solo se pueden rotar bogies" };
+  const d = descendientes(activos, B);
+  if (d.length < 2) return { filas: [], error: `El bogie ${B.serie} no tiene activos montados que cambien de posición` };
+  const m = espejo(d.map((e) => ({ rel: e.rel, categoria: e.a.categoria })));
+  const { unidad, hueco } = B.lugar;
+  const filas: FilaMov[] = d.filter((e) => m[e.rel] !== e.rel).map((e) => ({
+    serie: e.a.serie, categoria: e.a.categoria, antes: e.a.lugar, despues: { tipo: "unidad", unidad, hueco: `${hueco}${SEP}${m[e.rel]}` }, conPadre: true,
+  }));
+  return filas.length ? { filas } : { filas: [], error: "Al rotar no cambia la posición de ningún activo" };
 }
 
 /* ---------- Estado inicial ---------- */
