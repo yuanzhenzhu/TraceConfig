@@ -23,7 +23,7 @@ const marco = (alto: number) => ({ maxHeight: alto, overflow: "auto", border: "1
 const cabecera = { position: "sticky" as const, top: 0, background: "var(--lm-sys-surface-container-lowest)", zIndex: 1 };
 
 /** Selección en la unidad: un activo y, si conHijos, todos sus activos montados. */
-export type SeleccionUnidad = { padre: string; conHijos: boolean } | null;
+export type SeleccionUnidad = { padre: string; quedan: string[] } | null;
 
 export function TablaArbolUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 420 }: {
   raiz: Nodo; unidad: string; activos: Record<string, ActivoM>; sel: SeleccionUnidad; onSel: (s: SeleccionUnidad) => void; busca: string; alto?: number;
@@ -36,14 +36,14 @@ export function TablaArbolUnidad({ raiz, unidad, activos, sel, onSel, busca, alt
   });
   const padre = sel ? activos[sel.padre] : undefined;
   const hijos = useMemo(() => new Set(padre ? descendientes(activos, padre).map((d) => d.a.serie) : []), [padre, activos]);
-  const marcado = (s?: string) => !!s && !!sel && (s === sel.padre || (sel.conHijos && hijos.has(s)));
+  const marcado = (s?: string) => !!s && !!sel && (s === sel.padre || (hijos.has(s) && !sel.quedan.includes(s)));
 
   const pulsar = (a: ActivoM, n: Nodo) => {
     if (sel && a.serie === sel.padre) onSel(null); // desmarcar el activo: no sale nada
-    else if (sel && hijos.has(a.serie)) onSel({ ...sel, conHijos: !sel.conHijos }); // sus activos montados se marcan o desmarcan juntos
+    else if (sel && hijos.has(a.serie)) onSel({ ...sel, quedan: sel.quedan.length ? [] : [...hijos] }); // sus activos montados se marcan o desmarcan juntos
     else {
       // otro activo: empieza con sus activos montados, que se despliegan para verlos marcados
-      onSel({ padre: a.serie, conHijos: descendientes(activos, a).length > 0 });
+      onSel({ padre: a.serie, quedan: [] });
       setCerrados((c) => { const x = { ...c }; recorrer(n, (h) => { delete x[h.id]; }); return x; });
     }
   };

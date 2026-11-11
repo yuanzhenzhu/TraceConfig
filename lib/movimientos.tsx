@@ -114,7 +114,12 @@ export function espejo(rels: { rel: string; categoria: string }[]): Record<strin
 /* ---------- Plan del intercambio entre unidad y almacén (HU-M03) ---------- */
 export type PlanIntercambio = { filas: FilaMov[]; error?: string };
 
-export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad: string, serieAlmacen: string, conHijos: boolean, rotar: boolean): PlanIntercambio {
+/**
+ * Plan del intercambio. quedan: activos montados en el que sale que se QUEDAN en la unidad (el resto viaja con él).
+ * Lo que se queda sigue en sus huecos y pasa a estar montado en el que entra; por eso el que entra no puede traer
+ * activos en esas mismas posiciones.
+ */
+export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad: string, serieAlmacen: string, quedan: Set<string>, rotar: boolean): PlanIntercambio {
   const A = activos[serieUnidad], B = activos[serieAlmacen];
   if (!A || !B || A.lugar.tipo !== "unidad" || B.lugar.tipo !== "almacen") return { filas: [] };
   if (A.categoria !== B.categoria) return { filas: [], error: `Categorías diferentes: no se puede intercambiar un ${A.categoria} con un ${B.categoria}` };
@@ -128,24 +133,31 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
     const m = espejo(dB.map((d) => ({ rel: d.rel, categoria: d.a.categoria })));
     dB.forEach((d) => { relB[d.a.serie] = m[d.rel]; });
   }
-
-  if (conHijos) {
-    // A y sus hijos pasan al almacén, al sitio de B; B y sus hijos, al hueco de A.
-    nuevo[A.serie] = { ...lB };
-    dA.forEach((d) => {
-      const padreHueco = padreRuta(d.a.lugar.tipo === "unidad" ? d.a.lugar.hueco : "");
-      const padre = Object.values(activos).find((x) => x.lugar.tipo === "unidad" && x.lugar.unidad === lA.unidad && x.lugar.hueco === padreHueco);
-      nuevo[d.a.serie] = { tipo: "almacen", almacenId: lB.almacenId, padre: padre?.serie ?? A.serie, enHueco: nombreFinal(d.rel) };
-    });
-    nuevo[B.serie] = { ...lA };
-    dB.forEach((d) => { nuevo[d.a.serie] = { tipo: "unidad", unidad: lA.unidad, hueco: `${lA.hueco}${SEP}${relB[d.a.serie]}` }; });
-  } else {
-    // Sin sus activos montados: el activo del almacén tiene que estar sin hijos. Los hijos de A se quedan en sus
-    // huecos de la unidad y pasan a estar montados en B; A llega solo al almacén.
-    if (dB.length) return { filas: [], error: `El ${B.categoria.toLowerCase()} ${B.serie} tiene activos montados: para intercambiar sin ellos, elige un ${B.categoria.toLowerCase()} sin activos montados` };
-    nuevo[A.serie] = { ...lB };
-    nuevo[B.serie] = { ...lA };
+  // Lo que se queda ocupa sus posiciones: el que entra no puede traer activos en ellas
+  const posQuedan = new Set(dA.filter((d) => quedan.has(d.a.serie)).map((d) => d.rel));
+  const choque = dB.find((d) => posQuedan.has(relB[d.a.serie]));
+  if (choque) return { filas: [], error: `El ${B.categoria.toLowerCase()} ${B.serie} trae un activo en ${relB[choque.a.serie]}, que se queda ocupado en la unidad: elige otro o marca también ese activo` };
+  // Lo que se queda necesita a su padre: si su padre sale, el que entra tiene que traer otro en esa posición
+  const posEntran = new Set(dB.map((d) => relB[d.a.serie]));
+  const huerfano = dA.find((d) => {
+    if (!quedan.has(d.a.serie)) return false;
+    const p = padreRuta(d.rel);
+    return !!p && !posQuedan.has(p) && !posEntran.has(p);
+  });
+  if (huerfano) {
+    const p = padreRuta(huerfano.rel);
+    return { filas: [], error: `${huerfano.a.categoria} ${huerfano.a.serie} (${huerfano.rel}) se quedaría sin su padre: ${p} sale y el ${B.categoria.toLowerCase()} ${B.serie} no trae otro en esa posición. Marca también lo que cuelga de ${p} o desmarca ${p}` };
   }
+
+  // A y los que viajan pasan al sitio de B en el almacén; B y sus hijos, al hueco de A.
+  nuevo[A.serie] = { ...lB };
+  dA.filter((d) => !quedan.has(d.a.serie)).forEach((d) => {
+    const padreHueco = padreRuta(d.a.lugar.tipo === "unidad" ? d.a.lugar.hueco : "");
+    const padre = Object.values(activos).find((x) => x.lugar.tipo === "unidad" && x.lugar.unidad === lA.unidad && x.lugar.hueco === padreHueco);
+    nuevo[d.a.serie] = { tipo: "almacen", almacenId: lB.almacenId, padre: padre?.serie ?? A.serie, enHueco: nombreFinal(d.rel) };
+  });
+  nuevo[B.serie] = { ...lA };
+  dB.forEach((d) => { nuevo[d.a.serie] = { tipo: "unidad", unidad: lA.unidad, hueco: `${lA.hueco}${SEP}${relB[d.a.serie]}` }; });
   const filas: FilaMov[] = [];
   const add = (a: ActivoM, conPadre: boolean) => {
     const despues = nuevo[a.serie];

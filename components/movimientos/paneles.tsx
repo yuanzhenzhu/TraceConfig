@@ -51,17 +51,28 @@ export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 4
     return c;
   });
   const padre = sel ? activos[sel.padre] : undefined;
-  const hijos = useMemo(() => new Set(padre ? descendientes(activos, padre).map((d) => d.a.serie) : []), [padre, activos]);
-  const marcado = (s?: string) => !!s && !!sel && (s === sel.padre || (sel.conHijos && hijos.has(s)));
+  // Activos montados en el marcado, con su ruta relativa (para saber quién cuelga de quién)
+  const desc = useMemo(() => (padre ? descendientes(activos, padre) : []), [padre, activos]);
+  const hijos = useMemo(() => new Set(desc.map((d) => d.a.serie)), [desc]);
+  const marcado = (s?: string) => !!s && !!sel && (s === sel.padre || (hijos.has(s) && !sel.quedan.includes(s)));
 
+  // Hijos y nietos se marcan por separado: desmarcar uno desmarca lo que lleva montado (se queda en la unidad);
+  // marcarlo vuelve a marcar lo que lleva montado y su padre (no puede salir sin él).
   const pulsar = (a: ActivoM, n: Nodo) => {
     if (soloLectura) return;
-    if (sel && a.serie === sel.padre) onSel(null);
-    else if (sel && hijos.has(a.serie)) onSel({ ...sel, conHijos: !sel.conHijos });
-    else {
-      onSel({ padre: a.serie, conHijos: descendientes(activos, a).length > 0 });
-      setCerrados((c) => { const x = { ...c }; recorrer(n, (h) => { delete x[h.id]; }); return x; });
+    if (sel && a.serie === sel.padre) { onSel(null); return; }
+    if (sel && hijos.has(a.serie)) {
+      const rel = desc.find((d) => d.a.serie === a.serie)!.rel;
+      const debajo = desc.filter((d) => d.rel === rel || d.rel.startsWith(rel + SEP)).map((d) => d.a.serie);
+      const encima = desc.filter((d) => rel.startsWith(d.rel + SEP)).map((d) => d.a.serie);
+      const quedan = new Set(sel.quedan);
+      if (quedan.has(a.serie)) { debajo.forEach((s) => quedan.delete(s)); encima.forEach((s) => quedan.delete(s)); }
+      else debajo.forEach((s) => quedan.add(s));
+      onSel({ ...sel, quedan: [...quedan] });
+      return;
     }
+    onSel({ padre: a.serie, quedan: [] });
+    setCerrados((c) => { const x = { ...c }; recorrer(n, (h) => { delete x[h.id]; }); return x; });
   };
 
   const q = busca.trim().toLowerCase();

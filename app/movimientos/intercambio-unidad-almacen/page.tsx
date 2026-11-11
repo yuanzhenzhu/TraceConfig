@@ -74,16 +74,28 @@ export default function IntercambioUnidadAlmacen() {
   const errores = { fecha: errFecha, flota: flota ? "" : "Elige la flota", unidad: unidad ? "" : "Elige la unidad", km: errKm, almacen: almacen ? "" : "Elige el almacén", extra: errExtra };
   const cabeceraOk = Object.values(errores).every((e) => !e);
 
-  // Activos montados en el que sale y candidatos del almacén: con hijos, los que tienen activos montados; sin hijos, los que no
+  // Activos montados en el que sale: cuáles viajan con él y cuáles se quedan en la unidad
   const hijosA = useMemo(() => (A ? descendientes(mov.activos, A) : []), [A, mov.activos]);
-  const modoHijos = hijosA.length > 0 && !!selU?.conHijos;
+  const quedan = useMemo(() => new Set(selU?.quedan ?? []), [selU]);
+  const nViajan = hijosA.filter((d) => !quedan.has(d.a.serie)).length;
+  // modo: todos viajan / ninguno viaja / solo una parte
+  const modo: "todos" | "ninguno" | "parte" = !hijosA.length || nViajan === 0 ? "ninguno" : nViajan === hijosA.length ? "todos" : "parte";
+  const modoHijos = modo !== "ninguno";
+  // Candidatos del almacén: si viaja todo, los que tienen activos montados; si no viaja nada, los que no tienen;
+  // si viaja una parte, los que no traen activos en las posiciones que se quedan ocupadas.
   const delAlmacen = useMemo(() => Object.values(mov.activos)
     .filter((a) => A && a.lugar.tipo === "almacen" && a.lugar.almacenId === almacen && a.categoria === A.categoria)
-    .filter((a) => (descendientes(mov.activos, a).length > 0) === modoHijos)
+    .filter((a) => {
+      const d = descendientes(mov.activos, a);
+      if (modo === "todos") return d.length > 0;
+      if (modo === "ninguno") return d.length === 0;
+      // Una parte: solo los que encajan con lo que se queda (sin chocar y sin dejar activos sin su padre)
+      return d.length > 0 && !planIntercambioUA(mov.activos, A!.serie, a.serie, quedan, false).error;
+    })
     .filter((a) => !buscaA || a.serie.toLowerCase().includes(buscaA.toLowerCase()))
-    .sort((a, b) => a.serie.localeCompare(b.serie)), [mov.activos, almacen, A, buscaA, modoHijos]);
+    .sort((a, b) => a.serie.localeCompare(b.serie)), [mov.activos, almacen, A, buscaA, modo, quedan]);
 
-  const plan = A && B ? planIntercambioUA(mov.activos, A.serie, B.serie, modoHijos, modoHijos && rotar && B.categoria === "Eje") : null;
+  const plan = A && B ? planIntercambioUA(mov.activos, A.serie, B.serie, quedan, modoHijos && rotar && B.categoria === "Eje") : null;
   // Huecos de la estructura por debajo del activo que sale (para avisar de los que quedan vacíos)
   const huecosPos = useMemo(() => {
     if (!uInfo || !A || A.lugar.tipo !== "unidad") return [];
@@ -104,7 +116,7 @@ export default function IntercambioUnidadAlmacen() {
     return d;
   }, [mov.activos, plan]);
   const almacenDespues = useMemo(() => !A ? [] : Object.values(despues)
-    .filter((a) => a.lugar.tipo === "almacen" && a.lugar.almacenId === almacen && a.categoria === A.categoria && (descendientes(despues, a).length > 0) === modoHijos)
+    .filter((a) => a.lugar.tipo === "almacen" && a.lugar.almacenId === almacen && a.categoria === A.categoria && (a.serie === A.serie || (descendientes(despues, a).length > 0) === modoHijos))
     .sort((a, b) => (a.serie === A.serie ? -1 : b.serie === A.serie ? 1 : a.serie.localeCompare(b.serie))), [despues, almacen, A, modoHijos]);
   // Huecos de la unidad que quedan vacíos con este intercambio
   const vaciosRutas = useMemo(() => {
@@ -118,7 +130,7 @@ export default function IntercambioUnidadAlmacen() {
 
   const elegirUnidad = (s: SeleccionUnidad) => {
     if (!s || s.padre !== selU?.padre) setExtra("");
-    if (!s || s.padre !== selU?.padre || s.conHijos !== selU?.conHijos) { setSelA(""); setRotar(false); }
+    if (!s || s.padre !== selU?.padre || s.quedan.join() !== selU?.quedan.join()) { setSelA(""); setRotar(false); }
     setSelU(s); setVista("antes");
   };
   const registrar = () => {
@@ -201,7 +213,7 @@ export default function IntercambioUnidadAlmacen() {
         {/* Unidad y almacén, lado a lado */}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
           <Panel titulo={`Unidad ${unidad || ""} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? <>En {A?.lugar.tipo === "unidad" ? A.lugar.hueco : ""} queda el <strong>{B?.categoria.toLowerCase()} {B?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}{vaciosRutas.size ? ` · ${vaciosRutas.size} huecos quedan vacíos` : ""}</> : A ? <>Marcado: <strong>{A.categoria.toLowerCase()} {A.serie}</strong>{hijosA.length ? (modoHijos ? ` con sus ${hijosA.length} activos montados` : " sin sus activos montados") : ""} · sale de la unidad</> : "Marca el activo que sale; sus activos montados se marcan con él"}
+            subtitulo={vista === "despues" ? <>En {A?.lugar.tipo === "unidad" ? A.lugar.hueco : ""} queda el <strong>{B?.categoria.toLowerCase()} {B?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}{vaciosRutas.size ? ` · ${vaciosRutas.size} huecos quedan vacíos` : ""}</> : A ? <>Marcado: <strong>{A.categoria.toLowerCase()} {A.serie}</strong>{hijosA.length ? (modo === "todos" ? ` con sus ${hijosA.length} activos montados` : modo === "parte" ? ` con ${nViajan} de sus ${hijosA.length} activos montados (${hijosA.length - nViajan} se quedan en la unidad)` : " sin sus activos montados") : ""} · sale de la unidad</> : "Marca el activo que sale; sus activos montados se marcan con él"}
             accion={uInfo && vista === "antes" ? <SearchInput label="Buscar en la unidad por nº de serie" placeholder="Nº de serie" value={buscaU} onChange={setBuscaU} /> : undefined}>
             {!uInfo ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad arriba" />
               : <>
@@ -221,7 +233,7 @@ export default function IntercambioUnidadAlmacen() {
           <span className="row" aria-hidden="true" style={{ alignSelf: "center", color: "var(--lm-sys-on-surface-variant)" }}><Icon name="swap_vert" /></span>
 
           <Panel titulo={`${almacen ? t.nombreAlmacen(almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? <>Queda el <strong>{A?.categoria.toLowerCase()} {A?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}, que sale de la unidad</> : !A ? "Marca antes lo que sale de la unidad" : B ? <>Elegido: <strong>{B.categoria.toLowerCase()} {B.serie}</strong>{rotar && modoHijos ? " rotado 180°" : ""} · entra en la unidad</> : modoHijos ? `Elige un ${A.categoria.toLowerCase()} con activos montados` : `Elige un ${A.categoria.toLowerCase()} sin activos montados`}
+            subtitulo={vista === "despues" ? <>Queda el <strong>{A?.categoria.toLowerCase()} {A?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}, que sale de la unidad</> : !A ? "Marca antes lo que sale de la unidad" : B ? <>Elegido: <strong>{B.categoria.toLowerCase()} {B.serie}</strong>{rotar && modoHijos ? " rotado 180°" : ""} · entra en la unidad</> : modo === "todos" ? `Elige un ${A.categoria.toLowerCase()} con activos montados` : modo === "parte" ? `Elige un ${A.categoria.toLowerCase()} que encaje con lo que se queda en la unidad` : `Elige un ${A.categoria.toLowerCase()} sin activos montados`}
             accion={almacen && A && vista === "antes" ? <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={buscaA} onChange={setBuscaA} /> : undefined}>
             {!almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indica el almacén arriba" />
               : !A ? <EmptyState icon="arrow_left" title="Marca lo que sale" text="Aquí aparecerán los activos de la misma categoría" />
@@ -229,8 +241,8 @@ export default function IntercambioUnidadAlmacen() {
                   ? <PanelAlmacen candidatos={almacenDespues} activos={despues} sel="" onSel={() => {}} conHijos={modoHijos} rotado={false} onRotar={() => {}} soloLectura
                       marcas={Object.fromEntries([[A.serie, "Sale" as const]])} />
                   : !delAlmacen.length ? (
-                    <EmptyState icon={buscaA ? "search_off" : "domain"} title={buscaA ? "No hay resultados" : `No hay ${A.categoria.toLowerCase()}s ${modoHijos ? "con" : "sin"} activos montados`}
-                      text={buscaA ? "Ningún activo coincide con el nº de serie" : modoHijos ? "Desmarca sus activos montados para cambiar solo el activo, o elige otro almacén" : "Elige otro almacén"} />
+                    <EmptyState icon={buscaA ? "search_off" : "domain"} title={buscaA ? "No hay resultados" : modo === "parte" ? `No hay ${A.categoria.toLowerCase()}s que encajen` : `No hay ${A.categoria.toLowerCase()}s ${modoHijos ? "con" : "sin"} activos montados`}
+                      text={buscaA ? "Ningún activo coincide con el nº de serie" : modo === "parte" ? "Ningún activo del almacén encaja con lo que se queda en la unidad (sin chocar y sin dejar activos sin su padre): marca o desmarca otros activos montados, o elige otro almacén" : modoHijos ? "Desmarca sus activos montados para cambiar solo el activo, o elige otro almacén" : "Elige otro almacén"} />
                   ) : (
                     <PanelAlmacen candidatos={delAlmacen} activos={mov.activos} sel={selA} conHijos={modoHijos} rotado={rotar}
                       marcas={B ? Object.fromEntries([[B.serie, "Entra" as const]]) : {}}
