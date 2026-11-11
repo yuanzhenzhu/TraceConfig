@@ -4,13 +4,15 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  ESTRUCTURAS, categoriasDe, driversIniciales, nuevoId, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
+  ESTRUCTURAS, LINEAS, categoriasDe, claveMedia, driversIniciales, nuevoId, plantillasIniciales, recorrer, sincronizarConEstructura, sincronizarDrivers,
   type Almacen, type CalculoMedia, type Configuracion, type Estructura, type Flota, type PropsCategoria,
 } from "./model";
+import { ALMACENES, DATOS, PROPS_POR_CATEGORIA, idConfig, idEstructura, idFlota } from "./datos";
 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[]; media: Record<string, CalculoMedia[]> };
-const CLAVE = "lm-trace-prototipo-v25";
+// Cambia con el Excel: al editar datos/datos.xlsx, el prototipo vuelve a sus datos.
+const CLAVE = `lm-trace-prototipo-v26-${DATOS.version}`;
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -25,90 +27,64 @@ function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
 const flota = (f: Flota): Flota => f;
 
 function semilla(): Estado {
-  // Propiedades de ejemplo: Estructura 1 tiene seleccionada LOCATION en todos los coches (propiedad de hueco);
-  // cada configuración le da su valor. Y, en las ruedas, diámetro y fabricante (propiedades de categoría).
-  const defCoches = (raiz: Estructura["raiz"]) => {
-    const m: Record<string, Record<string, string>> = {};
-    recorrer(raiz, (n) => { if (n.categoria === "Coche") m[n.id] = { LOCATION: "" }; });
-    return m;
-  };
-  const codigosCoches = (raiz: Estructura["raiz"], prefijo: string) => {
-    const m: Record<string, Record<string, string>> = {};
-    recorrer(raiz, (n) => { if (n.categoria === "Coche") m[n.id] = { LOCATION: `${prefijo}-${n.nombre.replace("Coche ", "C")}` }; });
-    return m;
-  };
-  const estructuras = ESTRUCTURAS.map((e, i) => ({ ...e, propsHueco: i === 0 ? defCoches(e.raiz) : {}, actualizada: "2026-05-20T08:00:00Z" }));
-  // Propiedades de categoría por defecto: 13 categorías con entre 2 y 5 propiedades cada una (h = guarda histórico).
-  const pc = (...l: [string, boolean?][]) => l.map(([propId, h]) => ({ propId, historico: !!h }));
-  const propsCategoria: PropsCategoria = {
-    Tren: pc(["client"], ["attr-sms-start-date"], ["amortization-date"], ["person-responsible"]),
-    Coche: pc(["fabricante"], ["oh-date"], ["oh-km", true]),
-    "Motor Coche": pc(["potencia"], ["tension"], ["attr-hrs", true], ["lubricant"]),
-    Puerta: pc(["fabricante"], ["attr-cyc", true]),
-    "Tarjeta Electrónica": pc(["firmware", true], ["hard-drive"], ["host"]),
-    Bogie: pc(["fabricante"], ["modelo"], ["oh-date"], ["oh-km", true], ["attr-kms", true]),
-    Eje: pc(["serie-fab"], ["material"], ["measuring-point", true]),
-    Rueda: pc(["diametro", true], ["fabricante"], ["sd-mm", true], ["sh-mm", true], ["qr-mm", true]),
-    Pantógrafo: pc(["fabricante"], ["last-calibration"], ["attr-kms", true]),
-    Compresor: pc(["attr-hrs", true], ["lubricant"], ["lubrication-date"]),
-    Gearbox: pc(["lubricant"], ["lubrication-km", true], ["lubrication-date"], ["oh-km", true]),
-    Engine: pc(["potencia"], ["attr-hrs", true], ["nem-warranty-start"]),
-    SIV: pc(["tension"], ["provider-warranty-start"], ["repair-sn"]),
-  };
-  const [e1, e2] = estructuras;
-  const todas = (raiz: typeof e1.raiz) => Object.fromEntries(categoriasDe(raiz).map((c) => [c.categoria, "cargada" as const]));
-
-  // Drivers de Serie B: ciclos en todas las puertas; cada puerta tiene ciclos y los huecos que cuelgan de ella lo heredan.
-  const conCiclos = driversIniciales(e2.raiz);
-  recorrer(e2.raiz, (n) => {
-    if (n.categoria !== "Puerta") return;
-    conCiclos.drivers[n.id] = { ...conCiclos.drivers[n.id], ciclos: true };
-    n.hijos.forEach((hija) => recorrer(hija, (x) => {
-      conCiclos.drivers[x.id] = { ...conCiclos.drivers[x.id], ciclos: true };
-      conCiclos.heredables[x.id] = { ...conCiclos.heredables[x.id], ciclos: true };
-    }));
+  // Punto de partida: el Excel común (datos/datos.xlsx). Flotas, estructuras, propiedades, configuraciones y almacenes vienen de ahí.
+  // Lo que se configura dentro del prototipo (drivers por hueco, cálculo de media, avance del asistente) se fija aquí.
+  const estructuras = ESTRUCTURAS.map((e) => ({ ...e, raiz: clonarConIds(e.raiz) }));
+  const flotas: Flota[] = DATOS.flotas.map((f) => flota({ id: idFlota(f.nombre), nombre: f.nombre, descripcion: f.descripcion, usaSms: true }));
+  const estDe = (nombre: string) => estructuras.find((e) => e.id === idEstructura(nombre))!;
+  const todas = (raiz: Estructura["raiz"]) => Object.fromEntries(categoriasDe(raiz).map((c) => [c.categoria, "cargada" as const]));
+  const configs: Configuracion[] = DATOS.configuraciones.map((x, i) => {
+    const e = estDe(x.estructura);
+    const activa = x.estado === "Activa";
+    return base(idFlota(x.flota), {
+      id: idConfig(x.flota, x.nombre), nombre: x.nombre, descripcion: x.descripcion, unica: !x.nombre,
+      estructuraId: e.id, unidades: x.unidades, guardada: true,
+      drivers: { ...driversIniciales(e.raiz), estructuraId: e.id },
+      plantillas: activa ? todas(e.raiz) : { ...plantillasIniciales(e.raiz), [e.raiz.categoria]: "cargada" },
+      pasoActual: activa ? 8 : 3, estado: activa ? "activa" : "en-configuracion",
+      actualizada: new Date(Date.UTC(2026, 5 + (i % 5), 2 + i * 3, 9)).toISOString(),
+    });
   });
-  const flotas: Flota[] = [
-    flota({
-      id: "f1000", nombre: "Metro Línea 1", descripcion: "Flota de metro de la línea 1", usaSms: true,
-    }),
-    flota({ id: "f2000", nombre: "Tranvía Norte", descripcion: "Tranvía de la red norte", usaSms: true }),
-    flota({ id: "f3000", nombre: "Cercanías Sur", descripcion: "Cercanías del corredor sur", usaSms: true }), // de momento, en el prototipo todas las flotas usan SMS
-  ];
-  const parcial = plantillasIniciales(e2.raiz);
-  parcial["Tren"] = "cargada"; parcial["Coche"] = "cargada"; parcial["Puerta"] = "cargada"; parcial["Rueda"] = "errores";
-  const configs: Configuracion[] = [
-    base("f1000", {
-      id: "cfg-serie-a", nombre: "Serie A", descripcion: "Trenes de 3 coches entregados en 2019", estructuraId: e1.id, unidades: 16,
-      drivers: { ...driversIniciales(e1.raiz), estructuraId: e1.id }, plantillas: todas(e1.raiz), pasoActual: 8,
-      valoresHueco: codigosCoches(e1.raiz, "ML1"), estado: "activa", guardada: true, actualizada: "2026-09-14T10:00:00Z",
-    }),
-    base("f1000", {
-      id: "cfg-serie-b", nombre: "Serie B", descripcion: "Trenes de 2 coches para refuerzo en hora punta", estructuraId: e2.id, unidades: 8,
-      drivers: { ...conCiclos, estructuraId: e2.id }, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7,
-      guardada: true, actualizada: "2026-10-28T16:30:00Z",
-    }),
-    base("f2000", {
-      id: "cfg-tranvia", nombre: "", descripcion: "", unica: true, estructuraId: e1.id, unidades: 12,
-      drivers: { ...driversIniciales(e1.raiz), estructuraId: e1.id }, plantillas: todas(e1.raiz), pasoActual: 8,
-      estado: "activa", guardada: true, actualizada: "2026-06-02T09:15:00Z",
-    }),
-  ];
-  // Almacenes de ejemplo (ficticios, salvo los dos primeros, que vienen del diseño)
-  const almacenes: Almacen[] = [
-    { id: "alm-1", nombre: "Almacén Stock Urbos 100", ubicacion: "Beasain", contacto: "Servicio técnico CAF", telefono: "943 10 50 45", usos: ["almacen"] },
-    { id: "alm-2", nombre: "Almacén Tranvía Zaragoza", ubicacion: "Zaragoza", contacto: "Servicio técnico CAF", telefono: "943 10 50 45", usos: ["almacen", "mantenimiento"] },
-    { id: "alm-3", nombre: "Almacén Cocheras Metro Línea 1", ubicacion: "Bilbao", contacto: "Jefe de cocheras", telefono: "944 25 18 30", usos: ["almacen", "mantenimiento"] },
-    { id: "alm-4", nombre: "Almacén Tranvía Norte", ubicacion: "Vitoria-Gasteiz", contacto: "Responsable de mantenimiento", telefono: "945 16 22 70", usos: ["mantenimiento"] },
-  ];
-  // Cálculo de media (Configuración › Drivers › Cálculo de media), por flota o por línea: clave "flota:<id>" o "linea:<id>".
-  // Sin cálculo: Cercanías Sur, Línea 2 y Línea 3.
-  const media: Record<string, CalculoMedia[]> = {
-    "flota:f1000": [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }],
-    "flota:f2000": [{ driver: "km", forma: "flota" }],
-    "linea:l1": [{ driver: "km", forma: "linea" }, { driver: "horas", forma: "linea-categoria-posicion" }],
-  };
-  return { flotas, configs, estructuras, propsCategoria, almacenes, media };
+
+  // Ejemplos de prototipo sobre los datos del Excel (solo si existen con esos nombres)
+  const cfg = (flota: string, nombre: string) => configs.find((c) => c.id === idConfig(flota, nombre));
+  const serieA = cfg("Metro Línea 1", "Serie A");
+  const e1 = serieA && estructuras.find((e) => e.id === serieA.estructuraId);
+  if (serieA && e1) { // valores de LOCATION en los coches
+    const v: Record<string, Record<string, string>> = {};
+    recorrer(e1.raiz, (n) => { if (e1.propsHueco?.[n.id]?.LOCATION !== undefined) v[n.id] = { LOCATION: `ML1-${n.nombre.replace("Coche ", "C")}` }; });
+    serieA.valoresHueco = v;
+  }
+  const serieB = cfg("Metro Línea 1", "Serie B");
+  const e2 = serieB && estructuras.find((e) => e.id === serieB.estructuraId);
+  if (serieB && e2) { // asistente a medias: ciclos en las puertas, plantillas en parte cargadas y una con errores
+    const conCiclos = driversIniciales(e2.raiz);
+    recorrer(e2.raiz, (n) => {
+      if (n.categoria !== "Puerta") return;
+      conCiclos.drivers[n.id] = { ...conCiclos.drivers[n.id], ciclos: true };
+      n.hijos.forEach((hija) => recorrer(hija, (x) => {
+        conCiclos.drivers[x.id] = { ...conCiclos.drivers[x.id], ciclos: true };
+        conCiclos.heredables[x.id] = { ...conCiclos.heredables[x.id], ciclos: true };
+      }));
+    });
+    const parcial = plantillasIniciales(e2.raiz);
+    ["Tren", "Coche", "Puerta"].forEach((c) => { if (c in parcial) parcial[c] = "cargada"; });
+    if ("Rueda" in parcial) parcial["Rueda"] = "errores";
+    Object.assign(serieB, { drivers: { ...conCiclos, estructuraId: e2.id }, plantillas: parcial, intentosPlantilla: { Rueda: 1 }, pasoActual: 7, pasoMax: 7 });
+  }
+
+  const media: Record<string, CalculoMedia[]> = {};
+  const mediaFlota = (nombre: string, l: CalculoMedia[]) => { if (flotas.some((f) => f.nombre === nombre)) media[claveMedia("flota", idFlota(nombre))] = l; };
+  mediaFlota("Metro Línea 1", [{ driver: "km", forma: "flota" }, { driver: "ciclos", forma: "flota-categoria" }]);
+  mediaFlota("Tranvía Norte", [{ driver: "km", forma: "flota" }]);
+  if (LINEAS[0]) media[claveMedia("linea", LINEAS[0].id)] = [{ driver: "km", forma: "linea" }, { driver: "horas", forma: "linea-categoria-posicion" }];
+
+  return { flotas, configs, estructuras, propsCategoria: structuredClone(PROPS_POR_CATEGORIA), almacenes: structuredClone(ALMACENES), media };
+}
+
+/** Copia del árbol de una estructura del Excel (mismos ids) para que el estado no comparta objetos con el catálogo. */
+function clonarConIds(n: Estructura["raiz"]): Estructura["raiz"] {
+  return { ...n, hijos: n.hijos.map(clonarConIds) };
 }
 
 type Api = {

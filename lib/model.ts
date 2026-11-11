@@ -91,81 +91,8 @@ export const DRIVERS: { id: DriverId; nombre: string; corto: string }[] = [
   { id: "horas", nombre: "Horas", corto: "Horas" },
 ];
 
-/** Categorías del cliente (30). Las 14 primeras son las de las estructuras de ejemplo; el resto, de la lista del cliente. */
-export const CATEGORIAS = [
-  "Tren", "Coche", "Motor Coche", "Puerta", "Motor Puerta", "Tarjeta Electrónica",
-  "Bogie", "Motor Bogie", "Eje", "Rueda", "Pantógrafo", "Freno", "Compresor", "Climatizador",
-  "ACR Box", "Breaker", "Cabin HVAC", "Cabin HVAC compresor", "Caliper Brake Trailer", "Caliper Motor Brake",
-  "Caliper spiral", "Condenser fan motor H", "Condenser fan motor P", "Electromagnetic Roller", "Engine",
-  "Gearbox", "HPU", "Impulse motor fan HVAC", "Pantograph motor", "SIV",
-];
-
-export const PROPS_CATEGORIA: { id: string; nombre: string; tipo: string }[] = [
-  { id: "fabricante", nombre: "Fabricante", tipo: "Texto" },
-  { id: "modelo", nombre: "Modelo", tipo: "Texto" },
-  { id: "serie-fab", nombre: "Nº de serie de fabricante", tipo: "Texto" },
-  { id: "fecha-fab", nombre: "Fecha de fabricación", tipo: "Fecha" },
-  { id: "garantia", nombre: "Fin de garantía", tipo: "Fecha" },
-  { id: "peso", nombre: "Peso (kg)", tipo: "Número" },
-  { id: "diametro", nombre: "Diámetro (mm)", tipo: "Número" },
-  { id: "pestana", nombre: "Espesor de pestaña (mm)", tipo: "Número" },
-  { id: "firmware", nombre: "Versión de firmware", tipo: "Texto" },
-  { id: "potencia", nombre: "Potencia (kW)", tipo: "Número" },
-  { id: "tension", nombre: "Tensión nominal (V)", tipo: "Número" },
-  { id: "lote", nombre: "Lote", tipo: "Texto" },
-  // De la lista del cliente (los tipos son una suposición)
-  { id: "amortization-date", nombre: "Amortization date", tipo: "Fecha" },
-  { id: "aurawheel-id", nombre: "AURAwheel Id", tipo: "Texto" },
-  { id: "attr-cyc", nombre: "attr.cyc", tipo: "Número" },
-  { id: "attr-gmao-part-code", nombre: "attr.gmao_part_code", tipo: "Texto" },
-  { id: "attr-hrs", nombre: "attr.hrs", tipo: "Número" },
-  { id: "attr-kms", nombre: "attr.kms", tipo: "Número" },
-  { id: "attr-sms-start-date", nombre: "attr.sms_start_date", tipo: "Fecha" },
-  { id: "charge-dock", nombre: "Charge dock", tipo: "Texto" },
-  { id: "client", nombre: "Client", tipo: "Texto" },
-  { id: "functionality", nombre: "Functionality", tipo: "Texto" },
-  { id: "hard-drive", nombre: "Hard drive", tipo: "Texto" },
-  { id: "host", nombre: "Host", tipo: "Texto" },
-  { id: "keyholder-code", nombre: "Keyholder code", tipo: "Texto" },
-  { id: "last-calibration", nombre: "Last calibration", tipo: "Fecha" },
-  { id: "lubricant", nombre: "Lubricant", tipo: "Texto" },
-  { id: "lubrication-date", nombre: "Lubrication date", tipo: "Fecha" },
-  { id: "lubrication-km", nombre: "Lubrication km", tipo: "Número" },
-  { id: "material", nombre: "Material", tipo: "Texto" },
-  { id: "measuring-point", nombre: "Measuring point (mm)", tipo: "Número" },
-  { id: "nem-warranty-start", nombre: "NEM warranty start date", tipo: "Fecha" },
-  { id: "oh-date", nombre: "OH date", tipo: "Fecha" },
-  { id: "oh-km", nombre: "OH km", tipo: "Número" },
-  { id: "person-responsible", nombre: "Person responsible", tipo: "Texto" },
-  { id: "provider-warranty-start", nombre: "Provider warranty start date", tipo: "Fecha" },
-  { id: "qr-mm", nombre: "qR (mm)", tipo: "Número" },
-  { id: "repair-sn", nombre: "Repair SN", tipo: "Texto" },
-  { id: "riftek-sn", nombre: "Riftek SN", tipo: "Texto" },
-  { id: "sap-mileage", nombre: "SAP Mileage", tipo: "Número" },
-  { id: "sd-mm", nombre: "Sd (mm)", tipo: "Número" },
-  { id: "sh-mm", nombre: "Sh (mm)", tipo: "Número" },
-];
-
-/** Propiedades de hueco del cliente. Los códigos son los reales; el tipo y el ejemplo de cada una son ficticios. */
-export const PROPS_HUECO: { id: string; nombre: string; tipo: string; ejemplo: string }[] = [
-  { id: "LOCATION", nombre: "LOCATION", tipo: "Texto", ejemplo: "C1-B1-E2-R1" },
-  { id: "VISIBILITY", nombre: "VISIBILITY", tipo: "Lista", ejemplo: "Visible" },
-  { id: "CAF-CODE", nombre: "CAF-CODE", tipo: "Texto", ejemplo: "CAF-30411" },
-  { id: "AUX_POSITION", nombre: "AUX_POSITION", tipo: "Texto", ejemplo: "Lado izquierdo" },
-  { id: "LABEL", nombre: "LABEL", tipo: "Texto", ejemplo: "Rueda delantera" },
-  { id: "VAR_KMS", nombre: "VAR_KMS", tipo: "Número", ejemplo: "1,02" },
-  { id: "VAR_CYC", nombre: "VAR_CYC", tipo: "Número", ejemplo: "1,00" },
-  { id: "VAR_HRS", nombre: "VAR_HRS", tipo: "Número", ejemplo: "0,95" },
-  { id: "CT_GMAO", nombre: "CT_GMAO", tipo: "Texto", ejemplo: "GM-1001-C1" },
-  { id: "KNUCKLE", nombre: "KNUCKLE", tipo: "Texto", ejemplo: "K-04" },
-];
-
-/** Líneas del cliente (ficticias para el prototipo). El cálculo de media se configura por flota o por línea. */
-export const LINEAS: { id: string; nombre: string }[] = [
-  { id: "l1", nombre: "Línea 1" },
-  { id: "l2", nombre: "Línea 2" },
-  { id: "l3", nombre: "Línea 3" },
-];
+/** Catálogos del cliente, estructuras y líneas: vienen del Excel común (datos/datos.xlsx, ver lib/datos.ts). */
+export { CATEGORIAS, PROPS_CATEGORIA, PROPS_HUECO, LINEAS, ESTRUCTURAS } from "./datos";
 export type NivelMedia = "flota" | "linea";
 /** Clave del cálculo de media guardado: "flota:<id>" o "linea:<id>". */
 export const claveMedia = (nivel: NivelMedia, id: string) => `${nivel}:${id}`;
@@ -294,43 +221,6 @@ export function sincronizarDrivers(d: DriversConfig, raiz: Nodo): DriversConfig 
   });
   return { drivers, heredables };
 }
-
-/* ---------- Estructuras existentes (ficticias) ---------- */
-function coche(i: number, puertas = 2, bogies = 2): Nodo {
-  const p = `c${i}`;
-  return nodo("Coche", `Coche ${i}`, [
-    nodo("Motor Coche", "Motor Coche", [], `${p}-mc`),
-    ...Array.from({ length: puertas }, (_, k) =>
-      nodo("Puerta", `Puerta ${k + 1}`, [
-        nodo("Motor Puerta", "Motor Puerta", [], `${p}-p${k + 1}-m`),
-        nodo("Tarjeta Electrónica", "Tarjeta Electrónica", [], `${p}-p${k + 1}-t`),
-      ], `${p}-p${k + 1}`)),
-    ...Array.from({ length: bogies }, (_, b) =>
-      nodo("Bogie", `Bogie ${b + 1}`, [
-        nodo("Motor Bogie", "Motor Bogie", [], `${p}-b${b + 1}-m`),
-        ...[1, 2].map((e) =>
-          nodo("Eje", `Eje ${e}`, [
-            nodo("Rueda", "Rueda 1", [], `${p}-b${b + 1}-e${e}-r1`),
-            nodo("Rueda", "Rueda 2", [], `${p}-b${b + 1}-e${e}-r2`),
-          ], `${p}-b${b + 1}-e${e}`)),
-      ], `${p}-b${b + 1}`)),
-  ], p);
-}
-
-export const ESTRUCTURAS: Estructura[] = [
-  {
-    id: "est-1", nombre: "Estructura 1", descripcion: "Tren de 3 coches, 2 puertas y 2 bogies por coche",
-    raiz: nodo("Tren", "Tren", [coche(1), coche(2), coche(3)], "e1-tren"),
-  },
-  {
-    id: "est-2", nombre: "Estructura 2", descripcion: "Tren de 2 coches, 3 puertas y 2 bogies por coche",
-    raiz: nodo("Tren", "Tren", [coche(1, 3), coche(2, 3)], "e2-tren"),
-  },
-  {
-    id: "est-3", nombre: "Estructura 3", descripcion: "Tren de 4 coches, 2 puertas y 2 bogies por coche",
-    raiz: nodo("Tren", "Tren", [coche(1), coche(2), coche(3), coche(4)], "e3-tren"),
-  },
-];
 
 /* ---------- Estado derivado ---------- */
 export function plantillasIniciales(raiz: Nodo): Record<string, EstadoPlantilla> {
