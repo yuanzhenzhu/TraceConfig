@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Icon, Loading, SearchInput, useSnackbar } from "@/components/ds";
+import { Banner, Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Icon, Loading, SearchInput, useSnackbar } from "@/components/ds";
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import { ResultadoIntercambio } from "@/components/movimientos/resultado";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
@@ -113,6 +113,7 @@ export default function IntercambioUnidadAlmacen() {
     const ocupado = (estado: typeof despues, rel: string) => Object.values(estado).some((a) => a.lugar.tipo === "unidad" && a.lugar.unidad === unidad && a.lugar.hueco === `${base}${SEP}${rel}`);
     return new Set(huecosPos.filter((h) => ocupado(mov.activos, h.rel) && !ocupado(despues, h.rel)).map((h) => `${base}${SEP}${h.rel}`));
   }, [plan, A, huecosPos, mov.activos, despues, unidad]);
+  const planOk = !!plan && !plan.error && plan.filas.length > 0;
   const hayDatos = !!(flota || unidad || km || almacen || selU || selA);
 
   const elegirUnidad = (s: SeleccionUnidad) => {
@@ -187,10 +188,20 @@ export default function IntercambioUnidadAlmacen() {
           )}
         </section>
 
+        {/* Ahora | Después, encima de los dos paneles */}
+        <div className="row gap-15">
+          <ButtonToggle label="Qué se muestra" value={vista} onChange={(v) => { if (v === "antes" || planOk) setVista(v); }}
+            options={[{ value: "antes", label: "Ahora" }, { value: "despues", label: "Después" }]} />
+          <span className="lm-body-small muted">
+            {vista === "despues" ? "Así quedan la unidad y el almacén con este intercambio. Vuelve a Ahora para cambiar la selección."
+              : planOk ? "Pulsa Después para ver cómo quedan la unidad y el almacén." : "Marca lo que sale de la unidad y elige lo que entra del almacén; después podrás ver cómo queda."}
+          </span>
+        </div>
+
         {/* Unidad y almacén, lado a lado */}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
-          <Panel titulo={vista === "despues" ? `Unidad ${unidad} · Después` : `Unidad ${unidad || ""}`.trim()}
-            subtitulo={vista === "despues" ? "Así queda la unidad" : A ? <>Sale el <strong>{A.categoria.toLowerCase()} {A.serie}</strong>{hijosA.length ? (modoHijos ? ` con ${hijosA.length} activos montados` : " sin sus activos montados") : ""}</> : "Marca lo que sale; sus activos montados se marcan con él"}
+          <Panel titulo={`Unidad ${unidad || ""} · ${vista === "despues" ? "Después" : "Ahora"}`}
+            subtitulo={vista === "despues" ? <>En {A?.lugar.tipo === "unidad" ? A.lugar.hueco : ""} queda el <strong>{B?.categoria.toLowerCase()} {B?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}{vaciosRutas.size ? ` · ${vaciosRutas.size} huecos quedan vacíos` : ""}</> : A ? <>Marcado: <strong>{A.categoria.toLowerCase()} {A.serie}</strong>{hijosA.length ? (modoHijos ? ` con sus ${hijosA.length} activos montados` : " sin sus activos montados") : ""} · sale de la unidad</> : "Marca el activo que sale; sus activos montados se marcan con él"}
             accion={uInfo && vista === "antes" ? <SearchInput label="Buscar en la unidad por nº de serie" placeholder="Nº de serie" value={buscaU} onChange={setBuscaU} /> : undefined}>
             {!uInfo ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad arriba" />
               : <>
@@ -209,8 +220,8 @@ export default function IntercambioUnidadAlmacen() {
 
           <span className="row" aria-hidden="true" style={{ alignSelf: "center", color: "var(--lm-sys-on-surface-variant)" }}><Icon name="swap_vert" /></span>
 
-          <Panel titulo={vista === "despues" ? `${t.nombreAlmacen(almacen)} · Después` : almacen ? t.nombreAlmacen(almacen) : "Almacén"}
-            subtitulo={vista === "despues" ? "Así queda el almacén" : !A ? "Marca antes lo que sale de la unidad" : B ? <>Entra el <strong>{B.categoria.toLowerCase()} {B.serie}</strong>{rotar && modoHijos ? " rotado 180°" : ""}</> : modoHijos ? `${A.categoria}s con activos montados` : `${A.categoria}s sin activos montados`}
+          <Panel titulo={`${almacen ? t.nombreAlmacen(almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
+            subtitulo={vista === "despues" ? <>Queda el <strong>{A?.categoria.toLowerCase()} {A?.serie}</strong>{modoHijos ? " con sus activos montados" : ""}, que sale de la unidad</> : !A ? "Marca antes lo que sale de la unidad" : B ? <>Elegido: <strong>{B.categoria.toLowerCase()} {B.serie}</strong>{rotar && modoHijos ? " rotado 180°" : ""} · entra en la unidad</> : modoHijos ? `Elige un ${A.categoria.toLowerCase()} con activos montados` : `Elige un ${A.categoria.toLowerCase()} sin activos montados`}
             accion={almacen && A && vista === "antes" ? <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={buscaA} onChange={setBuscaA} /> : undefined}>
             {!almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indica el almacén arriba" />
               : !A ? <EmptyState icon="arrow_left" title="Marca lo que sale" text="Aquí aparecerán los activos de la misma categoría" />
@@ -236,11 +247,7 @@ export default function IntercambioUnidadAlmacen() {
               <input id="extra" className="lm-input lm-input--dense" inputMode="numeric" value={extra} onChange={(e) => setExtra(e.target.value.replace(/[^\d]/g, ""))} />
             </Field>
           )}
-          <span className="grow" />
-          <Button variant={vista === "despues" ? "tonal" : "outlined"} icon={vista === "despues" ? "arrow_back_ios_new" : "visibility"} disabled={!plan || !!plan.error || !plan.filas.length}
-            onClick={() => setVista((v) => (v === "despues" ? "antes" : "despues"))}>
-            {vista === "despues" ? "Volver a elegir" : "Ver cómo queda"}
-          </Button>
+
         </div>
 
         {plan?.error && <Banner type="error" title={plan.error} />}

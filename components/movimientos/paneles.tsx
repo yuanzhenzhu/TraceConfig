@@ -2,7 +2,7 @@
 
 // Paneles del intercambio entre unidad y almacén (diseño A: lado a lado, en listas, sin tablas).
 // - PanelUnidad: árbol de la unidad. Se marca un activo (con o sin sus activos montados). En "Después" muestra cómo queda,
-//   con lo que entra marcado y los huecos que quedan vacíos.
+//   con lo que cambia resaltado (sin etiquetas) y los huecos que quedan vacíos.
 // - PanelAlmacen: activos del almacén de la misma categoría; con activos montados debajo y Rotar en los ejes.
 
 import { useMemo, useState, type ReactNode } from "react";
@@ -89,7 +89,6 @@ export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 4
                 aria-label={`${on ? "Desmarcar" : "Marcar"} ${ruta}`} />
             )}
             <span className="grow" style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{q ? ruta : n.nombre}</span>
-            {marca && <Tag tone={marca === "Sale" ? "error" : "success"}>{marca}</Tag>}
             {vacios.has(ruta) ? <Tag tone="warning">Queda vacío</Tag>
               : <span style={{ width: 130, fontWeight: a ? 500 : 400 }} className={a ? undefined : "muted"}>{a ? a.serie : "Vacío"}</span>}
             <span className="lm-body-small muted" style={{ width: 110, textAlign: "right" }}>{textoDriver(a)}</span>
@@ -118,7 +117,6 @@ export function PanelAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado
             <div className="row" style={{ ...fila(false), cursor: soloLectura ? "default" : "pointer" }} onClick={() => !soloLectura && onSel(a.serie)}>
               {!soloLectura && <input type="radio" name="sel-almacen" checked={on} onChange={() => onSel(a.serie)} onClick={(e) => e.stopPropagation()} aria-label={`Elegir ${a.categoria} ${a.serie}`} />}
               <span className="grow" style={{ fontWeight: 500 }}>{a.categoria} {a.serie}</span>
-              {marca && <Tag tone={marca === "Sale" ? "error" : "success"}>{marca}</Tag>}
               {girado && <Tag tone="info">Rotado 180°</Tag>}
               <span className="lm-body-small muted" style={{ width: 110, textAlign: "right" }}>{textoDriver(a)}</span>
               {!soloLectura && conHijos && a.categoria === "Eje" && desc.length > 1 && (
