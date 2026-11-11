@@ -227,7 +227,7 @@ export default function IntercambioUnidadAlmacen() {
         <section className="lm-surface lm-surface--p24 stack gap-15" aria-labelledby="b3">
           <h2 id="b3" className="lm-title-medium" style={{ margin: 0 }}>3. Resultado</h2>
           {plan?.error ? <Banner type="error" title={plan.error} />
-            : plan && plan.filas.length ? <ResultadoIntercambio filas={plan.filas} rotado={modoHijos && rotar && B?.categoria === "Eje"} />
+            : plan && plan.filas.length ? <ResultadoIntercambio filas={plan.filas} activos={mov.activos} serieUnidad={A!.serie} serieAlmacen={B!.serie} />
               : <span className="muted">Marca lo que sale de la unidad y elige lo que entra del almacén para ver el intercambio.</span>}
           {!cabeceraOk && plan && !plan.error && <Banner type="attention" title="Completa el bloque 1 para registrar el movimiento" />}
         </section>
@@ -240,7 +240,7 @@ export default function IntercambioUnidadAlmacen() {
             <Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button>
             <Button onClick={registrar}>Registrar</Button>
           </>}>
-          <ResultadoIntercambio filas={plan.filas} rotado={modoHijos && rotar && B?.categoria === "Eje"} />
+          <ResultadoIntercambio filas={plan.filas} activos={mov.activos} serieUnidad={A!.serie} serieAlmacen={B!.serie} />
         </Dialog>
       )}
       {descartar && (
