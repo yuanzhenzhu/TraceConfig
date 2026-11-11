@@ -140,17 +140,11 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
     nuevo[B.serie] = { ...lA };
     dB.forEach((d) => { nuevo[d.a.serie] = { tipo: "unidad", unidad: lA.unidad, hueco: `${lA.hueco}${SEP}${relB[d.a.serie]}` }; });
   } else {
-    // Solo los padres: los hijos se quedan en sus posiciones y pasan a estar montados en el otro padre.
-    const rels = (l: { rel: string }[]) => l.map((d) => d.rel).sort().join("|");
-    const rB = dB.map((d) => ({ rel: relB[d.a.serie] }));
-    if (rels(dA) !== rels(rB)) return { filas: [], error: `Estructura incompatible: el ${A.categoria.toLowerCase()} ${A.serie} y el ${B.categoria.toLowerCase()} ${B.serie} no tienen los mismos huecos` };
+    // Sin sus activos montados: el activo del almacén tiene que estar sin hijos. Los hijos de A se quedan en sus
+    // huecos de la unidad y pasan a estar montados en B; A llega solo al almacén.
+    if (dB.length) return { filas: [], error: `El ${B.categoria.toLowerCase()} ${B.serie} tiene activos montados: para intercambiar sin ellos, elige un ${B.categoria.toLowerCase()} sin activos montados` };
     nuevo[A.serie] = { ...lB };
     nuevo[B.serie] = { ...lA };
-    dB.forEach((d) => {
-      const l = d.a.lugar as Extract<Lugar, { tipo: "almacen" }>;
-      const rel = relB[d.a.serie];
-      nuevo[d.a.serie] = { ...l, padre: l.padre === B.serie ? A.serie : l.padre, enHueco: nombreFinal(rel) };
-    });
   }
   const filas: FilaMov[] = [];
   const add = (a: ActivoM, conPadre: boolean) => {

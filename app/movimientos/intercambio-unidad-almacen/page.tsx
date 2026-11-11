@@ -6,11 +6,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Icon, Loading, SearchInput, Tag, useSnackbar } from "@/components/ds";
-import { ArbolFilas, iconoCategoria } from "@/components/arbol";
+import { Banner, Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Loading, SearchInput, Tag, useSnackbar } from "@/components/ds";
 import { TablaAntesDespues } from "@/components/movimientos/detalle";
+import { TablaAlmacen, TablaArbolUnidad } from "@/components/movimientos/tablas";
 import {
-  TIPOS, ahoraIso, descendientes, formatoKm, huecosConActivo, planIntercambioUA, textoFecha, useMovimientos, useTextos,
+  TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUA, textoFecha, useMovimientos, useTextos,
 } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 
@@ -38,7 +38,6 @@ export default function IntercambioUnidadAlmacen() {
   const [rotar, setRotar] = useState(false);
   const [buscaU, setBuscaU] = useState("");
   const [buscaA, setBuscaA] = useState("");
-  const [verLinea, setVerLinea] = useState(false);
   const [intentado, setIntentado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [descartar, setDescartar] = useState(false);
@@ -52,6 +51,13 @@ export default function IntercambioUnidadAlmacen() {
 
   // Validaciones de "Cuándo y dónde"
   const rango = unidad && fecha && hora ? mov.rangoKm(unidad, iso) : {};
+  // Registros de km cerca de la fecha: 1 anterior y 1 posterior; si no hay posterior, los 2 anteriores
+  const cercanos = useMemo(() => {
+    const l = unidad ? mov.historialKm(unidad) : [];
+    const previos = l.filter((p) => p.fecha <= iso);
+    const posterior = l.find((p) => p.fecha > iso);
+    return { previos: previos.slice(posterior ? -1 : -2), posterior };
+  }, [unidad, iso, mov]);
   const kmNum = km === "" ? null : Number(km);
   const errFecha = !fecha || !hora ? "Indica la fecha y la hora" : iso > ahoraIso() ? "La fecha no puede ser futura" : "";
   const errKm = kmNum === null ? "Indica el km" : !Number.isFinite(kmNum) || kmNum < 0 ? "El km tiene que ser un número"
@@ -65,19 +71,20 @@ export default function IntercambioUnidadAlmacen() {
   const errores = { fecha: errFecha, flota: flota ? "" : "Elige la flota", unidad: unidad ? "" : "Elige la unidad", km: errKm, almacen: almacen ? "" : "Elige el almacén", extra: errExtra };
   const cabeceraOk = Object.values(errores).every((e) => !e);
 
-  // Árbol de la unidad y lista del almacén
-  const arbol = useMemo(() => (uInfo ? huecosConActivo(uInfo.raiz, unidad, mov.activos) : null), [uInfo, unidad, mov.activos]);
+  // Activos montados en el que sale y candidatos del almacén: con hijos, los que tienen activos montados; sin hijos, los que no
+  const hijosA = useMemo(() => (A ? descendientes(mov.activos, A) : []), [A, mov.activos]);
+  const modoHijos = hijosA.length > 0 && conHijos;
   const delAlmacen = useMemo(() => Object.values(mov.activos)
-    .filter((a) => a.lugar.tipo === "almacen" && a.lugar.almacenId === almacen && (!A || a.categoria === A.categoria))
+    .filter((a) => A && a.lugar.tipo === "almacen" && a.lugar.almacenId === almacen && a.categoria === A.categoria)
+    .filter((a) => (descendientes(mov.activos, a).length > 0) === modoHijos)
     .filter((a) => !buscaA || a.serie.toLowerCase().includes(buscaA.toLowerCase()))
-    .sort((a, b) => a.serie.localeCompare(b.serie)), [mov.activos, almacen, A, buscaA]);
+    .sort((a, b) => a.serie.localeCompare(b.serie)), [mov.activos, almacen, A, buscaA, modoHijos]);
 
-  const plan = A && B ? planIntercambioUA(mov.activos, A.serie, B.serie, conHijos, rotar && ROTABLES.includes(B.categoria)) : null;
+  const plan = A && B ? planIntercambioUA(mov.activos, A.serie, B.serie, modoHijos, modoHijos && rotar && ROTABLES.includes(B.categoria)) : null;
   const valido = cabeceraOk && !!plan && !plan.error && plan.filas.length > 0;
-  const viajan = (s?: string) => (s && mov.activos[s] ? descendientes(mov.activos, mov.activos[s]) : []);
   const hayDatos = !!(flota || unidad || km || almacen || selU || selA);
 
-  const elegirUnidad = (s: string) => { setSelU(s); setSelA(""); setRotar(false); setExtra(""); };
+  const elegirUnidad = (s: string) => { setSelU(s); setSelA(""); setRotar(false); setExtra(""); setConHijos(true); };
   const registrar = () => {
     if (!plan) return;
     const m = mov.registrar({
@@ -139,113 +146,55 @@ export default function IntercambioUnidadAlmacen() {
               </select>
             </Field>
           </div>
-          {unidad && (
-            <div className="stack gap-10">
-              <Button variant="text" small icon={verLinea ? "expand_less" : "expand_more"} style={{ alignSelf: "flex-start" }} onClick={() => setVerLinea((v) => !v)}>
-                {verLinea ? "Ocultar" : "Ver"} línea temporal de la unidad {unidad}
-              </Button>
-              {verLinea && (
-                <table className="lm-table" style={{ maxWidth: 560 }}>
-                  <thead><tr><th>Fecha</th><th className="num">Km</th><th>Registro</th></tr></thead>
-                  <tbody>
-                    {mov.historialKm(unidad).slice(-8).reverse().map((p, i) => {
-                      const marca = p === rango.antes || p === rango.despues;
-                      return (
-                        <tr key={i} style={marca ? { background: "var(--lm-sys-secondary-container)" } : undefined}>
-                          <td>{textoFecha(p.fecha)}</td><td className="num">{formatoKm(p.km)}</td>
-                          <td>{p.mov ?? "Alta de la unidad"}{p === rango.antes && <Tag tone="info">Anterior</Tag>}{p === rango.despues && <Tag tone="info">Siguiente</Tag>}</td>
-                        </tr>
-                      );
-                    })}
-                    {!mov.historialKm(unidad).length && <tr><td colSpan={3} className="muted">Sin registros de km</td></tr>}
-                  </tbody>
-                </table>
-              )}
+          {unidad && fecha && hora && (
+            <div className="stack gap-10" style={{ maxWidth: 640 }}>
+              <span className="lm-label-medium muted">REGISTROS DE KM DE LA UNIDAD {unidad} CERCA DE LA FECHA</span>
+              <table className="lm-table">
+                <thead><tr><th>Fecha</th><th className="num">Km</th><th>Registro</th><th /></tr></thead>
+                <tbody>
+                  {cercanos.previos.map((p, i) => (
+                    <tr key={`p${i}`}><td>{textoFecha(p.fecha)}</td><td className="num">{formatoKm(p.km)}</td><td>{p.mov ?? "Alta de la unidad"}</td><td><Tag tone="neutral">Anterior</Tag></td></tr>
+                  ))}
+                  <tr style={{ background: "var(--lm-sys-secondary-container)" }}>
+                    <td>{textoFecha(iso)}</td><td className="num">{km ? formatoKm(kmNum) : "—"}</td><td>Este movimiento</td><td><Tag tone="primary">Nuevo</Tag></td>
+                  </tr>
+                  {cercanos.posterior && (
+                    <tr><td>{textoFecha(cercanos.posterior.fecha)}</td><td className="num">{formatoKm(cercanos.posterior.km)}</td><td>{cercanos.posterior.mov ?? "Alta de la unidad"}</td><td><Tag tone="neutral">Posterior</Tag></td></tr>
+                  )}
+                  {!cercanos.previos.length && !cercanos.posterior && <tr><td colSpan={4} className="muted">La unidad no tiene registros de km</td></tr>}
+                </tbody>
+              </table>
             </div>
           )}
         </section>
 
-        {/* 2 · Qué activos */}
+        {/* 2 · Qué activos: a) en la unidad · b) con o sin sus activos montados · c) en el almacén */}
         <section className="lm-surface lm-surface--p24 stack gap-20" aria-labelledby="b2">
           <h2 id="b2" className="lm-title-medium" style={{ margin: 0 }}>2. Qué activos</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--lm-space-30)", alignItems: "start" }}>
-            <div className="stack gap-10">
-              <div className="row gap-10">
-                <span className="lm-label-medium grow">{unidad ? `UNIDAD ${unidad}` : "UNIDAD"}</span>
-                <SearchInput label="Buscar en la unidad por nº de serie" placeholder="Nº de serie" value={buscaU} onChange={setBuscaU} />
-              </div>
-              {!uInfo || !arbol ? (
-                <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad en el bloque 1" />
-              ) : (
-                <div style={{ maxHeight: 460, overflow: "auto", border: "1px solid var(--lm-sys-outline-variant)", borderRadius: "var(--lm-corner-30)" }}>
-                  <ArbolFilas key={`${unidad}-${buscaU ? "busca" : "todo"}`} raiz={uInfo.raiz} abiertosIni={buscaU ? 99 : 3}
-                    filtro={buscaU ? (n) => (arbol.activoDe(n)?.serie ?? "").toLowerCase().includes(buscaU.toLowerCase()) : undefined}
-                    render={(n, nivel) => {
-                      const a = arbol.activoDe(n);
-                      if (nivel === 1) return <span className="row gap-10 grow"><Icon name="train" size="m" /><span style={{ fontWeight: 500 }}>Unidad {unidad}</span></span>;
-                      const sel = a && a.serie === selU;
-                      return (
-                        <label className="row gap-10 grow" style={{ cursor: a ? "pointer" : "not-allowed", padding: "var(--lm-space-5) 0", background: sel ? "var(--lm-sys-secondary-container)" : undefined }}>
-                          <input type="radio" name="sel-unidad" disabled={!a} checked={!!sel} onChange={() => a && elegirUnidad(a.serie)} aria-label={`${n.nombre} ${a?.serie ?? "vacío"}`} />
-                          <Icon name={iconoCategoria(n.categoria)} size="m" />
-                          <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{n.nombre}</span>
-                          <span className="muted">{a ? a.serie : "Vacío"}</span>
-                        </label>
-                      );
-                    }} />
-                </div>
-              )}
-            </div>
 
-            <div className="stack gap-10">
-              <div className="row gap-10">
-                <span className="lm-label-medium grow">{almacen ? t.nombreAlmacen(almacen).toUpperCase() : "ALMACÉN"}</span>
-                <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={buscaA} onChange={setBuscaA} />
-              </div>
-              {!almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indica el almacén en el bloque 1" />
-                : !A ? <EmptyState icon="arrow_left" title="Elige antes un activo de la unidad" text="Aquí aparecerán los activos del almacén de la misma categoría" />
-                  : !delAlmacen.length ? (
-                    <EmptyState icon={buscaA ? "search_off" : "domain"} title={buscaA ? "No hay resultados" : `No hay ${A.categoria.toLowerCase()}s en ${t.nombreAlmacen(almacen)}`}
-                      text={buscaA ? "Ningún activo coincide con el nº de serie" : "Elige otro almacén o otro activo de la unidad"} />
-                  ) : (
-                    <div style={{ maxHeight: 460, overflow: "auto" }}>
-                      <table className="lm-table">
-                        <thead><tr><th aria-hidden="true" /><th>Nº de serie</th><th>Dónde</th><th className="num">Km</th><th className="num">Montados</th></tr></thead>
-                        <tbody>
-                          {delAlmacen.map((a) => (
-                            <tr key={a.serie} onClick={() => { setSelA(a.serie); setRotar(false); }} style={{ cursor: "pointer", background: a.serie === selA ? "var(--lm-sys-secondary-container)" : undefined }}>
-                              <td style={{ width: 1 }}><input type="radio" name="sel-almacen" checked={a.serie === selA} onChange={() => setSelA(a.serie)} aria-label={`Elegir ${a.categoria} ${a.serie}`} /></td>
-                              <td className="emph">{a.serie}</td>
-                              <td>{a.lugar.tipo === "almacen" && a.lugar.padre ? `En ${a.lugar.padre}` : "Suelto"}</td>
-                              <td className="num">{formatoKm(a.km)}</td>
-                              <td className="num">{viajan(a.serie).length || "—"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+          <div className="stack gap-10">
+            <div className="row gap-10">
+              <span className="lm-title-small grow">a. Activo que sale de la unidad{unidad ? ` ${unidad}` : ""}</span>
+              {uInfo && <SearchInput label="Buscar en la unidad por nº de serie" placeholder="Nº de serie" value={buscaU} onChange={setBuscaU} />}
             </div>
+            {!uInfo ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad en el bloque 1" />
+              : <TablaArbolUnidad key={unidad} raiz={uInfo.raiz} unidad={unidad} activos={mov.activos} sel={selU} onSel={elegirUnidad} busca={buscaU} alto={360} />}
           </div>
 
           {A && (
-            <div className="stack gap-10" style={{ borderTop: "1px solid var(--lm-sys-outline-variant)", paddingTop: "var(--lm-space-20)" }}>
-              <label className="lm-toggle">
-                <input type="checkbox" role="switch" aria-label="Mover con sus activos montados" checked={conHijos} onChange={(e) => setConHijos(e.target.checked)} />
-                <span>Mover con sus activos montados</span>
-              </label>
-              <span className="lm-body-small muted" style={{ paddingLeft: 62 }}>
-                {conHijos
-                  ? [viajan(selU).length && `Con ${selU} viajan: ${viajan(selU).map((d) => `${d.a.categoria} ${d.a.serie}`).join(", ")}`,
-                    B && viajan(selA).length && `Con ${selA} viajan: ${viajan(selA).map((d) => `${d.a.categoria} ${d.a.serie}`).join(", ")}`].filter(Boolean).join(". ") || "Los activos elegidos no tienen activos montados"
-                  : "Solo se intercambian los activos elegidos: sus activos montados se quedan en su posición y pasan a estar montados en el otro"}
-              </span>
-              {B && ROTABLES.includes(B.categoria) && (
-                <label className="lm-check">
-                  <input type="checkbox" checked={rotar} onChange={(e) => setRotar(e.target.checked)} />
-                  <span>Rotar el {B.categoria.toLowerCase()} {B.serie} del almacén (180°): sus activos montados cambian de lado</span>
-                </label>
-              )}
+            <div className="stack gap-10">
+              <span className="lm-title-small">b. ¿Qué se intercambia?</span>
+              {hijosA.length ? (
+                <>
+                  <ButtonToggle label="Qué se intercambia" value={conHijos ? "con" : "sin"} onChange={(v) => { setConHijos(v === "con"); setSelA(""); setRotar(false); }}
+                    options={[{ value: "con", label: `${A.categoria} con sus activos montados` }, { value: "sin", label: `Solo el ${A.categoria.toLowerCase()}` }]} />
+                  <span className="lm-body-small muted">
+                    {conHijos
+                      ? `El ${A.categoria.toLowerCase()} ${A.serie} sale con ${hijosA.length} activos montados (${hijosA.map((d) => `${d.a.categoria} ${d.a.serie}`).join(", ")}). En el almacén solo aparecen ${A.categoria.toLowerCase()}s con sus activos montados.`
+                      : `Sus ${hijosA.length} activos montados se quedan en la unidad y pasan a estar montados en el ${A.categoria.toLowerCase()} que entra. En el almacén solo aparecen ${A.categoria.toLowerCase()}s sin activos montados.`}
+                  </span>
+                </>
+              ) : <span className="lm-body-small muted">El {A.categoria.toLowerCase()} {A.serie} no tiene activos montados: en el almacén aparecen los {A.categoria.toLowerCase()}s sin activos montados.</span>}
               {tipoExtra && (
                 <Field label={tipoExtra === "horas" ? "Horas" : "Ciclos"} htmlFor="extra" error={errores.extra}
                   support={`Opcional${previoExtra != null ? ` · último registro: ${formatoKm(previoExtra)}` : ""}`} style={{ width: 230 }}>
@@ -254,12 +203,32 @@ export default function IntercambioUnidadAlmacen() {
               )}
             </div>
           )}
+
+          {A && (
+            <div className="stack gap-10">
+              <div className="row gap-10">
+                <span className="lm-title-small grow">c. Activo que entra desde {almacen ? t.nombreAlmacen(almacen) : "el almacén"}</span>
+                {almacen && <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={buscaA} onChange={setBuscaA} />}
+              </div>
+              {!almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indica el almacén en el bloque 1" />
+                : !delAlmacen.length ? (
+                  <EmptyState icon={buscaA ? "search_off" : "domain"} title={buscaA ? "No hay resultados" : `No hay ${A.categoria.toLowerCase()}s ${modoHijos ? "con" : "sin"} activos montados en ${t.nombreAlmacen(almacen)}`}
+                    text={buscaA ? "Ningún activo coincide con el nº de serie" : modoHijos ? "Prueba con «Solo el activo» o elige otro almacén" : "Elige otro almacén"} />
+                ) : <TablaAlmacen candidatos={delAlmacen} activos={mov.activos} sel={selA} onSel={(s) => { setSelA(s); setRotar(false); }} conHijos={modoHijos} alto={360} />}
+              {B && modoHijos && ROTABLES.includes(B.categoria) && (
+                <label className="lm-check">
+                  <input type="checkbox" checked={rotar} onChange={(e) => setRotar(e.target.checked)} />
+                  <span>Rotar el {B.categoria.toLowerCase()} {B.serie} en el almacén (180°): sus activos montados cambian de lado</span>
+                </label>
+              )}
+            </div>
+          )}
         </section>
 
         {/* 3 · Resultado */}
         <section className="lm-surface lm-surface--p24 stack gap-15" aria-labelledby="b3">
           <h2 id="b3" className="lm-title-medium" style={{ margin: 0 }}>3. Resultado</h2>
-          {plan?.error ? <Banner type="error" title={plan.error}>Activa "Mover con sus activos montados" o elige otro activo del almacén.</Banner>
+          {plan?.error ? <Banner type="error" title={plan.error} />
             : plan && plan.filas.length ? <TablaAntesDespues filas={plan.filas} />
               : <span className="muted">Elige un activo de la unidad y otro del almacén para ver dónde queda cada uno.</span>}
           {!cabeceraOk && plan && !plan.error && <Banner type="attention" title="Completa el bloque 1 para registrar el movimiento" />}
