@@ -13,6 +13,8 @@ import {
   TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUA, textoFecha, useMovimientos, useTextos,
 } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
+import { SEP } from "@/lib/datos";
+import type { Nodo } from "@/lib/model";
 
 // En este intercambio solo se rotan ejes (en el almacén, antes de montarlo)
 const driverExtra = (categoria?: string) => (!categoria ? null : categoria.startsWith("Motor") ? "horas" : categoria === "Puerta" ? "ciclos" : null);
@@ -80,6 +82,18 @@ export default function IntercambioUnidadAlmacen() {
     .sort((a, b) => a.serie.localeCompare(b.serie)), [mov.activos, almacen, A, buscaA, modoHijos]);
 
   const plan = A && B ? planIntercambioUA(mov.activos, A.serie, B.serie, modoHijos, modoHijos && rotar && B.categoria === "Eje") : null;
+  // Huecos de la estructura por debajo del activo que sale (para avisar de los que quedan vacíos)
+  const huecosPos = useMemo(() => {
+    if (!uInfo || !A || A.lugar.tipo !== "unidad") return [];
+    const base = A.lugar.hueco;
+    const out: { rel: string; categoria: string }[] = [];
+    const ir = (n: Nodo, ruta: string) => {
+      if (ruta.startsWith(base + SEP)) out.push({ rel: ruta.slice(base.length + SEP.length), categoria: n.categoria });
+      n.hijos.forEach((h) => ir(h, ruta ? `${ruta}${SEP}${h.nombre}` : h.nombre));
+    };
+    ir(uInfo.raiz, "");
+    return out;
+  }, [uInfo, A]);
   const valido = cabeceraOk && !!plan && !plan.error && plan.filas.length > 0;
   const hayDatos = !!(flota || unidad || km || almacen || selU || selA);
 
@@ -227,7 +241,7 @@ export default function IntercambioUnidadAlmacen() {
         <section className="lm-surface lm-surface--p24 stack gap-15" aria-labelledby="b3">
           <h2 id="b3" className="lm-title-medium" style={{ margin: 0 }}>3. Resultado</h2>
           {plan?.error ? <Banner type="error" title={plan.error} />
-            : plan && plan.filas.length ? <ResultadoIntercambio filas={plan.filas} activos={mov.activos} serieUnidad={A!.serie} serieAlmacen={B!.serie} />
+            : plan && plan.filas.length ? <ResultadoIntercambio filas={plan.filas} activos={mov.activos} serieUnidad={A!.serie} serieAlmacen={B!.serie} huecos={huecosPos} />
               : <span className="muted">Marca lo que sale de la unidad y elige lo que entra del almacén para ver el intercambio.</span>}
           {!cabeceraOk && plan && !plan.error && <Banner type="attention" title="Completa el bloque 1 para registrar el movimiento" />}
         </section>
@@ -240,7 +254,7 @@ export default function IntercambioUnidadAlmacen() {
             <Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button>
             <Button onClick={registrar}>Registrar</Button>
           </>}>
-          <ResultadoIntercambio filas={plan.filas} activos={mov.activos} serieUnidad={A!.serie} serieAlmacen={B!.serie} />
+          <ResultadoIntercambio filas={plan.filas} activos={mov.activos} serieUnidad={A!.serie} serieAlmacen={B!.serie} huecos={huecosPos} />
         </Dialog>
       )}
       {descartar && (

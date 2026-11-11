@@ -4,11 +4,11 @@
 // izquierda, la posición de la unidad (qué había montado y qué queda); derecha, el almacén (qué había y qué tiene ahora).
 // Se calcula aplicando las filas del movimiento a los activos actuales. Se usa en la pantalla y en la confirmación.
 
-import { Tag } from "@/components/ds";
+import { Banner, Tag } from "@/components/ds";
 import { SEP } from "@/lib/datos";
 import { descendientes, useTextos, type ActivoM, type FilaMov } from "@/lib/movimientos";
 
-type Item = { pos: string; categoria: string; serie: string; cambia?: string };
+type Item = { pos: string; categoria: string; serie: string; cambia?: string; vacio?: "antes" | "nuevo" };
 
 const caja = {
   border: "1px solid var(--lm-sys-outline-variant)", borderRadius: "var(--lm-corner-30)",
@@ -23,7 +23,12 @@ function Lista({ titulo, items, tono }: { titulo: string; items: Item[]; tono: "
       {!p ? <span className="muted">Vacío</span> : (
         <>
           <span><span style={{ fontWeight: 500 }}>{p.categoria} {p.serie}</span></span>
-          {hijos.map((h) => (
+          {hijos.map((h) => h.vacio ? (
+            <span key={`vacio-${h.pos}`} className="lm-body-small row gap-5" style={{ paddingLeft: "var(--lm-space-15)" }}>
+              <span className="muted">{h.pos}</span>
+              {h.vacio === "nuevo" ? <Tag tone="warning">Queda vacío</Tag> : <span className="muted">· vacío</span>}
+            </span>
+          ) : (
             <span key={h.serie} className="lm-body-small" style={{ paddingLeft: "var(--lm-space-15)" }}>
               <span className="muted">{h.cambia ? <>{h.cambia} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.pos}</strong></> : h.pos}</span> {h.serie}
             </span>
@@ -34,8 +39,10 @@ function Lista({ titulo, items, tono }: { titulo: string; items: Item[]; tono: "
   );
 }
 
-export function ResultadoIntercambio({ filas, activos, serieUnidad, serieAlmacen }: {
+export function ResultadoIntercambio({ filas, activos, serieUnidad, serieAlmacen, huecos = [] }: {
   filas: FilaMov[]; activos: Record<string, ActivoM>; serieUnidad: string; serieAlmacen: string;
+  /** Huecos de la estructura por debajo de la posición (ruta relativa y categoría), para mostrar los que quedan vacíos. */
+  huecos?: { rel: string; categoria: string }[];
 }) {
   const t = useTextos();
   const A = activos[serieUnidad], B = activos[serieAlmacen];
@@ -56,12 +63,18 @@ export function ResultadoIntercambio({ filas, activos, serieUnidad, serieAlmacen
       return { pos: h === hueco ? h.split(SEP).pop()! : h.slice(hueco.length + SEP.length), categoria: a.categoria, serie: a.serie };
     })
     .sort((x, y) => (x.pos === hueco.split(SEP).pop() ? -1 : y.pos === hueco.split(SEP).pop() ? 1 : x.pos.localeCompare(y.pos, "es", { numeric: true })));
-  const unidadAntes = enHueco(activos);
-  const unidadDespues = enHueco(despues).map((i) => {
+  const ordenar = (l: Item[]) => { const [p, ...h] = l; return [p, ...h.sort((x, y) => x.pos.localeCompare(y.pos, "es", { numeric: true }))].filter(Boolean); };
+  // Huecos sin activo: en "Antes" ya vacíos; en "Después", los que quedan vacíos con este movimiento se resaltan
+  const conVacios = (l: Item[], ocupadosAntes?: Set<string>): Item[] => ordenar([...l, ...huecos.filter((h) => !l.some((i) => i.pos === h.rel))
+    .map((h): Item => ({ pos: h.rel, categoria: h.categoria, serie: "", vacio: ocupadosAntes?.has(h.rel) ? "nuevo" : "antes" }))]);
+  const antesSinVacios = enHueco(activos);
+  const unidadAntes = conVacios(antesSinVacios);
+  const unidadDespues = conVacios(enHueco(despues).map((i) => {
     const a = relAntes.get(i.serie);
     const antes = a && a.tipo === "almacen" ? a.enHueco : undefined;
     return antes && antes !== i.pos.split(SEP).pop() ? { ...i, cambia: antes } : i;
-  });
+  }), new Set(antesSinVacios.map((i) => i.pos)));
+  const nuevosVacios = unidadDespues.filter((i) => i.vacio === "nuevo").map((i) => i.pos);
 
   // Almacén: el activo que había (con sus hijos) y el que queda (con sus hijos)
   const conjunto = (estado: Record<string, ActivoM>, s: string): Item[] => {
@@ -72,6 +85,7 @@ export function ResultadoIntercambio({ filas, activos, serieUnidad, serieAlmacen
   const almacenDespues = conjunto(despues, A.serie);
 
   return (
+    <div className="stack gap-15">
     <div className="row gap-15" style={{ alignItems: "stretch" }}>
       <div className="stack gap-10" style={caja}>
         <span className="stack">
@@ -93,6 +107,12 @@ export function ResultadoIntercambio({ filas, activos, serieUnidad, serieAlmacen
           <Lista titulo="Después" tono="primary" items={almacenDespues} />
         </div>
       </div>
+    </div>
+    {nuevosVacios.length > 0 && (
+      <Banner type="attention" title={`${nuevosVacios.length === 1 ? "Queda 1 hueco vacío" : `Quedan ${nuevosVacios.length} huecos vacíos`} en la unidad ${unidad}`}>
+        {nuevosVacios.map((p) => `${hueco} › ${p}`).join(" · ")}. El {B.categoria.toLowerCase()} {B.serie} no tiene activos para esas posiciones; podrás montarlos después con Montaje.
+      </Banner>
+    )}
     </div>
   );
 }
