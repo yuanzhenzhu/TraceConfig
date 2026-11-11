@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Banner, Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Icon, Loading, SearchInput, useSnackbar } from "@/components/ds";
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import { ResultadoIntercambio } from "@/components/movimientos/resultado";
+import { LineaKm } from "@/components/movimientos/linea-km";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
 import {
   TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUA, textoFecha, useMovimientos, useTextos,
@@ -191,12 +192,13 @@ export default function IntercambioUnidadAlmacen() {
               </select>
             </Field>
           </div>
-          {unidad && (
-            <span className="lm-body-small muted">
-              Registros de km de la unidad {unidad} cerca de la fecha:{" "}
-              {[...cercanos.previos.map((p) => `${formatoKm(p.km)} km el ${textoFecha(p.fecha).slice(0, 10)} (anterior)`),
-                ...(cercanos.posterior ? [`${formatoKm(cercanos.posterior.km)} km el ${textoFecha(cercanos.posterior.fecha).slice(0, 10)} (posterior)`] : [])].join(" · ") || "ninguno"}
-            </span>
+          {unidad && fecha && hora && (
+            <div className="row gap-20" style={{ alignItems: "flex-start", paddingTop: "var(--lm-space-5)" }}>
+              <span className="lm-label-medium muted" style={{ width: 110, paddingTop: 0 }}>KM DE LA UNIDAD {unidad}</span>
+              <div className="grow">
+                <LineaKm previos={cercanos.previos} posterior={cercanos.posterior} fechaNueva={iso} kmNuevo={kmNum} error={!!km && !!errores.km} />
+              </div>
+            </div>
           )}
         </section>
 
