@@ -193,12 +193,18 @@ export default function IntercambioUnidadAlmacen() {
             subtitulo={vista === "despues" ? "Así queda la unidad" : A ? <>Sale el <strong>{A.categoria.toLowerCase()} {A.serie}</strong>{hijosA.length ? (modoHijos ? ` con ${hijosA.length} activos montados` : " sin sus activos montados") : ""}</> : "Marca lo que sale; sus activos montados se marcan con él"}
             accion={uInfo && vista === "antes" ? <SearchInput label="Buscar en la unidad por nº de serie" placeholder="Nº de serie" value={buscaU} onChange={setBuscaU} /> : undefined}>
             {!uInfo ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad arriba" />
-              : vista === "despues" && plan
-                ? <PanelUnidad key={`d-${unidad}`} raiz={uInfo.raiz} unidad={unidad} activos={despues} sel={null} onSel={() => {}} busca="" soloLectura
-                    marcas={Object.fromEntries(plan.filas.filter((f) => f.despues.tipo === "unidad").map((f) => [f.serie, "Entra" as const]))}
-                    vacios={vaciosRutas} abrirHasta={A?.lugar.tipo === "unidad" ? A.lugar.hueco : undefined} />
-                : <PanelUnidad key={unidad} raiz={uInfo.raiz} unidad={unidad} activos={mov.activos} sel={selU} onSel={elegirUnidad} busca={buscaU}
-                    marcas={A ? Object.fromEntries([[A.serie, "Sale" as const]]) : {}} />}
+              : <>
+                  {/* La selección se queda montada (oculta en Después) para no perder lo marcado ni lo desplegado al volver */}
+                  <div hidden={vista === "despues" && !!plan}>
+                    <PanelUnidad key={unidad} raiz={uInfo.raiz} unidad={unidad} activos={mov.activos} sel={selU} onSel={elegirUnidad} busca={buscaU}
+                      marcas={A ? Object.fromEntries([[A.serie, "Sale" as const]]) : {}} />
+                  </div>
+                  {vista === "despues" && plan && (
+                    <PanelUnidad key={`d-${unidad}`} raiz={uInfo.raiz} unidad={unidad} activos={despues} sel={null} onSel={() => {}} busca="" soloLectura
+                      marcas={Object.fromEntries(plan.filas.filter((f) => f.despues.tipo === "unidad").map((f) => [f.serie, "Entra" as const]))}
+                      vacios={vaciosRutas} abrirHasta={A?.lugar.tipo === "unidad" ? A.lugar.hueco : undefined} />
+                  )}
+                </>}
           </Panel>
 
           <span className="row" aria-hidden="true" style={{ alignSelf: "center", color: "var(--lm-sys-on-surface-variant)" }}><Icon name="swap_vert" /></span>
