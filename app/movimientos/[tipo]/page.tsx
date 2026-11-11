@@ -20,8 +20,8 @@ export default function MovimientoPendiente() {
         </div>
       </div>
       <section className="lm-surface lm-surface--p16">
-        <EmptyState icon={item.icon} title="Pantalla en preparación"
-          text="Se construirá con el mismo patrón que Intercambio entre unidad y almacén, cuando esté validado"
+        <EmptyState icon="swap_vert" title="Pantalla en preparación"
+          text={`Se construirá con el mismo patrón que Intercambio entre unidad y almacén, cuando esté validado.${["Montaje", "Desmontaje"].includes(item.label) ? " Dentro de la pantalla se elegirá si es en una unidad o en un almacén." : ""}`}
           action={<Button variant="outlined" onClick={() => router.push("/movimientos/intercambio-unidad-almacen")}>Ver Intercambio entre unidad y almacén</Button>} />
       </section>
     </main>

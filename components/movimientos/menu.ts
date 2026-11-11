@@ -1,26 +1,24 @@
-// Menú lateral de Movimientos, agrupado por acción (ver documentos/movimientos/flujos/movimientos.md).
+// Menú lateral de Movimientos, agrupado por acción y sin iconos (ver documentos/movimientos/flujos/movimientos.md).
+// Montaje y Desmontaje son una entrada cada uno: dentro de la pantalla se elige si es en una unidad o en un almacén.
 
-export type Item = { href: string; label: string; icon: string };
+export type Item = { href: string; label: string };
 export const GRUPOS: { titulo?: string; items: Item[] }[] = [
-  { items: [{ href: "/movimientos", label: "Historial de movimientos", icon: "list" }] },
+  { items: [{ href: "/movimientos", label: "Historial de movimientos" }] },
   {
     titulo: "Intercambios", items: [
-      { href: "/movimientos/intercambio-unidad-almacen", label: "Entre unidad y almacén", icon: "swap_vert" },
-      { href: "/movimientos/intercambio-entre-unidades", label: "Entre unidades", icon: "swap_vert" },
-      { href: "/movimientos/intercambio-dentro-unidad", label: "Dentro de la unidad", icon: "swap_vert" },
-      { href: "/movimientos/rotacion-bogies", label: "Rotación de bogies", icon: "sync" },
+      { href: "/movimientos/intercambio-unidad-almacen", label: "Entre unidad y almacén" },
+      { href: "/movimientos/intercambio-entre-unidades", label: "Entre unidades" },
+      { href: "/movimientos/intercambio-dentro-unidad", label: "Dentro de la unidad" },
+      { href: "/movimientos/rotacion-bogies", label: "Rotación de bogies" },
     ],
   },
   {
     titulo: "Montajes y desmontajes", items: [
-      { href: "/movimientos/montaje-unidad", label: "Montaje en unidad", icon: "add" },
-      { href: "/movimientos/desmontaje-unidad", label: "Desmontaje de unidad", icon: "remove" },
-      { href: "/movimientos/montaje-almacen", label: "Montaje en almacén", icon: "add" },
-      { href: "/movimientos/desmontaje-almacen", label: "Desmontaje en almacén", icon: "remove" },
+      { href: "/movimientos/montaje", label: "Montaje" },
+      { href: "/movimientos/desmontaje", label: "Desmontaje" },
     ],
   },
-  { titulo: "Envíos", items: [{ href: "/movimientos/envio-almacenes", label: "Envío entre almacenes", icon: "north_east" }] },
-  { titulo: "", items: [{ href: "/movimientos/fin-de-vida", label: "Fin de vida", icon: "block" }] },
+  { titulo: "Envíos", items: [{ href: "/movimientos/envio-almacenes", label: "Envío entre almacenes" }] },
+  { titulo: "", items: [{ href: "/movimientos/fin-de-vida", label: "Fin de vida" }] },
 ];
 export const ITEMS_MOVIMIENTOS = GRUPOS.flatMap((g) => g.items.map((i) => ({ ...i, grupo: g.titulo ?? "" })));
-

@@ -1,10 +1,9 @@
 "use client";
 
-// Módulo Movimientos: navlist lateral agrupado por acción (ver documentos/movimientos/flujos/movimientos.md).
+// Módulo Movimientos: navlist lateral agrupado por acción, sin iconos (ver documentos/movimientos/flujos/movimientos.md).
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icon } from "@/components/ds";
 import { GRUPOS } from "@/components/movimientos/menu";
 
 export default function MovimientosLayout({ children }: { children: React.ReactNode }) {
@@ -22,7 +21,6 @@ export default function MovimientosLayout({ children }: { children: React.ReactN
                 const on = path === a.href;
                 return (
                   <Link key={a.href} href={a.href} className="lm-navlist-item" aria-current={on ? "page" : undefined}>
-                    <Icon name={a.icon} filled={on} />
                     {a.label}
                   </Link>
                 );
