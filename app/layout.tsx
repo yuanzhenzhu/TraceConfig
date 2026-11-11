@@ -4,8 +4,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Leadmind Trace · Prototipo de configuración",
-  description: "Prototipo navegable del alta inicial de configuraciones (épica A)",
+  title: "Leadmind Trace · Prototipo",
+  description: "Prototipo navegable de Leadmind Trace: Configuración, Consulta, Movimientos y Registros",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

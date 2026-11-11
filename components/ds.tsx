@@ -3,6 +3,7 @@
 // Componentes del sistema Leadmind. Envoltorios finos sobre las clases de app/globals.css.
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   createContext, useCallback, useContext, useEffect, useId, useRef, useState,
   type ButtonHTMLAttributes, type ReactNode,
@@ -232,16 +233,31 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
 }
 
 /* ---------- navbar ---------- */
+/** Módulos de Leadmind Trace: una ruta cada uno, enlazados desde la navbar. */
+export const MODULOS = [
+  { href: "/configuracion", label: "Configuración" },
+  { href: "/consulta", label: "Consulta" },
+  { href: "/movimientos", label: "Movimientos" },
+  { href: "/registros", label: "Registros" },
+];
+
 export function Navbar() {
+  const path = usePathname();
   return (
     <header className="lm-navbar">
       <Link href="/configuracion" className="lm-navbar__brand">
         <Icon name="train" />
         Leadmind <small>Trace</small>
       </Link>
+      <nav className="lm-navbar__modules" aria-label="Módulos">
+        {MODULOS.map((m) => (
+          <Link key={m.href} href={m.href} className="lm-navbar__module"
+            aria-current={path === m.href || path.startsWith(m.href + "/") ? "page" : undefined}>{m.label}</Link>
+        ))}
+      </nav>
       <span className="lm-navbar__spacer" />
       <IconButton icon="notifications" label="Notificaciones" />
-      <IconButton icon="settings" label="Configuración" />
+      <IconButton icon="settings" label="Ajustes" />
       <span className="lm-navbar__user">
         <span className="lm-avatar" aria-label="Usuario: Jefa de mantenimiento">JM</span>
       </span>

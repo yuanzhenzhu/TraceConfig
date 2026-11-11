@@ -154,6 +154,12 @@ textarea.lm-input { height: auto; min-height: var(--lm-space-90); padding: var(-
 .lm-navbar__brand { display: flex; align-items: center; gap: var(--lm-space-10); font-size: 16px; line-height: 24px; letter-spacing: 0.15px; font-weight: 500; text-decoration: none; color: inherit; }
 .lm-navbar__brand small { font-weight: 400; opacity: .8; }
 .lm-navbar__spacer { flex: 1; }
+/* Módulos de la app en la navbar (como ítems de navlist sobre el fondo secondary) */
+.lm-navbar__modules { display: flex; align-items: center; gap: var(--lm-space-5); margin-left: var(--lm-space-20); }
+.lm-navbar__module { height: var(--lm-space-40); display: inline-flex; align-items: center; padding: 0 var(--lm-space-20); border-radius: var(--lm-corner-full); color: var(--lm-sys-on-secondary); text-decoration: none; font-weight: 500; letter-spacing: 0.1px; }
+.lm-navbar__module:hover { background: color-mix(in srgb, var(--lm-sys-on-secondary) calc(var(--lm-state-hover) * 100%), transparent); }
+.lm-navbar__module:focus-visible { outline: none; background: color-mix(in srgb, var(--lm-sys-on-secondary) calc(var(--lm-state-focus) * 100%), transparent); box-shadow: 0 0 0 2px var(--lm-sys-on-secondary); }
+.lm-navbar__module[aria-current="page"] { background: var(--lm-sys-secondary-container); color: var(--lm-sys-on-secondary-container); }
 .lm-navbar .lm-icon-btn { color: var(--lm-sys-on-secondary); }
 .lm-navbar__user { display: flex; align-items: center; gap: var(--lm-space-10); }
 .lm-avatar { width: var(--lm-space-40); height: var(--lm-space-40); border-radius: 50%; background: var(--lm-sys-primary-container); color: var(--lm-sys-on-primary-container); display: inline-flex; align-items: center; justify-content: center; font-weight: 500; font-size: 14px; }

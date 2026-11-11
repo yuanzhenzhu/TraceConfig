@@ -1,4 +1,4 @@
-// Modelo de dominio de Leadmind Trace (ver contexto/producto.md) y catálogos de ejemplo.
+// Modelo de dominio de Leadmind Trace (ver documentos/contexto/producto.md) y catálogos de ejemplo.
 // Todos los datos de este archivo son FICTICIOS: la carpeta datos/ todavía está vacía.
 
 export type Nodo = { id: string; categoria: string; nombre: string; hijos: Nodo[] };

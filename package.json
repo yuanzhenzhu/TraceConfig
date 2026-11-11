@@ -4,8 +4,9 @@
   "private": true,
   "description": "Prototipos navegables de Leadmind Trace con el sistema de diseño Leadmind",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/dev.mjs",
+    "datos": "node scripts/datos.mjs",
+    "build": "node scripts/datos.mjs && next build",
     "start": "next start"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "exceljs": "^4.4.0",
     "typescript": "^5.9.3"
   }
 }

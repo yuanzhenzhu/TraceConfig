@@ -21,3 +21,6 @@ next-env.d.ts
 node_modules/
 *.log
 *.tmp
+
+# Documentación del producto: solo en local, nunca en GitHub
+documentos/
