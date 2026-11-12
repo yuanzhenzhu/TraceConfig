@@ -38,7 +38,9 @@ export type Movimiento = {
   anulado?: { fecha: string; por: string };
   grupo?: string; // movimientos seguidos: mismo grupo
   motivo?: string; // fin de vida
-  principal?: { serie: string; categoria: string }; // rotación: el bogie que gira (sus filas son solo los hijos)
+  principal?: { serie: string; categoria: string }; // rotación: el bogie que gira; montaje/desmontaje en almacén: el padre (sus filas son solo los hijos)
+  /** Montaje/desmontaje en almacén: lo que lleva montado el padre (después del montaje; antes del desmontaje), para ver el padre con sus hijos. */
+  montados?: { pos: string; serie: string; categoria: string }[];
   por: string;
 };
 
@@ -363,9 +365,17 @@ function inicial(activosBase: ReturnType<typeof generarActivos>, unidades: (Unid
 type NuevoMov = Omit<Movimiento, "id" | "estado" | "por">;
 function aplicar(s: Estado, m: NuevoMov, por: string = USUARIO): { s: Estado; mov: Movimiento } {
   const n = Math.max(0, ...s.movimientos.map((x) => Number(x.id.replace(/\D/g, "")) || 0)) + 1;
-  const mov: Movimiento = { ...m, id: `M-${String(n).padStart(4, "0")}`, estado: "registrado", por };
   const activos = { ...s.activos };
   m.filas.forEach((f) => { activos[f.serie] = { ...activos[f.serie], lugar: f.despues }; });
+  // Montaje/desmontaje en almacén: foto de lo que lleva montado el padre (después del montaje, antes del desmontaje)
+  let montados = m.montados;
+  if (!montados && m.principal && (m.tipo === TIPOS.montajeAlmacen || m.tipo === TIPOS.desmontajeAlmacen)) {
+    const de = m.tipo === TIPOS.montajeAlmacen ? activos : s.activos;
+    montados = Object.values(de).filter((a) => a.lugar.tipo === "almacen" && a.lugar.padre === m.principal!.serie)
+      .map((a) => ({ pos: (a.lugar as { enHueco?: string }).enHueco ?? a.categoria, serie: a.serie, categoria: a.categoria }))
+      .sort((x, y) => x.pos.localeCompare(y.pos, "es", { numeric: true }));
+  }
+  const mov: Movimiento = { ...m, ...(montados ? { montados } : {}), id: `M-${String(n).padStart(4, "0")}`, estado: "registrado", por };
   const km = { ...s.km };
   m.registros.forEach((r) => { if (r.km !== null) km[r.unidad] = [...(km[r.unidad] ?? []), { fecha: m.fecha, km: r.km, mov: mov.id }]; });
   return { s: { activos, km, movimientos: [...s.movimientos, mov] }, mov };
@@ -493,14 +503,13 @@ function ejemplos(inicio: Estado, unidades: (UnidadInfo & { raiz?: Nodo })[]): E
       reg({ tipo: TIPOS.montajeUnidad, fecha: f, almacenes: [almacenDe(B)], filas: p.filas, registros: [{ unidad: u, km: kmEn(u, f) }] });
       break;
     }
-    // Desmontaje en almacén: las ruedas del eje que ha salido, seguidas
+    // Desmontaje en almacén: las ruedas del eje que ha salido, una a una (un movimiento por rueda; el eje es el participante)
     const ruedas = hijosDirectos(s.activos, s.activos[A.serie]).filter((h) => h.categoria === "Rueda").slice(0, 2);
     const posiciones = ruedas.map((r) => (r.lugar.tipo === "almacen" ? r.lugar.enHueco ?? "" : ""));
-    const g1 = "G-ejemplo-1";
-    ruedas.forEach((r) => reg({ tipo: TIPOS.desmontajeAlmacen, fecha: "2026-09-29T09:30", almacenes: [alm], filas: planDesmontajeAlmacen(s.activos, r.serie).filas, registros: [], grupo: ruedas.length > 1 ? g1 : undefined }));
-    // Montaje en almacén: las mismas ruedas, torneadas, vuelven a su posición. Un solo movimiento: el eje con sus ruedas
-    const montadas = ruedas.flatMap((r, i) => planMontajeAlmacen(s.activos, A.serie, posiciones[i], r.serie).filas.map((x) => ({ ...x, conPadre: true })));
-    reg({ tipo: TIPOS.montajeAlmacen, fecha: "2026-10-06T12:00", almacenes: [alm], filas: montadas, registros: [], principal: { serie: A.serie, categoria: A.categoria } });
+    const P = { serie: A.serie, categoria: A.categoria };
+    ruedas.forEach((r, i) => reg({ tipo: TIPOS.desmontajeAlmacen, fecha: `2026-09-29T09:${30 + i * 5}`, almacenes: [alm], filas: planDesmontajeAlmacen(s.activos, r.serie).filas.map((x) => ({ ...x, conPadre: true })), registros: [], principal: P }));
+    // Montaje en almacén: las mismas ruedas, torneadas, vuelven a su posición, una a una
+    ruedas.forEach((r, i) => reg({ tipo: TIPOS.montajeAlmacen, fecha: `2026-10-06T12:${String(i * 5).padStart(2, "0")}`, almacenes: [alm], filas: planMontajeAlmacen(s.activos, A.serie, posiciones[i], r.serie).filas.map((x) => ({ ...x, conPadre: true })), registros: [], principal: P }));
     // Envío entre almacenes: el eje con sus ruedas
     const destino = almacenes.find((x) => x !== alm);
     if (destino) reg({ tipo: TIPOS.envio, fecha: "2026-10-09T15:25", almacenes: [alm, destino], filas: planEnvio(s.activos, A.serie, destino).filas, registros: [] });
@@ -563,7 +572,7 @@ export const useMovimientos = () => {
 export function MovimientosProvider({ children }: { children: ReactNode }) {
   const store = useStore();
   // Al cambiar los ejemplos se cambia la clave: así nunca se mezclan con lo guardado antes en el navegador
-  const clave = `lm-trace-movimientos-v4-${DATOS.version}`;
+  const clave = `lm-trace-movimientos-v6-${DATOS.version}`;
   const [estado, setEstado] = useState<Estado | null>(null);
   const [claveCargada, setClaveCargada] = useState("");
 

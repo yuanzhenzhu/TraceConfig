@@ -3,7 +3,7 @@
 // Montaje: HU-M10 (en una unidad) y HU-M07 (en un almacén), en una sola entrada del menú.
 // - En una unidad: se elige un hueco libre en el árbol y, a la derecha, un activo suelto del almacén de esa categoría
 //   (entra con lo que lleva montado).
-// - En un almacén: se elige el padre y, para cada posición libre, el activo suelto que se monta. Es un solo movimiento: el padre es el participante y los que se montan, sus hijos.
+// - En un almacén: se elige el padre y, para cada posición libre, el activo suelto que se monta. Un movimiento por activo montado; en cada uno el participante es el padre con lo que lleva montado.
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -150,10 +150,10 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
 
   const registrar = () => {
     if (!P) return;
-    // Un solo movimiento: el padre (que no se mueve) es el participante y los activos que se montan son sus hijos
-    const m = mov.registrar({ tipo: TIPOS.montajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: filas.map((f) => ({ ...f, conPadre: true })), registros: [], principal: { serie: P.serie, categoria: P.categoria } });
+    // Un movimiento por activo montado, en orden; en cada uno el participante es el padre con lo que lleva montado en ese momento
+    const ids = filas.map((f) => mov.registrar({ tipo: TIPOS.montajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [{ ...f, conPadre: true }], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
     setConfirmar(false); setPadre(""); setAsig({}); setVista("antes");
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <Loading text="Cargando almacenes" />;

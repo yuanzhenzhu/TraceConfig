@@ -44,7 +44,7 @@ export function resumenActivos(m: Movimiento) {
 }
 
 /* ---------- Participantes de un movimiento (historial) ---------- */
-export type Participante = { categoria: string; serie: string; hijos: { pos: string; serie: string; cambio?: string }[] };
+export type Participante = { categoria: string; serie: string; hijos: { pos: string; serie: string; cambio?: string; nota?: string }[] };
 
 const relHueco = (h: string, base: string) => (h.startsWith(base + " › ") ? h.slice(base.length + 3) : h);
 
@@ -56,10 +56,17 @@ export function participantes(m: Movimiento): Participante[] {
   const principales = m.filas.filter((f) => !f.conPadre);
   const hijos = m.filas.filter((f) => f.conPadre);
   if (!principales.length && m.principal && hijos.every((f) => f.despues.tipo === "almacen")) {
-    // Montaje en almacén: el padre es el participante y los activos montados, sus hijos (en la posición en la que se montan)
+    // Montaje y desmontaje en almacén: el padre es el participante y los activos que se montan o desmontan, sus hijos (con su posición en el padre)
+    // Con la foto (montados) se ve todo lo que lleva el padre en ese momento; el activo del movimiento va marcado
+    const mueve = new Set(hijos.map((f) => f.serie));
+    const marca = m.tipo === TIPOS.desmontajeAlmacen ? "se desmonta" : "se monta";
+    const lista = m.montados ?? hijos.map((f) => {
+      const l = [f.despues, f.antes].find((x) => x.tipo === "almacen" && x.padre === m.principal!.serie) as { enHueco?: string } | undefined;
+      return { serie: f.serie, pos: l?.enHueco ?? f.categoria };
+    });
     return [{
       categoria: m.principal.categoria, serie: m.principal.serie,
-      hijos: hijos.map((f) => ({ serie: f.serie, pos: f.despues.tipo === "almacen" ? f.despues.enHueco ?? f.categoria : f.categoria }))
+      hijos: lista.map((h) => ({ serie: h.serie, pos: h.pos, nota: mueve.has(h.serie) ? marca : undefined }))
         .sort((a, b) => a.pos.localeCompare(b.pos, "es", { numeric: true })),
     }];
   }
@@ -112,7 +119,7 @@ export function CeldaParticipante({ p, tachado, abierto, onToggle }: { p?: Parti
       )}
       {(abierto || !onToggle) && p.hijos.map((h) => (
         <span key={h.serie} className="lm-body-small muted" style={{ paddingLeft: "var(--lm-space-15)" }}>
-          {h.cambio !== undefined ? <>{h.pos} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.cambio}</strong></> : h.pos} · {h.serie}
+          {h.cambio !== undefined ? <>{h.pos} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.cambio}</strong></> : h.pos} · {h.nota ? <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.serie}</strong> : h.serie}{h.nota && <> · {h.nota}</>}
         </span>
       ))}
     </div>
@@ -211,7 +218,12 @@ function itemsSitio(m: Movimiento, sitios: Sitio[], s: Sitio, vista: "antes" | "
     const P = m.principal && !enEste.has(m.principal.serie) && !m.filas.some((f) => f.serie === m.principal!.serie) ? m.principal : undefined;
     if (P) {
       out.push({ serie: P.serie, categoria: P.categoria, pos: P.categoria, nivel: 0, sintetico: true });
-      aqui.filter((h) => padreDe(h) === P.serie).sort((a, b) => ((a[vista] as { enHueco?: string }).enHueco ?? "").localeCompare((b[vista] as { enHueco?: string }).enHueco ?? "", "es", { numeric: true })).forEach((h) => ir(h, 1));
+      // Lo que ya llevaba montado y no se mueve (foto del movimiento) más lo que se monta o desmonta, por posición
+      const quietos = (m.montados ?? []).filter((h) => !m.filas.some((f) => f.serie === h.serie))
+        .map((h) => ({ pos: h.pos, poner: () => { out.push({ serie: h.serie, categoria: h.categoria, pos: h.pos, nivel: 1 }); } }));
+      const mueven = aqui.filter((h) => padreDe(h) === P.serie)
+        .map((h) => ({ pos: (h[vista] as { enHueco?: string }).enHueco ?? "", poner: () => ir(h, 1) }));
+      [...quietos, ...mueven].sort((a, b) => a.pos.localeCompare(b.pos, "es", { numeric: true })).forEach((x) => x.poner());
     }
     aqui.filter((f) => { const p = padreDe(f); return (!p || !enEste.has(p)) && !(P && p === P.serie); }).forEach((f) => ir(f, 0));
     return out;
@@ -334,8 +346,8 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
       </>}>
       <div className="stack gap-10">
         {principales.map((f) => <span key={f.serie}>El {f.categoria.replace(/^./, (c) => c.toLowerCase())} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}
-        {!principales.length && m.tipo === TIPOS.montajeAlmacen && m.principal && <span>Se desmontan del {m.principal.categoria.replace(/^./, (c) => c.toLowerCase())} {m.principal.serie} y vuelven a quedar sueltos: {m.filas.map((f) => `${f.categoria} ${f.serie}`).join(", ")}.</span>}
-        {hijos > 0 && !(m.tipo === TIPOS.montajeAlmacen && !principales.length) && <span>Sus {hijos} activos montados vuelven también a su posición anterior.</span>}
+        {!principales.length && m.principal && (m.tipo === TIPOS.montajeAlmacen || m.tipo === TIPOS.desmontajeAlmacen) && <span>{m.tipo === TIPOS.montajeAlmacen ? "Se desmontan del" : "Se vuelven a montar en el"} {m.principal.categoria.replace(/^./, (c) => c.toLowerCase())} {m.principal.serie}{m.tipo === TIPOS.montajeAlmacen ? " y vuelven a quedar sueltos" : ", en su posición anterior"}: {m.filas.map((f) => `${f.categoria} ${f.serie}`).join(", ")}.</span>}
+        {hijos > 0 && !(m.principal && (m.tipo === TIPOS.montajeAlmacen || m.tipo === TIPOS.desmontajeAlmacen) && !principales.length) && <span>Sus {hijos} activos montados vuelven también a su posición anterior.</span>}
         <span className="muted">El movimiento seguirá en el historial como deshecho (filtro Estado).</span>
       </div>
     </Dialog>

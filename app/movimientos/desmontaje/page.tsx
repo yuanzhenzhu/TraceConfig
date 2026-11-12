@@ -13,7 +13,7 @@ import { AhoraDespues, CabeceraPantalla, SelectorDonde } from "@/components/movi
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
 import { SEP } from "@/lib/datos";
-import { TIPOS, descendientes, formatoKm, planDesmontajeAlmacen, planDesmontajeUnidad, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
+import { TIPOS, descendientes, type ActivoM, type FilaMov, formatoKm, planDesmontajeAlmacen, planDesmontajeUnidad, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
 
 type Modo = "unidad" | "almacen";
 
@@ -127,59 +127,85 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
   const t = useTextos();
   const snack = useSnackbar();
   const router = useRouter();
-  const [sel, setSel] = useState("");
+  const [padre, setPadre] = useState("");
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [busca, setBusca] = useState("");
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [confirmar, setConfirmar] = useState(false);
-  const cab = useCabecera({ conUnidad: false, conAlmacen: true, onCambio: () => { setSel(""); setVista("antes"); } });
+  const cab = useCabecera({ conUnidad: false, conAlmacen: true, onCambio: () => { setPadre(""); setMarcados(new Set()); setVista("antes"); } });
 
-  const montados = useMemo(() => Object.values(mov.activos)
-    .filter((a) => a.lugar.tipo === "almacen" && a.lugar.almacenId === cab.almacen && !!a.lugar.padre)
+  const posDe = (a: ActivoM) => (a.lugar.tipo === "almacen" ? a.lugar.enHueco ?? a.categoria : a.categoria);
+  // Hijos directos montados en un activo del almacén, por posición
+  const hijosDe = (serie: string) => Object.values(mov.activos)
+    .filter((a) => a.lugar.tipo === "almacen" && a.lugar.padre === serie)
+    .sort((a, b) => posDe(a).localeCompare(posDe(b), "es", { numeric: true }));
+  const padres = useMemo(() => Object.values(mov.activos)
+    .filter((a) => a.lugar.tipo === "almacen" && a.lugar.almacenId === cab.almacen && Object.values(mov.activos).some((h) => h.lugar.tipo === "almacen" && h.lugar.padre === a.serie))
     .filter((a) => !busca || a.serie.toLowerCase().includes(busca.toLowerCase()))
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.serie.localeCompare(b.serie)), [mov.activos, cab.almacen, busca]);
-  const plan = sel ? planDesmontajeAlmacen(mov.activos, sel) : null;
-  const planOk = !!plan && !plan.error && plan.filas.length > 0;
+  const P = padre ? mov.activos[padre] : undefined;
+  const hijos = P ? hijosDe(P.serie) : [];
+  // Un solo movimiento: el padre es el participante y los activos que se desmontan, sus hijos (con lo que llevan montado)
+  const filas: FilaMov[] = [...marcados].flatMap((serie) => planDesmontajeAlmacen(mov.activos, serie).filas.map((f) => ({ ...f, conPadre: true })));
+  const planOk = !!P && filas.length > 0;
   const valido = cab.ok && planOk;
-  const despues = useMemo(() => { const d = { ...mov.activos }; plan?.filas.forEach((f) => { d[f.serie] = { ...d[f.serie], lugar: f.despues }; }); return d; }, [mov.activos, plan]);
-  const A = sel ? mov.activos[sel] : undefined;
-  const padre = A?.lugar.tipo === "almacen" ? A.lugar.padre : undefined;
+  const despues = useMemo(() => { const d = { ...mov.activos }; filas.forEach((f) => { d[f.serie] = { ...d[f.serie], lugar: f.despues }; }); return d; }, [mov.activos, filas]);
+  const conmutar = (serie: string) => setMarcados((m) => { const n = new Set(m); if (n.has(serie)) n.delete(serie); else n.add(serie); return n; });
+  const minus = (c: string) => c.replace(/^./, (x) => x.toLowerCase());
+  const donde = (a: ActivoM) => (a.lugar.tipo === "almacen" ? (a.lugar.padre ? `en ${a.lugar.padre}${a.lugar.enHueco ? ` › ${a.lugar.enHueco}` : ""}` : "suelto") : "");
 
   const registrar = () => {
-    if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.desmontajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: plan.filas, registros: [] });
-    setConfirmar(false); setSel(""); setVista("antes");
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    if (!P || !filas.length) return;
+    // Un movimiento por activo desmontado, en orden; en cada uno el participante es el padre con lo que lleva montado en ese momento
+    const ids = filas.map((f) => mov.registrar({ tipo: TIPOS.desmontajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [f], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
+    setConfirmar(false); setPadre(""); setMarcados(new Set()); setVista("antes");
+    snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <Loading text="Cargando almacenes" />;
   return (
     <>
-      <CabeceraPantalla miga="Desmontaje" selector={selector} titulo="Desmontaje en almacén" texto="Elige el activo montado que se desmonta; queda suelto en el mismo almacén." valido={valido} hayDatos={cab.hayDatos || !!sel}
+      <CabeceraPantalla miga="Desmontaje" selector={selector} titulo="Desmontaje en almacén" texto="Elige el activo padre y marca los activos que se desmontan; quedan sueltos en el mismo almacén." valido={valido} hayDatos={cab.hayDatos || !!padre}
         onRegistrar={() => { cab.setIntentado(true); if (valido) setConfirmar(true); }} />
       <div className="stack gap-20">
         {cab.bloque}
-        <AhoraDespues vista={vista} setVista={setVista} ok={planOk} texto="Elige el activo que se desmonta; después podrás ver cómo queda." />
+        <AhoraDespues vista={vista} setVista={setVista} ok={planOk} texto="Elige el padre y al menos un activo para desmontar; después podrás ver cómo queda." />
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
-          <Panel titulo={`${cab.almacen ? t.nombreAlmacen(cab.almacen) : "Almacén"} · Ahora`} subtitulo={A ? <>Elegido: <strong>{A.categoria.replace(/^./, (c) => c.toLowerCase())} {A.serie}</strong>, montado en {padre}</> : "Activos montados en otro activo del almacén"}
-            accion={cab.almacen ? <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
+          <Panel titulo={`${cab.almacen ? t.nombreAlmacen(cab.almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
+            subtitulo={vista === "despues" && P ? <>Así queda el <strong>{minus(P.categoria)} {P.serie}</strong> y, sueltos, los activos desmontados</> : P ? <>Padre: <strong>{minus(P.categoria)} {P.serie}</strong></> : "Elige el activo del que se desmonta (con activos montados)"}
+            accion={cab.almacen && vista === "antes" ? <SearchInput label="Buscar el padre por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
             {!cab.almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indícalo arriba" />
-              : !montados.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : "No hay activos montados en este almacén"} text={busca ? "Ningún activo coincide" : "Elige otro almacén"} />
-                : <PanelAlmacen candidatos={montados} activos={mov.activos} sel={sel} onSel={(s) => { setSel(s); setVista("antes"); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420}
-                    detalle={(a) => (a.lugar.tipo === "almacen" ? `en ${a.lugar.padre}${a.lugar.enHueco ? ` › ${a.lugar.enHueco}` : ""}` : "")} />}
+              : vista === "despues" && P ? (
+                <PanelAlmacen candidatos={[despues[P.serie], ...[...marcados].map((s) => despues[s])]} activos={despues} sel="" onSel={() => {}} conHijos sinRotar rotado={false} onRotar={() => {}} soloLectura alto={420}
+                  marcas={Object.fromEntries([...marcados].map((s) => [s, "Sale"]))} detalle={donde} />
+              ) : !padres.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : "No hay activos con activos montados"} text={busca ? "Ningún activo coincide" : "Elige otro almacén"} />
+                : <PanelAlmacen candidatos={padres} activos={mov.activos} sel={padre} onSel={(s) => { setPadre(s); setMarcados(new Set()); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420}
+                    detalle={(a) => `Montados: ${hijosDe(a.serie).map(posDe).join(", ")}`} />}
           </Panel>
-          <Panel titulo={vista === "despues" ? "Después" : "Cómo queda"} subtitulo={A ? `El ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie} y el activo del que se desmonta` : "Elige antes el activo"}>
-            {!A ? <EmptyState icon="arrow_left" title="Elige el activo" text="Aquí verás cómo queda" /> : (
-              <PanelAlmacen candidatos={[vista === "despues" ? despues[A.serie] : A, ...(padre ? [vista === "despues" ? despues[padre] : mov.activos[padre]] : [])].filter(Boolean)}
-                activos={vista === "despues" ? despues : mov.activos} sel="" onSel={() => {}} conHijos sinRotar rotado={false} onRotar={() => {}} soloLectura alto={420}
-                marcas={{ [A.serie]: "Sale" }} detalle={(a) => (a.lugar.tipo === "almacen" ? (a.lugar.padre ? `en ${a.lugar.padre}${a.lugar.enHueco ? ` › ${a.lugar.enHueco}` : ""}` : "suelto") : "")} />
+          <Panel titulo="Activos que se desmontan" subtitulo={P ? `Marca los que se desmontan del ${minus(P.categoria)} ${P.serie}; si llevan activos montados, salen con ellos.` : "Elige antes el padre"}>
+            {!P ? <EmptyState icon="arrow_left" title="Elige el padre" text="Aquí aparecerán sus activos montados" /> : (
+              <div className="stack gap-10" style={{ padding: "var(--lm-space-15)" }}>
+                {hijos.map((h) => {
+                  const n = descendientes(mov.activos, h).length;
+                  return (
+                    <label key={h.serie} className="row gap-10" style={{ cursor: vista === "despues" ? "default" : "pointer" }}>
+                      <input type="checkbox" checked={marcados.has(h.serie)} disabled={vista === "despues"} onChange={() => conmutar(h.serie)} />
+                      <span className="muted" style={{ minWidth: 80 }}>{posDe(h)}</span>
+                      <span style={{ fontWeight: 500 }}>{h.serie}</span>
+                      {n > 0 && <span className="lm-body-small muted">· con {n} {n === 1 ? "activo montado" : "activos montados"}</span>}
+                    </label>
+                  );
+                })}
+              </div>
             )}
           </Panel>
         </div>
       </div>
-      {confirmar && plan && (
-        <Dialog large title="¿Registrar el desmontaje?" onClose={() => setConfirmar(false)} message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)}`}
+      {confirmar && P && (
+        <Dialog large title="¿Registrar el desmontaje?" onClose={() => setConfirmar(false)}
+          message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · del ${minus(P.categoria)} ${P.serie}${marcados.size > 1 ? ` · ${marcados.size} activos` : ""}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
-          <TablaAntesDespues filas={plan.filas} />
+          <TablaAntesDespues filas={filas} />
         </Dialog>
       )}
     </>
