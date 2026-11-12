@@ -351,11 +351,13 @@ function inicial(activosBase: ReturnType<typeof generarActivos>, unidades: (Unid
     const us = [...new Set(sitios.filter((s) => unidades.some((u) => u.serie === s)))];
     return {
       id: numero, tipo: f0.tipo, fecha: isoDe(f0.fecha), estado: "registrado", por: "Importado del Excel",
-      registros: us.map((u) => ({ unidad: u, km: null })),
+      // Km de cada unidad: el de la fila en la que es el origen o, si no, el destino (columna Km de la hoja)
+      registros: us.map((u) => ({ unidad: u, km: (filas.find((f) => f.origen === u) ?? filas.find((f) => f.destino === u))?.km ?? null })),
       almacenes: [...new Set(sitios.filter((s) => !us.includes(s)).map(idAlmacen))],
       filas: filas.map((f) => ({ serie: f.serie, categoria: f.categoria, antes: lugarDe(f.origen, f.huecoOrigen), despues: lugarDe(f.destino, f.huecoDestino) })),
     };
   });
+  movimientos.forEach((m) => m.registros.forEach((r) => { if (r.km !== null) km[r.unidad] = [...(km[r.unidad] ?? []), { fecha: m.fecha, km: r.km, mov: m.id }]; }));
   return ejemplos({ activos, movimientos, km }, unidades);
 }
 
@@ -570,7 +572,7 @@ export const useMovimientos = () => {
 export function MovimientosProvider({ children }: { children: ReactNode }) {
   const store = useStore();
   // Al cambiar los ejemplos se cambia la clave: así nunca se mezclan con lo guardado antes en el navegador
-  const clave = `lm-trace-movimientos-v6-${DATOS.version}`;
+  const clave = `lm-trace-movimientos-v7-${DATOS.version}`;
   const [estado, setEstado] = useState<Estado | null>(null);
   const [claveCargada, setClaveCargada] = useState("");
 

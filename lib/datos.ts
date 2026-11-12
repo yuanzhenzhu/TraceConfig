@@ -30,6 +30,7 @@ export type ActivoExcel = {
 export type MovimientoExcel = {
   numero: string; fecha: string; tipo: string; serie: string; categoria: string;
   origen: string; huecoOrigen: string; destino: string; huecoDestino: string;
+  km: number | null; // km de la unidad de origen o, si el origen es un almacén, de la de destino
 };
 
 export const DATOS = json as DatosExcel;

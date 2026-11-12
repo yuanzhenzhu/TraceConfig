@@ -64,6 +64,13 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
     .sort((a, b) => a.serie.localeCompare(b.serie)), [mov.activos, hueco, cab.almacen, busca]);
   const plan = hueco && selA ? planMontajeUnidad(mov.activos, cab.unidad, hueco.ruta, selA, huecos) : null;
   const planOk = !!plan && !plan.error && plan.filas.length > 0;
+  // Posiciones de la estructura bajo el hueco que el activo no trae (su padre sí queda ocupado): quedarán huecos libres
+  const faltan = useMemo(() => {
+    if (!planOk || !hueco) return [];
+    const ocupadas = new Set(plan!.filas.map((f) => (f.despues.tipo === "unidad" ? f.despues.hueco : "")));
+    return [...huecos].filter((r) => r.startsWith(hueco.ruta + SEP) && !ocupadas.has(r) && ocupadas.has(r.split(SEP).slice(0, -1).join(SEP)))
+      .map((r) => r.slice(hueco.ruta.length + SEP.length));
+  }, [planOk, plan, hueco, huecos]);
   const despues = useMemo(() => { const d = { ...mov.activos }; plan?.filas.forEach((f) => { d[f.serie] = { ...d[f.serie], lugar: f.despues }; }); return d; }, [mov.activos, plan]);
   // Horas (motor) o ciclos (puerta) del activo que entra
   const drv = useDrivers([selA ? mov.activos[selA] : undefined]);
@@ -139,6 +146,11 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
         </div>
         {drv.campos}
         {plan?.error && <Banner type="error" title={plan.error} />}
+        {faltan.length > 0 && B && (
+          <Banner type="attention" title={`El ${B.categoria.replace(/^./, (c) => c.toLowerCase())} ${B.serie} no trae ${faltan.join(", ")}`}>
+            {faltan.length === 1 ? "Quedará 1 hueco libre" : `Quedarán ${faltan.length} huecos libres`} en {hueco?.ruta}; podrás montarlos después con Montaje.
+          </Banner>
+        )}
       </div>
       {confirmar && plan && (
         <Dialog large title="¿Registrar el montaje?" onClose={() => setConfirmar(false)}

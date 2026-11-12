@@ -107,7 +107,7 @@ async function leerExcel() {
     unidades: leerHoja(wb, 'Unidades', { serie: 'Nº de serie', flota: 'Flota', configuracion: 'Configuración', km: 'Km', fechaAlta: 'Fecha de alta' }, E),
     activos: leerHoja(wb, 'Activos', { serie: 'Nº de serie', categoria: 'Categoría', unidad: 'Unidad', hueco: 'Hueco', almacen: 'Almacén', montadoEn: 'Montado en', km: 'Km', ciclos: 'Ciclos', horas: 'Horas', gmao: 'GMAO', tag: 'TAG' }, E),
     valores: leerHoja(wb, 'Valores de propiedades', { serie: 'Nº de serie', propiedad: 'Propiedad', valor: 'Valor', fecha: 'Fecha' }, E),
-    movimientos: leerHoja(wb, 'Movimientos', { numero: 'Nº de movimiento', fecha: 'Fecha', tipo: 'Tipo de movimiento', serie: 'Nº de serie del activo', categoria: 'Categoría', origen: 'Origen', huecoOrigen: 'Hueco de origen', destino: 'Destino', huecoDestino: 'Hueco de destino' }, E),
+    movimientos: leerHoja(wb, 'Movimientos', { numero: 'Nº de movimiento', fecha: 'Fecha', tipo: 'Tipo de movimiento', serie: 'Nº de serie del activo', categoria: 'Categoría', origen: 'Origen', huecoOrigen: 'Hueco de origen', destino: 'Destino', huecoDestino: 'Hueco de destino', km: 'Km' }, E),
     tiposMovimiento: leerHoja(wb, 'Tipos de movimiento', { nombre: 'Tipo de movimiento', icono: 'Icono' }, E),
   };
   if (E.length) return { datos: null, errores: E }; // sin hojas o columnas no se puede seguir
@@ -290,10 +290,12 @@ async function leerExcel() {
     if (!/^\d{2}-\d{2}-\d{4} \d{2}:\d{2}$/.test(f.fecha)) err(f, `fecha "${f.fecha}" no válida (dd-mm-aaaa hh:mm)`);
     if (!hay(H.tiposMovimiento, f.tipo)) err(f, `el tipo "${f.tipo}" no está en la hoja Tipos de movimiento`);
     categoriaValida(f, f.categoria);
+    const km = numero(f.km ?? '');
+    if (km !== null && (!Number.isFinite(km) || km < 0)) err(f, `km "${f.km}" no válido`);
     const ok = lugar(f, f.origen, f.huecoOrigen, 'origen') & lugar(f, f.destino, f.huecoDestino, 'destino');
     if (!ok) continue;
     movimientos.push({ numero: f.numero, fecha: f.fecha, tipo: nombreDe(H.tiposMovimiento, f.tipo), serie: f.serie, categoria: nombreDe(H.categorias, f.categoria),
-      origen: f.origen, huecoOrigen: f.huecoOrigen ? ruta(f.huecoOrigen) : '', destino: f.destino, huecoDestino: f.huecoDestino ? ruta(f.huecoDestino) : '' });
+      origen: f.origen, huecoOrigen: f.huecoOrigen ? ruta(f.huecoOrigen) : '', destino: f.destino, huecoDestino: f.huecoDestino ? ruta(f.huecoDestino) : '', km: km !== null && Number.isFinite(km) ? km : null });
   }
   const porNumero = new Map();
   movimientos.forEach((m) => porNumero.set(m.numero, [...(porNumero.get(m.numero) ?? []), m]));

@@ -1,5 +1,5 @@
 {
- "version": "ea7d309d2b",
+ "version": "adc2467231",
  "flotas": [
   {
    "nombre": "Metro Línea 1",
@@ -8624,7 +8624,8 @@
    "origen": "3220",
    "huecoOrigen": "Coche 1 › Bogie 1 › Eje 1 › Rueda 1",
    "destino": "3220",
-   "huecoDestino": "Coche 1 › Bogie 1 › Eje 2 › Rueda 1"
+   "huecoDestino": "Coche 1 › Bogie 1 › Eje 2 › Rueda 1",
+   "km": 125720
   },
   {
    "numero": "M-001",
@@ -8635,7 +8636,8 @@
    "origen": "3220",
    "huecoOrigen": "Coche 1 › Bogie 1 › Eje 2 › Rueda 1",
    "destino": "3220",
-   "huecoDestino": "Coche 1 › Bogie 1 › Eje 1 › Rueda 1"
+   "huecoDestino": "Coche 1 › Bogie 1 › Eje 1 › Rueda 1",
+   "km": 125720
   },
   {
    "numero": "M-002",
@@ -8646,7 +8648,8 @@
    "origen": "Almacén Stock Urbos 100",
    "huecoOrigen": "",
    "destino": "Almacén Tranvía Zaragoza",
-   "huecoDestino": ""
+   "huecoDestino": "",
+   "km": null
   },
   {
    "numero": "M-003",
@@ -8657,7 +8660,8 @@
    "origen": "3220",
    "huecoOrigen": "Coche 1 › Ventilador",
    "destino": "3230",
-   "huecoDestino": "Coche 1 › Ventilador"
+   "huecoDestino": "Coche 1 › Ventilador",
+   "km": 125910
   },
   {
    "numero": "M-003",
@@ -8668,7 +8672,8 @@
    "origen": "3230",
    "huecoOrigen": "Coche 1 › Ventilador",
    "destino": "3220",
-   "huecoDestino": "Coche 1 › Ventilador"
+   "huecoDestino": "Coche 1 › Ventilador",
+   "km": 120800
   },
   {
    "numero": "M-004",
@@ -8679,7 +8684,8 @@
    "origen": "Almacén Stock Urbos 100",
    "huecoOrigen": "",
    "destino": "3230",
-   "huecoDestino": "Coche 1 › Compresor"
+   "huecoDestino": "Coche 1 › Compresor",
+   "km": 120865
   },
   {
    "numero": "M-005",
@@ -8690,7 +8696,8 @@
    "origen": "3220",
    "huecoOrigen": "Coche 1 › Bogie 1 › Eje 1",
    "destino": "Almacén Stock Urbos 100",
-   "huecoDestino": ""
+   "huecoDestino": "",
+   "km": 126150
   },
   {
    "numero": "M-005",
@@ -8701,7 +8708,8 @@
    "origen": "Almacén Stock Urbos 100",
    "huecoOrigen": "",
    "destino": "3220",
-   "huecoDestino": "Coche 1 › Bogie 1 › Eje 1"
+   "huecoDestino": "Coche 1 › Bogie 1 › Eje 1",
+   "km": 126150
   },
   {
    "numero": "M-006",
@@ -8712,7 +8720,8 @@
    "origen": "3230",
    "huecoOrigen": "Coche 1 › Motor ventilador condensadora HVAC",
    "destino": "Almacén Stock Urbos 100",
-   "huecoDestino": ""
+   "huecoDestino": "",
+   "km": 121040
   }
  ],
  "tiposMovimiento": [
