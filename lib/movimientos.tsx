@@ -663,6 +663,21 @@ export function useTextos() {
 }
 
 /** Recorre el árbol de una unidad con el activo de cada hueco. */
+/**
+ * Huecos libres de una unidad donde se puede montar algo: sin activo y con su padre ocupado
+ * (si cuelgan huecos vacíos de un hueco vacío, solo cuenta el de arriba: al montar, el activo trae los suyos).
+ */
+export function huecosLibres(raiz: Nodo, unidad: string, activos: Record<string, ActivoM>): { ruta: string; categoria: string }[] {
+  const ocupados = new Set(Object.values(activos).filter((a) => a.lugar.tipo === "unidad" && a.lugar.unidad === unidad).map((a) => (a.lugar as { hueco: string }).hueco));
+  const out: { ruta: string; categoria: string }[] = [];
+  const ir = (n: Nodo, ruta: string) => n.hijos.forEach((h) => {
+    const r = ruta ? `${ruta}${SEP}${h.nombre}` : h.nombre;
+    if (ocupados.has(r)) ir(h, r); else out.push({ ruta: r, categoria: h.categoria });
+  });
+  ir(raiz, "");
+  return out;
+}
+
 export function huecosConActivo(raiz: Nodo, unidad: string, activos: Record<string, ActivoM>) {
   const porHueco = new Map<string, ActivoM>();
   Object.values(activos).forEach((a) => { if (a.lugar.tipo === "unidad" && a.lugar.unidad === unidad) porHueco.set(a.lugar.hueco, a); });

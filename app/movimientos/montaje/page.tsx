@@ -1,19 +1,19 @@
 "use client";
 
 // Montaje: HU-M10 (en una unidad) y HU-M07 (en un almacén), en una sola entrada del menú.
-// - En una unidad: se elige un hueco libre en el árbol y, a la derecha, un activo suelto del almacén de esa categoría
+// - En una unidad: se elige un hueco libre (lista de huecos libres o el árbol de la unidad) y, a la derecha, un activo suelto del almacén de esa categoría
 //   (entra con lo que lleva montado).
 // - En un almacén: se elige el padre y, para cada posición libre, el activo suelto que se monta. Un movimiento por activo montado; en cada uno el participante es el padre con lo que lleva montado.
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Dialog, EmptyState, Field, Loading, SearchInput, useSnackbar } from "@/components/ds";
+import { Banner, Button, ButtonToggle, Dialog, EmptyState, Field, Loading, SearchInput, useSnackbar } from "@/components/ds";
 import { AhoraDespues, CabeceraPantalla, SelectorDonde } from "@/components/movimientos/pantalla";
 import { TablaAntesDespues } from "@/components/movimientos/detalle";
 import { useCabecera } from "@/components/movimientos/cabecera";
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import { SEP } from "@/lib/datos";
-import { TIPOS, descendientes, formatoKm, planMontajeAlmacen, planMontajeUnidad, posicionesDe, textoFecha, useMovimientos, useTextos, type FilaMov } from "@/lib/movimientos";
+import { TIPOS, descendientes, formatoKm, huecosLibres, planMontajeAlmacen, planMontajeUnidad, posicionesDe, textoFecha, useMovimientos, useTextos, type FilaMov } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 
 type Modo = "unidad" | "almacen";
@@ -38,7 +38,19 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
   const [busca, setBusca] = useState("");
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [confirmar, setConfirmar] = useState(false);
-  const cab = useCabecera({ conUnidad: true, conAlmacen: true, etiquetaAlmacen: "Almacén de origen", onCambio: () => { setHueco(null); setSelA(""); setVista("antes"); } });
+  const [verHuecos, setVerHuecos] = useState<"libres" | "arbol">("libres");
+  // Huecos libres de cada unidad, para verlos en los desplegables y en la lista
+  const libresDe = useMemo(() => Object.fromEntries(mov.unidades.map((u) => [u.serie, huecosLibres(u.raiz, u.serie, mov.activos)])), [mov.unidades, mov.activos]);
+  const textoHuecos = (n: number) => (n ? `${n} ${n === 1 ? "hueco libre" : "huecos libres"}` : undefined);
+  const cab = useCabecera({
+    conUnidad: true, conAlmacen: true, etiquetaAlmacen: "Almacén de origen", onCambio: () => { setHueco(null); setSelA(""); setVista("antes"); },
+    notaUnidad: (u) => textoHuecos(libresDe[u]?.length ?? 0),
+    notaFlota: (f) => textoHuecos(mov.unidades.filter((u) => u.flotaId === f).reduce((n, u) => n + (libresDe[u.serie]?.length ?? 0), 0)),
+  });
+  const libres = cab.unidad ? libresDe[cab.unidad] ?? [] : [];
+  const sueltosDe = (categoria: string) => Object.values(mov.activos).filter((a) => a.lugar.tipo === "almacen" && a.lugar.almacenId === cab.almacen && !a.lugar.padre && a.categoria === categoria).length;
+  const conLibres = cab.info ? mov.unidades.filter((u) => u.flotaId === cab.info!.flotaId && u.serie !== cab.unidad && libresDe[u.serie]?.length) : [];
+  const elegir = (h: { ruta: string; categoria: string }) => { setHueco(h); setSelA(""); };
 
   const huecos = useMemo(() => {
     const s = new Set<string>();
@@ -72,10 +84,36 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
         <AhoraDespues vista={vista} setVista={setVista} ok={planOk} texto="Elige un hueco libre y el activo que se monta; después podrás ver cómo queda." />
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
           <Panel titulo={`Unidad ${cab.unidad || ""} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? <>En {hueco?.ruta} queda montado el <strong>{B?.categoria.replace(/^./, (c) => c.toLowerCase())} {B?.serie}</strong></> : hueco ? <>Hueco elegido: <strong>{hueco.ruta}</strong> ({hueco.categoria})</> : "Elige un hueco libre (su padre tiene que estar ocupado)"}>
-            {!cab.info ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad arriba" /> : (
+            subtitulo={vista === "despues" ? <>En {hueco?.ruta} queda montado el <strong>{B?.categoria.replace(/^./, (c) => c.toLowerCase())} {B?.serie}</strong></> : hueco ? <>Hueco elegido: <strong>{hueco.ruta}</strong> ({hueco.categoria})</>
+              : cab.unidad ? (libres.length ? `${textoHuecos(libres.length)} en la unidad ${cab.unidad}: elige uno` : `La unidad ${cab.unidad} no tiene huecos libres`) : "Elige un hueco libre"}
+            accion={cab.info && vista === "antes" ? <ButtonToggle label="Cómo ver los huecos" value={verHuecos} onChange={setVerHuecos} options={[{ value: "libres", label: "Huecos libres" }, { value: "arbol", label: "Toda la unidad" }]} /> : undefined}>
+            {!cab.info ? <EmptyState icon="train" title="Elige una unidad" text="Indica la flota y la unidad arriba; en el desplegable verás cuántos huecos libres tiene cada una" /> : (
               <>
-                <div hidden={vista === "despues" && planOk}>
+                <div hidden={(vista === "despues" && planOk) || verHuecos !== "libres"}>
+                  {!libres.length ? (
+                    <EmptyState icon="check_circle" title="No hay huecos libres"
+                      text={conLibres.length ? `Tienen huecos libres: ${conLibres.map((u) => `${u.serie} (${libresDe[u.serie].length})`).join(", ")}` : "Ninguna unidad de esta flota tiene huecos libres"} />
+                  ) : (
+                    <table className="lm-table lm-table--dense">
+                      <thead><tr><th style={{ width: 1 }}><span className="sr-only">Elegir</span></th><th>Posición</th><th>Categoría</th>{cab.almacen && <th>Sueltos en el almacén</th>}</tr></thead>
+                      <tbody>
+                        {libres.map((h) => {
+                          const partes = h.ruta.split(SEP);
+                          const n = cab.almacen ? sueltosDe(h.categoria) : 0;
+                          return (
+                            <tr key={h.ruta} style={{ cursor: "pointer" }} aria-selected={hueco?.ruta === h.ruta} onClick={() => elegir(h)}>
+                              <td><input type="radio" name="hueco-libre" aria-label={`Elegir ${h.ruta}`} checked={hueco?.ruta === h.ruta} onChange={() => elegir(h)} /></td>
+                              <td><span className="muted">{partes.slice(0, -1).join(" › ")}{partes.length > 1 && " › "}</span><strong>{partes[partes.length - 1]}</strong></td>
+                              <td>{h.categoria}</td>
+                              {cab.almacen && <td className={n ? undefined : "muted"}>{n || "Ninguno"}</td>}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+                <div hidden={(vista === "despues" && planOk) || verHuecos !== "arbol"}>
                   <PanelUnidad key={cab.unidad} raiz={cab.info.raiz} unidad={cab.unidad} activos={mov.activos} sel={null} onSel={() => {}} busca="" alto={420}
                     hueco={{ sel: hueco?.ruta ?? "", onSel: (ruta, categoria) => { setHueco({ ruta, categoria }); setSelA(""); } }} />
                 </div>

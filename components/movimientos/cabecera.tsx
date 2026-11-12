@@ -9,8 +9,11 @@ import { LineaKm } from "./linea-km";
 import { ahoraIso, formatoKm, textoFecha, useMovimientos } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 
-export function useCabecera({ conUnidad, conAlmacen, etiquetaAlmacen = "Almacén", onCambio }: {
+export function useCabecera({ conUnidad, conAlmacen, etiquetaAlmacen = "Almacén", onCambio, notaUnidad, notaFlota }: {
   conUnidad: boolean; conAlmacen: boolean; etiquetaAlmacen?: string; onCambio?: () => void;
+  /** Texto junto a cada unidad (y suma en cada flota) en los desplegables, p. ej. "2 huecos libres". */
+  notaUnidad?: (serie: string) => string | undefined;
+  notaFlota?: (flotaId: string) => string | undefined;
 }) {
   const store = useStore();
   const mov = useMovimientos();
@@ -48,16 +51,16 @@ export function useCabecera({ conUnidad, conAlmacen, etiquetaAlmacen = "Almacén
         </Field>
         {conUnidad && (
           <>
-            <Field label="Flota" required htmlFor="flota" error={intentado && !flota ? "Elige la flota" : ""} style={{ width: 180 }}>
+            <Field label="Flota" required htmlFor="flota" error={intentado && !flota ? "Elige la flota" : ""} style={{ width: notaFlota ? 260 : 180 }}>
               <select id="flota" className="lm-select lm-select--dense" value={flota} onChange={(e) => { setFlota(e.target.value); setUnidad(""); onCambio?.(); }}>
                 <option value="">Elige</option>
-                {store.flotas.filter((f) => mov.unidades.some((u) => u.flotaId === f.id)).map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+                {store.flotas.filter((f) => mov.unidades.some((u) => u.flotaId === f.id)).map((f) => { const nt = notaFlota?.(f.id); return <option key={f.id} value={f.id}>{f.nombre}{nt ? ` · ${nt}` : ""}</option>; })}
               </select>
             </Field>
-            <Field label="Unidad" required htmlFor="unidad" error={intentado && !unidad ? "Elige la unidad" : ""} style={{ width: 110 }}>
+            <Field label="Unidad" required htmlFor="unidad" error={intentado && !unidad ? "Elige la unidad" : ""} style={{ width: notaUnidad ? 210 : 110 }}>
               <select id="unidad" className="lm-select lm-select--dense" value={unidad} disabled={!flota} onChange={(e) => { setUnidad(e.target.value); onCambio?.(); }}>
                 <option value="">Elige</option>
-                {mov.unidades.filter((u) => u.flotaId === flota).map((u) => <option key={u.serie} value={u.serie}>{u.serie}</option>)}
+                {mov.unidades.filter((u) => u.flotaId === flota).map((u) => { const nt = notaUnidad?.(u.serie); return <option key={u.serie} value={u.serie}>{u.serie}{nt ? ` · ${nt}` : ""}</option>; })}
               </select>
             </Field>
             <Field label="Km" required htmlFor="km" error={(intentado || km) && unidad ? errKm : ""} style={{ width: 150 }}>
