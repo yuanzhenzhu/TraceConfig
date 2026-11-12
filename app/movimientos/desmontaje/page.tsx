@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Banner, Button, Dialog, EmptyState, Loading, SearchInput, useSnackbar } from "@/components/ds";
 import { TablaAntesDespues } from "@/components/movimientos/detalle";
 import { useCabecera } from "@/components/movimientos/cabecera";
+import { useDrivers } from "@/components/movimientos/drivers";
 import { AhoraDespues, CabeceraPantalla, SelectorDonde } from "@/components/movimientos/pantalla";
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
@@ -45,15 +46,17 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
   const necesitaAlmacen = !baja || (hijos.length > 0 && !hijosBaja);
   const plan = A ? planDesmontajeUnidad(mov.activos, A.serie, baja ? "baja" : { almacenId: cab.almacen || "—" }, hijosBaja, cab.almacen) : null;
   const planOk = !!plan && !plan.error && plan.filas.length > 0 && (!necesitaAlmacen || !!cab.almacen);
-  const valido = cab.okSinAlmacen && planOk;
+  // Horas (motor) o ciclos (puerta) del activo que sale
+  const drv = useDrivers([A]);
+  const valido = cab.okSinAlmacen && planOk && drv.ok;
   const despues = useMemo(() => { const d = { ...mov.activos }; plan?.filas.forEach((f) => { d[f.serie] = { ...d[f.serie], lugar: f.despues }; }); return d; }, [mov.activos, plan]);
   const hueco = A?.lugar.tipo === "unidad" ? A.lugar.hueco : "";
   const vacios = new Set(planOk ? [hueco, ...hijos.map((h) => `${hueco}${SEP}${h.rel}`)] : []);
 
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.desmontajeUnidad, fecha: cab.iso, almacenes: necesitaAlmacen ? [cab.almacen] : [], filas: plan.filas, registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
-    setConfirmar(false); setSel(null); setBaja(false); setVista("antes");
+    const m = mov.registrar({ tipo: TIPOS.desmontajeUnidad, fecha: cab.iso, almacenes: necesitaAlmacen ? [cab.almacen] : [], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
+    setConfirmar(false); setSel(null); setBaja(false); setVista("antes"); drv.reset();
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
@@ -108,11 +111,12 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
             )}
           </Panel>
         </div>
+        {drv.campos}
         {plan?.error && <Banner type="error" title={plan.error} />}
       </div>
       {confirmar && plan && (
         <Dialog large title={baja ? "¿Desmontar y dar de baja?" : "¿Registrar el desmontaje?"} onClose={() => setConfirmar(false)}
-          message={`${textoFecha(cab.iso)} · Unidad ${cab.unidad} (${t.flotaDeUnidad(cab.unidad)}) · ${formatoKm(cab.kmNum)} km${baja ? " · Los activos de baja no se podrán usar en ningún movimiento" : ` · a ${t.nombreAlmacen(cab.almacen)}`}`}
+          message={`${textoFecha(cab.iso)} · Unidad ${cab.unidad} (${t.flotaDeUnidad(cab.unidad)}) · ${formatoKm(cab.kmNum)} km${drv.texto ? ` · ${drv.texto}` : ""}${baja ? " · Los activos de baja no se podrán usar en ningún movimiento" : ` · a ${t.nombreAlmacen(cab.almacen)}`}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>{baja ? "Desmontar y dar de baja" : "Registrar"}</Button></>}>
           <TablaAntesDespues filas={plan.filas} />
         </Dialog>

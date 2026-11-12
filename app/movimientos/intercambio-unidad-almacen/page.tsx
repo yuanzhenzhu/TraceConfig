@@ -10,6 +10,7 @@ import { Banner, Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Ic
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import { ResultadoIntercambio } from "@/components/movimientos/resultado";
 import { LineaKm } from "@/components/movimientos/linea-km";
+import { useDrivers } from "@/components/movimientos/drivers";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
 import {
   TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUA, textoFecha, useMovimientos, useTextos,
@@ -19,7 +20,6 @@ import { SEP } from "@/lib/datos";
 import type { Nodo } from "@/lib/model";
 
 // En este intercambio solo se rotan ejes (en el almacén, antes de montarlo)
-const driverExtra = (categoria?: string) => (!categoria ? null : categoria.startsWith("Motor") ? "horas" : categoria === "Puerta" ? "ciclos" : null);
 
 export default function IntercambioUnidadAlmacen() {
   const store = useStore();
@@ -34,7 +34,6 @@ export default function IntercambioUnidadAlmacen() {
   const [flota, setFlota] = useState("");
   const [unidad, setUnidad] = useState("");
   const [km, setKm] = useState("");
-  const [extra, setExtra] = useState(""); // horas o ciclos
   const [almacen, setAlmacen] = useState("");
   const [selU, setSelU] = useState<SeleccionUnidad>(null);
   const [selA, setSelA] = useState("");
@@ -67,12 +66,9 @@ export default function IntercambioUnidadAlmacen() {
   const errKm = kmNum === null ? "Indica el km" : !Number.isFinite(kmNum) || kmNum < 0 ? "El km tiene que ser un número"
     : rango.antes && kmNum < rango.antes.km ? `El km tiene que ser igual o mayor que ${formatoKm(rango.antes.km)} (registro del ${textoFecha(rango.antes.fecha).slice(0, 10)})`
       : rango.despues && kmNum > rango.despues.km ? `El km tiene que ser igual o menor que ${formatoKm(rango.despues.km)} (registro del ${textoFecha(rango.despues.fecha).slice(0, 10)})` : "";
-  const tipoExtra = driverExtra(A?.categoria);
-  const extraNum = extra === "" ? null : Number(extra);
-  const previoExtra = tipoExtra === "horas" ? A?.horas : tipoExtra === "ciclos" ? A?.ciclos : null;
-  const errExtra = extraNum !== null && (!Number.isFinite(extraNum) || extraNum < 0) ? `Las ${tipoExtra} tienen que ser un número`
-    : extraNum !== null && previoExtra != null && extraNum < previoExtra ? `Tienen que ser iguales o mayores que ${formatoKm(previoExtra)} (último registro)` : "";
-  const errores = { fecha: errFecha, flota: flota ? "" : "Elige la flota", unidad: unidad ? "" : "Elige la unidad", km: errKm, almacen: almacen ? "" : "Elige el almacén", extra: errExtra };
+  // Horas (motores) o ciclos (puertas) del activo que sale y del que entra
+  const drv = useDrivers([A, B]);
+  const errores = { fecha: errFecha, flota: flota ? "" : "Elige la flota", unidad: unidad ? "" : "Elige la unidad", km: errKm, almacen: almacen ? "" : "Elige el almacén" };
   const cabeceraOk = Object.values(errores).every((e) => !e);
 
   // Activos montados en el que sale: cuáles viajan con él y cuáles se quedan en la unidad
@@ -109,7 +105,7 @@ export default function IntercambioUnidadAlmacen() {
     ir(uInfo.raiz, "");
     return out;
   }, [uInfo, A]);
-  const valido = cabeceraOk && !!plan && !plan.error && plan.filas.length > 0;
+  const valido = cabeceraOk && drv.ok && !!plan && !plan.error && plan.filas.length > 0;
   // Estado después (para "Ver cómo queda"): activos con el después de cada fila
   const despues = useMemo(() => {
     const d = { ...mov.activos };
@@ -130,17 +126,17 @@ export default function IntercambioUnidadAlmacen() {
   const hayDatos = !!(flota || unidad || km || almacen || selU || selA);
 
   const elegirUnidad = (s: SeleccionUnidad) => {
-    if (!s || s.padre !== selU?.padre) setExtra("");
+    if (!s || s.padre !== selU?.padre) drv.reset();
     if (!s || s.padre !== selU?.padre || s.quedan.join() !== selU?.quedan.join()) { setSelA(""); setRotar(false); }
     setSelU(s); setVista("antes");
   };
   const registrar = () => {
     if (!plan) return;
     const m = mov.registrar({
-      tipo: TIPOS.intercambioUA, fecha: iso, almacenes: [almacen], filas: plan.filas,
-      registros: [{ unidad, km: kmNum, ...(tipoExtra === "horas" ? { horas: extraNum } : tipoExtra === "ciclos" ? { ciclos: extraNum } : {}) }],
+      tipo: TIPOS.intercambioUA, fecha: iso, almacenes: [almacen], filas: drv.aplicar(plan.filas),
+      registros: [{ unidad, km: kmNum }],
     });
-    setConfirmar(false); setVista("antes"); setSelU(null); setSelA(""); setRotar(false); setExtra(""); setIntentado(false); setBuscaU(""); setBuscaA("");
+    setConfirmar(false); setVista("antes"); setSelU(null); setSelA(""); setRotar(false); drv.reset(); setIntentado(false); setBuscaU(""); setBuscaA("");
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
@@ -255,12 +251,7 @@ export default function IntercambioUnidadAlmacen() {
         </div>
 
         <div className="row gap-15 wrap" style={{ alignItems: "flex-start" }}>
-          {A && tipoExtra && (
-            <Field label={tipoExtra === "horas" ? "Horas" : "Ciclos"} htmlFor="extra" error={errores.extra}
-              support={`Opcional${previoExtra != null ? ` · último registro: ${formatoKm(previoExtra)}` : ""}`} style={{ width: 200 }}>
-              <input id="extra" className="lm-input lm-input--dense" inputMode="numeric" value={extra} onChange={(e) => setExtra(e.target.value.replace(/[^\d]/g, ""))} />
-            </Field>
-          )}
+          {drv.campos}
 
         </div>
 
@@ -274,7 +265,7 @@ export default function IntercambioUnidadAlmacen() {
 
       {confirmar && plan && (
         <Dialog large title="¿Registrar el intercambio?" onClose={() => setConfirmar(false)}
-          message={`${textoFecha(iso)} · Unidad ${unidad} (${t.flotaDeUnidad(unidad)}) · ${formatoKm(kmNum)} km${extraNum !== null ? ` · ${formatoKm(extraNum)} ${tipoExtra}` : ""} · ${t.nombreAlmacen(almacen)}${rotar ? " · con rotación" : ""}`}
+          message={`${textoFecha(iso)} · Unidad ${unidad} (${t.flotaDeUnidad(unidad)}) · ${formatoKm(kmNum)} km${drv.texto ? ` · ${drv.texto}` : ""} · ${t.nombreAlmacen(almacen)}${rotar ? " · con rotación" : ""}`}
           footer={<>
             <Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button>
             <Button onClick={registrar}>Registrar</Button>

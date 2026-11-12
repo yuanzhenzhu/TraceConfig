@@ -23,7 +23,8 @@ export type ActivoM = {
 };
 
 /** Una fila del movimiento: un activo con su antes y su después. */
-export type FilaMov = { serie: string; categoria: string; antes: Lugar; despues: Lugar; conPadre?: boolean };
+/** Una fila del movimiento: un activo con su antes y su después (y sus horas o ciclos, si es motor o puerta). */
+export type FilaMov = { serie: string; categoria: string; antes: Lugar; despues: Lugar; conPadre?: boolean; horas?: number | null; ciclos?: number | null };
 
 export type Registro = { unidad: string; km: number | null; horas?: number | null; ciclos?: number | null };
 
@@ -36,7 +37,6 @@ export type Movimiento = {
   filas: FilaMov[];
   estado: "registrado" | "anulado";
   anulado?: { fecha: string; por: string };
-  grupo?: string; // movimientos seguidos: mismo grupo
   motivo?: string; // fin de vida
   principal?: { serie: string; categoria: string }; // rotación: el bogie que gira; montaje/desmontaje en almacén: el padre (sus filas son solo los hijos)
   /** Montaje/desmontaje en almacén: lo que lleva montado el padre (después del montaje; antes del desmontaje), para ver el padre con sus hijos. */
@@ -63,8 +63,6 @@ export const TIPOS = {
   finVida: "Fin de vida",
 } as const;
 
-/** Id de un grupo de movimientos seguidos (montaje de varios hijos en una sola acción). */
-export const nuevoGrupo = () => `G-${Date.now().toString(36)}`;
 
 /* ---------- Fechas ---------- */
 const p2 = (n: number) => String(n).padStart(2, "0");
@@ -366,7 +364,7 @@ type NuevoMov = Omit<Movimiento, "id" | "estado" | "por">;
 function aplicar(s: Estado, m: NuevoMov, por: string = USUARIO): { s: Estado; mov: Movimiento } {
   const n = Math.max(0, ...s.movimientos.map((x) => Number(x.id.replace(/\D/g, "")) || 0)) + 1;
   const activos = { ...s.activos };
-  m.filas.forEach((f) => { activos[f.serie] = { ...activos[f.serie], lugar: f.despues }; });
+  m.filas.forEach((f) => { activos[f.serie] = { ...activos[f.serie], lugar: f.despues, ...(f.horas != null ? { horas: f.horas } : {}), ...(f.ciclos != null ? { ciclos: f.ciclos } : {}) }; });
   // Montaje/desmontaje en almacén: foto de lo que lleva montado el padre (después del montaje, antes del desmontaje)
   let montados = m.montados;
   if (!montados && m.principal && (m.tipo === TIPOS.montajeAlmacen || m.tipo === TIPOS.desmontajeAlmacen)) {

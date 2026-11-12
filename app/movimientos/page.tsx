@@ -1,6 +1,6 @@
 "use client";
 
-// HU-M01 · Historial de movimientos: pantalla de inicio del módulo. Filtros, tabla, movimientos seguidos agrupados,
+// HU-M01 · Historial de movimientos: pantalla de inicio del módulo. Filtros, tabla (un movimiento por fila),
 // detalle (Antes | Después) y deshacer (HU-M02). Los movimientos se empiezan desde el menú lateral.
 
 import { useEffect, useMemo, useState } from "react";
@@ -23,7 +23,6 @@ export default function HistorialMovimientos() {
   // Flota y unidad se eligen y se aplican con el botón Aplicar
   const [borrador, setBorrador] = useState(VACIO_UNIDAD);
   const [aplicado, setAplicado] = useState(VACIO_UNIDAD);
-  const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   // Activos montados de cada movimiento: plegados por defecto para que la tabla quede limpia
   const [hijosAbiertos, setHijosAbiertos] = useState<Record<string, boolean>>({});
   const [detalle, setDetalle] = useState<string | null>(null);
@@ -50,22 +49,7 @@ export default function HistorialMovimientos() {
       .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
   }, [mov.movimientos, mov.unidades, f, aplicado]);
 
-  // Movimientos seguidos: una fila de grupo por cada grupo con más de un movimiento
-  type Fila = { tipo: "mov"; m: Movimiento; enGrupo?: boolean } | { tipo: "grupo"; id: string; ms: Movimiento[] };
-  const filas: Fila[] = useMemo(() => {
-    const out: Fila[] = [];
-    const vistos = new Set<string>();
-    lista.forEach((m) => {
-      const grupo = m.grupo ? lista.filter((x) => x.grupo === m.grupo) : [];
-      if (grupo.length > 1) {
-        if (vistos.has(m.grupo!)) return;
-        vistos.add(m.grupo!);
-        out.push({ tipo: "grupo", id: m.grupo!, ms: grupo });
-        if (abiertos[m.grupo!]) grupo.forEach((x) => out.push({ tipo: "mov", m: x, enGrupo: true }));
-      } else out.push({ tipo: "mov", m });
-    });
-    return out;
-  }, [lista, abiertos]);
+  const filas = lista;
 
   const paginas = Math.max(1, Math.ceil(filas.length / porPagina));
   useEffect(() => { if (pagina >= paginas) setPagina(0); }, [pagina, paginas]);
@@ -85,12 +69,12 @@ export default function HistorialMovimientos() {
   const cargando = !mov.listo || demo === "cargando";
   const vacio = demo === "vacio" || (mov.listo && mov.movimientos.length === 0);
 
-  const filaMov = (m: Movimiento, enGrupo?: boolean) => {
+  const filaMov = (m: Movimiento) => {
     const anulado = m.estado === "anulado";
     const tachado = anulado ? { textDecoration: "line-through", color: "var(--lm-sys-on-surface-variant)" } : undefined;
     return (
-      <tr key={m.id} className={enGrupo ? "is-child" : undefined} style={{ cursor: "pointer", verticalAlign: "top" }} onClick={() => setDetalle(m.id)} title="Ver el detalle">
-        <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)", whiteSpace: "nowrap" }}>{enGrupo && <Icon name="link" size="m" />} {textoFecha(m.fecha)}</td>
+      <tr key={m.id} style={{ cursor: "pointer", verticalAlign: "top" }} onClick={() => setDetalle(m.id)} title="Ver el detalle">
+        <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)", whiteSpace: "nowrap" }}>{textoFecha(m.fecha)}</td>
         <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{m.tipo}{anulado && <div><Tag tone="neutral">Deshecho</Tag></div>}</td>
         {[0, 1].map((i) => <td key={i} style={{ verticalAlign: "top" }}>
           <CeldaParticipante p={participantes(m)[i]} tachado={anulado} abierto={hijosAbiertos[m.id]}
@@ -185,20 +169,7 @@ export default function HistorialMovimientos() {
                     <tr><th>Fecha</th><th>Tipo</th><th>Participante 1</th><th>Participante 2</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
                   </thead>
                   <tbody>
-                    {visibles.map((x) => x.tipo === "mov" ? filaMov(x.m, x.enGrupo) : (
-                      <tr key={x.id} style={{ cursor: "pointer" }} onClick={() => setAbiertos((a) => ({ ...a, [x.id]: !a[x.id] }))}>
-                        <td style={{ verticalAlign: "top", whiteSpace: "nowrap" }}>
-                          <span className="row gap-5">
-                            <IconButton compact icon={abiertos[x.id] ? "expand_less" : "expand_more"} label={`${abiertos[x.id] ? "Plegar" : "Desplegar"} movimientos seguidos`} />
-                            {textoFecha(x.ms[0].fecha)}
-                          </span>
-                        </td>
-                        <td style={{ verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{x.ms[0].tipo}<div className="row gap-5 lm-body-small muted"><Icon name="link" size="m" /> {x.ms.length} movimientos seguidos</div></td>
-                        <td style={{ verticalAlign: "top" }}><div className="stack" style={{ padding: "var(--lm-space-10) 0" }}>{x.ms.map((m) => { const p = participantes(m)[0]; return p ? <span key={m.id} style={{ fontWeight: 500 }}>{p.categoria} {p.serie}</span> : null; })}</div></td>
-                        <td />
-                        <td />
-                      </tr>
-                    ))}
+                    {visibles.map((m) => filaMov(m))}
                   </tbody>
                 </table>
                 <div className="lm-paginator">

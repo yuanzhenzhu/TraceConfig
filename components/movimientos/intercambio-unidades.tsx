@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Banner, Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Icon, Loading, SearchInput, useSnackbar } from "@/components/ds";
 import { TablaAntesDespues } from "./detalle";
 import { LineaKm } from "./linea-km";
+import { useDrivers } from "./drivers";
 import { Panel, PanelUnidad } from "./paneles";
 import type { SeleccionUnidad } from "./tablas";
 import { SEP } from "@/lib/datos";
@@ -96,7 +97,9 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
     { serie: A.serie, quedan: new Set(sel[0]!.quedan), rotar: rot[0] && rotable(0) },
     { serie: B.serie, quedan: new Set(sel[1]!.quedan), rotar: rot[1] && rotable(1) }) : null;
   const planOk = !!plan && !plan.error && plan.filas.length > 0;
-  const valido = cabeceraOk && planOk;
+  // Horas (motores) o ciclos (puertas) de los dos activos que se intercambian
+  const drv = useDrivers([act(0), act(1)]);
+  const valido = cabeceraOk && planOk && drv.ok;
 
   const despues = useMemo(() => {
     const d = { ...mov.activos };
@@ -113,10 +116,10 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
   const registrar = () => {
     if (!plan) return;
     const m = mov.registrar({
-      tipo: misma ? TIPOS.intercambioMU : TIPOS.intercambioUU, fecha: iso, almacenes: [], filas: plan.filas,
+      tipo: misma ? TIPOS.intercambioMU : TIPOS.intercambioUU, fecha: iso, almacenes: [], filas: drv.aplicar(plan.filas),
       registros: lados.map((i) => ({ unidad: uDe(i), km: kmInfo(i).n })),
     });
-    setConfirmar(false); setVista("antes"); setSel([null, null]); setRot([false, false]); setBusca(["", ""]); setIntentado(false);
+    setConfirmar(false); setVista("antes"); setSel([null, null]); setRot([false, false]); setBusca(["", ""]); setIntentado(false); drv.reset();
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
@@ -234,6 +237,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
           {panel(1)}
         </div>
 
+        {drv.campos}
         {plan?.error && <Banner type="error" title={plan.error} />}
         {[0, 1].map((i) => vac[i].size > 0 && (
           <Banner key={i} type="attention" title={`${vac[i].size === 1 ? "Queda 1 hueco vacío" : `Quedan ${vac[i].size} huecos vacíos`} en la unidad ${uDe(i)}`}>
@@ -244,7 +248,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
 
       {confirmar && plan && (
         <Dialog large title="¿Registrar el intercambio?" onClose={() => setConfirmar(false)}
-          message={`${textoFecha(iso)} · ${lados.map((i) => `Unidad ${uDe(i)} (${t.flotaDeUnidad(uDe(i))}) · ${formatoKm(kmInfo(i).n)} km`).join(" · ")}`}
+          message={`${textoFecha(iso)} · ${lados.map((i) => `Unidad ${uDe(i)} (${t.flotaDeUnidad(uDe(i))}) · ${formatoKm(kmInfo(i).n)} km`).join(" · ")}${drv.texto ? ` · ${drv.texto}` : ""}`}
           footer={<>
             <Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button>
             <Button onClick={registrar}>Registrar</Button>

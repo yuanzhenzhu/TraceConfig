@@ -275,7 +275,6 @@ export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; on
   const m = mov.movimientos.find((x) => x.id === id);
   if (!m) return null;
   const post = mov.posteriores(id);
-  const seguidos = m.grupo ? mov.movimientos.filter((x) => x.grupo === m.grupo && x.id !== id) : [];
   const motivo = m.estado === "anulado" ? "Ya está deshecho" : post.length ? "Tiene movimientos posteriores" : undefined;
   const sitios = sitiosDe(m, t.nombreAlmacen);
   const corto = (l: Lugar) => (l.tipo === "unidad" ? `unidad ${l.unidad}` : l.tipo === "almacen" ? t.nombreAlmacen(l.almacenId) : "baja");
@@ -292,15 +291,13 @@ export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; on
           {m.registros.map((r) => (
             <span key={r.unidad}>· Unidad {r.unidad}{r.km !== null && ` a ${formatoKm(r.km)} km`}{r.horas != null && ` · ${formatoKm(r.horas)} h`}{r.ciclos != null && ` · ${formatoKm(r.ciclos)} ciclos`}</span>
           ))}
+          {m.filas.filter((f) => f.horas != null || f.ciclos != null).map((f) => (
+            <span key={`drv-${f.serie}`}>· {f.categoria} {f.serie}: {f.horas != null ? `${formatoKm(f.horas)} h` : `${formatoKm(f.ciclos)} ciclos`}</span>
+          ))}
           <span className="muted">· Registrado por {m.por}</span>
           {m.estado === "anulado" && <Tag tone="neutral">Deshecho el {textoFecha(m.anulado!.fecha)} por {m.anulado!.por}</Tag>}
         </div>
         {m.motivo && <span className="lm-body-medium">Motivo: {m.motivo}</span>}
-        {seguidos.length > 0 && (
-          <span className="row gap-5 lm-body-small"><Icon name="link" size="m" /> Seguido de
-            {seguidos.map((s) => <Button key={s.id} variant="text" small onClick={() => onVer(s.id)}>{s.id}</Button>)}
-          </span>
-        )}
         <div className="row">
           <ButtonToggle label="Ver antes o después del movimiento" value={vista} onChange={setVista}
             options={[{ value: "antes", label: "Antes" }, { value: "despues", label: "Después" }]} />

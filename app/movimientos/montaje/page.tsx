@@ -11,6 +11,7 @@ import { Banner, Button, ButtonToggle, Dialog, EmptyState, Field, Loading, Searc
 import { AhoraDespues, CabeceraPantalla, SelectorDonde } from "@/components/movimientos/pantalla";
 import { TablaAntesDespues } from "@/components/movimientos/detalle";
 import { useCabecera } from "@/components/movimientos/cabecera";
+import { useDrivers } from "@/components/movimientos/drivers";
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import { SEP } from "@/lib/datos";
 import { TIPOS, descendientes, formatoKm, huecosLibres, planMontajeAlmacen, planMontajeUnidad, posicionesDe, textoFecha, useMovimientos, useTextos, type FilaMov } from "@/lib/movimientos";
@@ -64,12 +65,14 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
   const plan = hueco && selA ? planMontajeUnidad(mov.activos, cab.unidad, hueco.ruta, selA, huecos) : null;
   const planOk = !!plan && !plan.error && plan.filas.length > 0;
   const despues = useMemo(() => { const d = { ...mov.activos }; plan?.filas.forEach((f) => { d[f.serie] = { ...d[f.serie], lugar: f.despues }; }); return d; }, [mov.activos, plan]);
-  const valido = cab.ok && planOk;
+  // Horas (motor) o ciclos (puerta) del activo que entra
+  const drv = useDrivers([selA ? mov.activos[selA] : undefined]);
+  const valido = cab.ok && planOk && drv.ok;
 
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.montajeUnidad, fecha: cab.iso, almacenes: [cab.almacen], filas: plan.filas, registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
-    setConfirmar(false); setHueco(null); setSelA(""); setVista("antes");
+    const m = mov.registrar({ tipo: TIPOS.montajeUnidad, fecha: cab.iso, almacenes: [cab.almacen], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
+    setConfirmar(false); setHueco(null); setSelA(""); setVista("antes"); drv.reset();
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
@@ -134,11 +137,12 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
                     : <PanelAlmacen candidatos={candidatos} activos={mov.activos} sel={selA} onSel={setSelA} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420} />}
           </Panel>
         </div>
+        {drv.campos}
         {plan?.error && <Banner type="error" title={plan.error} />}
       </div>
       {confirmar && plan && (
         <Dialog large title="¿Registrar el montaje?" onClose={() => setConfirmar(false)}
-          message={`${textoFecha(cab.iso)} · Unidad ${cab.unidad} (${t.flotaDeUnidad(cab.unidad)}) · ${formatoKm(cab.kmNum)} km · desde ${t.nombreAlmacen(cab.almacen)}`}
+          message={`${textoFecha(cab.iso)} · Unidad ${cab.unidad} (${t.flotaDeUnidad(cab.unidad)}) · ${formatoKm(cab.kmNum)} km${drv.texto ? ` · ${drv.texto}` : ""} · desde ${t.nombreAlmacen(cab.almacen)}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={plan.filas} />
         </Dialog>
