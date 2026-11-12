@@ -4,39 +4,47 @@
 // detalle (Antes → Después) y anular (HU-M02). Los movimientos se empiezan desde el menú lateral.
 
 import { useEffect, useMemo, useState } from "react";
-import { Banner, Breadcrumb, Button, EmptyState, Field, Icon, IconButton, Loading, Menu, Tag } from "@/components/ds";
+import { Banner, Breadcrumb, Button, EmptyState, FieldOutlined, Icon, IconButton, Loading, Menu, Tag } from "@/components/ds";
 import { CeldaParticipante, DialogAnular, DialogDetalle, participantes, type Participante } from "@/components/movimientos/detalle";
 import { textoFecha, useMovimientos, type Movimiento } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 
 type Demo = "normal" | "cargando" | "vacio" | "error";
 const POR_PAGINA = [10, 25, 50];
-const VACIO = { desde: "", hasta: "", flota: "", unidad: "", tipo: "", serie: "" };
+const VACIO = { fecha: "", categoria: "", tipo: "", busca: "" };
+const VACIO_UNIDAD = { flota: "", unidad: "" };
 
 export default function HistorialMovimientos() {
   const store = useStore();
   const mov = useMovimientos();
   const [demo, setDemo] = useState<Demo>("normal");
   const [f, setF] = useState(VACIO);
+  // Flota y unidad se eligen y se aplican con el botón Aplicar
+  const [borrador, setBorrador] = useState(VACIO_UNIDAD);
+  const [aplicado, setAplicado] = useState(VACIO_UNIDAD);
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   const [detalle, setDetalle] = useState<string | null>(null);
   const [anular, setAnular] = useState<string | null>(null);
   const [pagina, setPagina] = useState(0);
   const [porPagina, setPorPagina] = useState(10);
-  const cambiar = (k: keyof typeof VACIO, v: string) => { setF((x) => ({ ...x, [k]: v, ...(k === "flota" ? { unidad: "" } : {}) })); setPagina(0); };
+  const cambiar = (k: keyof typeof VACIO, v: string) => { setF((x) => ({ ...x, [k]: v })); setPagina(0); };
 
-  const unidadesFlota = mov.unidades.filter((u) => !f.flota || u.flotaId === f.flota);
+  const unidadesFlota = mov.unidades.filter((u) => !borrador.flota || u.flotaId === borrador.flota);
   const tipos = [...new Set(mov.movimientos.map((m) => m.tipo))].sort();
+  const categorias = [...new Set(mov.movimientos.flatMap((m) => m.filas.map((x) => x.categoria)))].sort();
   const lista = useMemo(() => {
-    const s = f.serie.trim().toLowerCase();
+    const s = f.busca.trim().toLowerCase();
+    // Unidades del movimiento: las de sus registros de km y las de los huecos de antes y después
+    const unidadesDe = (m: Movimiento) => [...m.registros.map((r) => r.unidad), ...m.filas.flatMap((x) => [x.antes, x.despues]).filter((l) => l.tipo === "unidad").map((l) => (l as { unidad: string }).unidad)];
     return mov.movimientos
-      .filter((m) => (!f.desde || m.fecha.slice(0, 10) >= f.desde) && (!f.hasta || m.fecha.slice(0, 10) <= f.hasta))
-      .filter((m) => !f.flota || m.registros.some((r) => mov.unidades.find((u) => u.serie === r.unidad)?.flotaId === f.flota))
-      .filter((m) => !f.unidad || m.registros.some((r) => r.unidad === f.unidad))
+      .filter((m) => !aplicado.flota || unidadesDe(m).some((u) => mov.unidades.find((x) => x.serie === u)?.flotaId === aplicado.flota))
+      .filter((m) => !aplicado.unidad || unidadesDe(m).includes(aplicado.unidad))
+      .filter((m) => !f.fecha || m.fecha.slice(0, 10) === f.fecha)
+      .filter((m) => !f.categoria || m.filas.some((x) => x.categoria === f.categoria))
       .filter((m) => !f.tipo || m.tipo === f.tipo)
-      .filter((m) => !s || m.filas.some((x) => x.serie.toLowerCase().includes(s)))
+      .filter((m) => !s || m.filas.some((x) => x.serie.toLowerCase().includes(s) || x.categoria.toLowerCase().includes(s)) || unidadesDe(m).some((u) => u.includes(s)))
       .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
-  }, [mov.movimientos, mov.unidades, f]);
+  }, [mov.movimientos, mov.unidades, f, aplicado]);
 
   // Movimientos seguidos: una fila de grupo por cada grupo con más de un movimiento
   type Fila = { tipo: "mov"; m: Movimiento; enGrupo?: boolean } | { tipo: "grupo"; id: string; ms: Movimiento[] };
@@ -58,7 +66,8 @@ export default function HistorialMovimientos() {
   const paginas = Math.max(1, Math.ceil(filas.length / porPagina));
   useEffect(() => { if (pagina >= paginas) setPagina(0); }, [pagina, paginas]);
   const visibles = filas.slice(pagina * porPagina, (pagina + 1) * porPagina);
-  const hayFiltros = Object.values(f).some(Boolean);
+  const hayFiltros = Object.values(f).some(Boolean) || Object.values(aplicado).some(Boolean);
+  const restablecer = () => { setF(VACIO); setBorrador(VACIO_UNIDAD); setAplicado(VACIO_UNIDAD); setPagina(0); };
 
   const exportar = () => {
     const cab = ["Fecha", "Tipo", "Participante 1", "Participante 2", "Anulado"];
@@ -98,10 +107,50 @@ export default function HistorialMovimientos() {
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Historial de movimientos</h1>
           <span className="lm-body-medium muted">Para registrar un movimiento, elige su tipo en el menú lateral.</span>
         </div>
-        <div className="lm-header__actions">
-          <Button variant="text" icon="file_download" disabled={cargando || vacio || demo === "error" || !lista.length} onClick={exportar}>Exportar a CSV</Button>
-        </div>
       </div>
+
+      {/* Filtros en dos barras: flota y unidad (con Aplicar) y el resto, con Descargar CSV */}
+      <section className="lm-surface" aria-label="Filtro por flota y unidad" style={{ marginBottom: "var(--lm-space-15)" }}>
+        <div className="lm-filter-bar">
+          <FieldOutlined label="Flota" htmlFor="f-flota" width={280}>
+            <select id="f-flota" className="lm-select lm-select--dense" value={borrador.flota} onChange={(e) => setBorrador({ flota: e.target.value, unidad: "" })}>
+              <option value="">Todas</option>
+              {store.flotas.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+            </select>
+          </FieldOutlined>
+          <FieldOutlined label="Unidad" htmlFor="f-unidad" width={280}>
+            <select id="f-unidad" className="lm-select lm-select--dense" value={borrador.unidad} onChange={(e) => setBorrador((x) => ({ ...x, unidad: e.target.value }))}>
+              <option value="">Todas</option>
+              {unidadesFlota.map((u) => <option key={u.serie} value={u.serie}>{u.serie}</option>)}
+            </select>
+          </FieldOutlined>
+          <Button variant="tonal" disabled={borrador.flota === aplicado.flota && borrador.unidad === aplicado.unidad} onClick={() => { setAplicado(borrador); setPagina(0); }}>Aplicar</Button>
+        </div>
+      </section>
+      <section className="lm-surface" aria-label="Filtros del historial" style={{ marginBottom: "var(--lm-space-15)" }}>
+        <div className="lm-filter-bar">
+          <FieldOutlined label="Fecha" htmlFor="f-fecha" grow>
+            <input id="f-fecha" type="date" className="lm-input lm-input--dense" value={f.fecha} onChange={(e) => cambiar("fecha", e.target.value)} />
+          </FieldOutlined>
+          <FieldOutlined label="Categoría" htmlFor="f-categoria" grow>
+            <select id="f-categoria" className="lm-select lm-select--dense" value={f.categoria} onChange={(e) => cambiar("categoria", e.target.value)}>
+              <option value="">Seleccionar</option>
+              {categorias.map((x) => <option key={x}>{x}</option>)}
+            </select>
+          </FieldOutlined>
+          <FieldOutlined label="Tipo de movimiento" htmlFor="f-tipo" grow>
+            <select id="f-tipo" className="lm-select lm-select--dense" value={f.tipo} onChange={(e) => cambiar("tipo", e.target.value)}>
+              <option value="">Seleccionar</option>
+              {tipos.map((x) => <option key={x}>{x}</option>)}
+            </select>
+          </FieldOutlined>
+          <FieldOutlined htmlFor="f-busca" grow>
+            <input id="f-busca" className="lm-input lm-input--dense" aria-label="Buscar" placeholder="Buscar nº de serie, activo, unidad..." value={f.busca} onChange={(e) => cambiar("busca", e.target.value)} />
+          </FieldOutlined>
+          <Button icon="file_download" style={{ flexShrink: 0 }} disabled={cargando || vacio || demo === "error" || !lista.length} onClick={exportar}>Descargar CSV</Button>
+          {hayFiltros && <Button variant="text" icon="restart_alt" onClick={restablecer}>Restablecer</Button>}
+        </div>
+      </section>
 
       <section className="lm-surface lm-surface--p16">
         {demo === "error" ? (
@@ -112,40 +161,9 @@ export default function HistorialMovimientos() {
           <EmptyState icon="swap_vert" title="Todavía no hay movimientos" text="Elige un tipo de movimiento en el menú lateral para registrar el primero" />
         ) : (
           <>
-            <div className="lm-filters">
-              <Field label="Desde" htmlFor="f-desde" style={{ width: 160 }}>
-                <input id="f-desde" type="date" className="lm-input lm-input--dense" value={f.desde} onChange={(e) => cambiar("desde", e.target.value)} />
-              </Field>
-              <Field label="Hasta" htmlFor="f-hasta" style={{ width: 160 }}>
-                <input id="f-hasta" type="date" className="lm-input lm-input--dense" value={f.hasta} onChange={(e) => cambiar("hasta", e.target.value)} />
-              </Field>
-              <Field label="Flota" htmlFor="f-flota" style={{ width: 180 }}>
-                <select id="f-flota" className="lm-select lm-select--dense" value={f.flota} onChange={(e) => cambiar("flota", e.target.value)}>
-                  <option value="">Todas</option>
-                  {store.flotas.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-                </select>
-              </Field>
-              <Field label="Unidad" htmlFor="f-unidad" style={{ width: 120 }}>
-                <select id="f-unidad" className="lm-select lm-select--dense" value={f.unidad} onChange={(e) => cambiar("unidad", e.target.value)}>
-                  <option value="">Todas</option>
-                  {unidadesFlota.map((u) => <option key={u.serie} value={u.serie}>{u.serie}</option>)}
-                </select>
-              </Field>
-              <Field label="Tipo de movimiento" htmlFor="f-tipo" style={{ width: 260 }}>
-                <select id="f-tipo" className="lm-select lm-select--dense" value={f.tipo} onChange={(e) => cambiar("tipo", e.target.value)}>
-                  <option value="">Todos</option>
-                  {tipos.map((x) => <option key={x}>{x}</option>)}
-                </select>
-              </Field>
-              <Field label="Nº de serie" htmlFor="f-serie" style={{ width: 160 }}>
-                <input id="f-serie" className="lm-input lm-input--dense" placeholder="Por ejemplo: 415875" value={f.serie} onChange={(e) => cambiar("serie", e.target.value)} />
-              </Field>
-              <Button variant="text" icon="restart_alt" disabled={!hayFiltros} onClick={() => { setF(VACIO); setPagina(0); }}>Restablecer</Button>
-            </div>
-
             {!lista.length ? (
               <EmptyState icon="search_off" title="No hay resultados" text="Ningún movimiento cumple los filtros"
-                action={<Button variant="outlined" onClick={() => setF(VACIO)}>Restablecer filtros</Button>} />
+                action={<Button variant="outlined" onClick={restablecer}>Restablecer filtros</Button>} />
             ) : (
               <>
                 <table className="lm-table">

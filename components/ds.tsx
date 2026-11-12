@@ -78,6 +78,16 @@ export function Field({
   );
 }
 
+/** Campo con la etiqueta sobre el borde (outlined), para filtros. */
+export function FieldOutlined({ label, htmlFor, width, grow, children }: { label?: string; htmlFor: string; width?: number; grow?: boolean; children: ReactNode }) {
+  return (
+    <div className="lm-outlined" style={grow ? { flex: "1 1 0", minWidth: 150 } : { width }}>
+      {label && <label className="lm-outlined__label" htmlFor={htmlFor}>{label}</label>}
+      {children}
+    </div>
+  );
+}
+
 export function SearchInput({ value, onChange, placeholder, label }: { value: string; onChange: (v: string) => void; placeholder: string; label: string }) {
   return (
     <div className="lm-search">
