@@ -46,7 +46,7 @@ export default function HistorialMovimientos() {
       .filter((m) => !f.fecha || m.fecha.slice(0, 10) === f.fecha)
       .filter((m) => !f.categoria || m.filas.some((x) => x.categoria === f.categoria))
       .filter((m) => !f.tipo || m.tipo === f.tipo)
-      .filter((m) => !s || m.filas.some((x) => x.serie.toLowerCase().includes(s) || x.categoria.toLowerCase().includes(s)) || unidadesDe(m).some((u) => u.includes(s)))
+      .filter((m) => !s || m.principal?.serie.toLowerCase().includes(s) || m.filas.some((x) => x.serie.toLowerCase().includes(s) || x.categoria.toLowerCase().includes(s)) || unidadesDe(m).some((u) => u.includes(s)))
       .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
   }, [mov.movimientos, mov.unidades, f, aplicado]);
 

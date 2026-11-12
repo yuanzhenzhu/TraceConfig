@@ -3,7 +3,7 @@
 // Montaje: HU-M10 (en una unidad) y HU-M07 (en un almacén), en una sola entrada del menú.
 // - En una unidad: se elige un hueco libre en el árbol y, a la derecha, un activo suelto del almacén de esa categoría
 //   (entra con lo que lleva montado).
-// - En un almacén: se elige el padre y, para cada posición libre, el activo suelto que se monta. Varios = movimientos seguidos.
+// - En un almacén: se elige el padre y, para cada posición libre, el activo suelto que se monta. Es un solo movimiento: el padre es el participante y los que se montan, sus hijos.
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ import { TablaAntesDespues } from "@/components/movimientos/detalle";
 import { useCabecera } from "@/components/movimientos/cabecera";
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import { SEP } from "@/lib/datos";
-import { TIPOS, descendientes, formatoKm, nuevoGrupo, planMontajeAlmacen, planMontajeUnidad, posicionesDe, textoFecha, useMovimientos, useTextos, type FilaMov } from "@/lib/movimientos";
+import { TIPOS, descendientes, formatoKm, planMontajeAlmacen, planMontajeUnidad, posicionesDe, textoFecha, useMovimientos, useTextos, type FilaMov } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 
 type Modo = "unidad" | "almacen";
@@ -149,10 +149,11 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
   const P = padre ? mov.activos[padre] : undefined;
 
   const registrar = () => {
-    const grupo = elegidas.length > 1 ? nuevoGrupo() : undefined;
-    const ids = planes.map((p) => mov.registrar({ tipo: TIPOS.montajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: p.filas, registros: [], grupo }).id);
+    if (!P) return;
+    // Un solo movimiento: el padre (que no se mueve) es el participante y los activos que se montan son sus hijos
+    const m = mov.registrar({ tipo: TIPOS.montajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: filas.map((f) => ({ ...f, conPadre: true })), registros: [], principal: { serie: P.serie, categoria: P.categoria } });
     setConfirmar(false); setPadre(""); setAsig({}); setVista("antes");
-    snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <Loading text="Cargando almacenes" />;
@@ -173,7 +174,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
                   : <PanelAlmacen candidatos={padres} activos={mov.activos} sel={padre} onSel={(s) => { setPadre(s); setAsig({}); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420}
                       detalle={(a) => `Libres: ${libres(a.serie).map((x) => x.nombre).join(", ")}`} />}
           </Panel>
-          <Panel titulo="Activos que se montan" subtitulo={P ? `Una fila por posición libre del ${P.categoria.replace(/^./, (c) => c.toLowerCase())} ${P.serie}. Varios se registran como movimientos seguidos.` : "Elige antes el padre"}>
+          <Panel titulo="Activos que se montan" subtitulo={P ? `Una fila por posición libre del ${P.categoria.replace(/^./, (c) => c.toLowerCase())} ${P.serie}.` : "Elige antes el padre"}>
             {!P ? <EmptyState icon="arrow_left" title="Elige el padre" text="Aquí aparecerán sus posiciones libres" /> : (
               <div className="stack gap-15" style={{ padding: "var(--lm-space-15)" }}>
                 {libres(P.serie).map((pos) => {
@@ -195,8 +196,8 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
         {error && <Banner type="error" title={error} />}
       </div>
       {confirmar && (
-        <Dialog large title={elegidas.length > 1 ? `¿Registrar ${elegidas.length} montajes seguidos?` : "¿Registrar el montaje?"} onClose={() => setConfirmar(false)}
-          message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · en el ${P?.categoria.replace(/^./, (c) => c.toLowerCase())} ${P?.serie}${elegidas.length > 1 ? " · un movimiento por activo, enlazados" : ""}`}
+        <Dialog large title="¿Registrar el montaje?" onClose={() => setConfirmar(false)}
+          message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · en el ${P?.categoria.replace(/^./, (c) => c.toLowerCase())} ${P?.serie}${elegidas.length > 1 ? ` · ${elegidas.length} activos` : ""}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={filas} />
         </Dialog>

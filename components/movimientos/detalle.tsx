@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { Button, ButtonToggle, Dialog, Icon, Tag, useSnackbar } from "@/components/ds";
 import { SEP } from "@/lib/datos";
-import { formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Lugar, type Movimiento } from "@/lib/movimientos";
+import { TIPOS, formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Lugar, type Movimiento } from "@/lib/movimientos";
 
 /** Tabla ACTIVO · CATEGORÍA · ANTES · DESPUÉS. */
 export function TablaAntesDespues({ filas }: { filas: FilaMov[] }) {
@@ -55,6 +55,14 @@ const relHueco = (h: string, base: string) => (h.startsWith(base + " › ") ? h.
 export function participantes(m: Movimiento): Participante[] {
   const principales = m.filas.filter((f) => !f.conPadre);
   const hijos = m.filas.filter((f) => f.conPadre);
+  if (!principales.length && m.principal && hijos.every((f) => f.despues.tipo === "almacen")) {
+    // Montaje en almacén: el padre es el participante y los activos montados, sus hijos (en la posición en la que se montan)
+    return [{
+      categoria: m.principal.categoria, serie: m.principal.serie,
+      hijos: hijos.map((f) => ({ serie: f.serie, pos: f.despues.tipo === "almacen" ? f.despues.enHueco ?? f.categoria : f.categoria }))
+        .sort((a, b) => a.pos.localeCompare(b.pos, "es", { numeric: true })),
+    }];
+  }
   if (!principales.length) {
     // Rotación: posición común (el hueco del bogie) a partir de las filas
     const huecos = hijos.map((f) => (f.antes.tipo === "unidad" ? f.antes.hueco : ""));
@@ -199,7 +207,13 @@ function itemsSitio(m: Movimiento, sitios: Sitio[], s: Sitio, vista: "antes" | "
       out.push({ serie: f.serie, categoria: f.categoria, pos: l.enHueco ?? f.categoria, nivel, nota: nivel === 0 ? nota(f) : undefined, enPadre: nivel === 0 ? (l.padre ? `Montado en ${l.padre}${l.enHueco ? ` › ${l.enHueco}` : ""}` : "Suelto") : undefined });
       aqui.filter((h) => padreDe(h) === f.serie).sort((a, b) => ((a[vista] as { enHueco?: string }).enHueco ?? "").localeCompare((b[vista] as { enHueco?: string }).enHueco ?? "", "es", { numeric: true })).forEach((h) => ir(h, nivel + 1));
     };
-    aqui.filter((f) => { const p = padreDe(f); return !p || !enEste.has(p); }).forEach((f) => ir(f, 0));
+    // Montaje en almacén: el padre no se mueve (no tiene fila), pero se muestra como cabeza con lo que lleva montado
+    const P = m.principal && !enEste.has(m.principal.serie) && !m.filas.some((f) => f.serie === m.principal!.serie) ? m.principal : undefined;
+    if (P) {
+      out.push({ serie: P.serie, categoria: P.categoria, pos: P.categoria, nivel: 0, sintetico: true });
+      aqui.filter((h) => padreDe(h) === P.serie).sort((a, b) => ((a[vista] as { enHueco?: string }).enHueco ?? "").localeCompare((b[vista] as { enHueco?: string }).enHueco ?? "", "es", { numeric: true })).forEach((h) => ir(h, 1));
+    }
+    aqui.filter((f) => { const p = padreDe(f); return (!p || !enEste.has(p)) && !(P && p === P.serie); }).forEach((f) => ir(f, 0));
     return out;
   }
   return aqui.map((f) => ({ serie: f.serie, categoria: f.categoria, pos: f.categoria, nivel: f.conPadre ? 1 : 0, nota: f.conPadre ? undefined : nota(f) }));
@@ -320,7 +334,8 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
       </>}>
       <div className="stack gap-10">
         {principales.map((f) => <span key={f.serie}>El {f.categoria.replace(/^./, (c) => c.toLowerCase())} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}
-        {hijos > 0 && <span>Sus {hijos} activos montados vuelven también a su posición anterior.</span>}
+        {!principales.length && m.tipo === TIPOS.montajeAlmacen && m.principal && <span>Se desmontan del {m.principal.categoria.replace(/^./, (c) => c.toLowerCase())} {m.principal.serie} y vuelven a quedar sueltos: {m.filas.map((f) => `${f.categoria} ${f.serie}`).join(", ")}.</span>}
+        {hijos > 0 && !(m.tipo === TIPOS.montajeAlmacen && !principales.length) && <span>Sus {hijos} activos montados vuelven también a su posición anterior.</span>}
         <span className="muted">El movimiento seguirá en el historial como deshecho (filtro Estado).</span>
       </div>
     </Dialog>
