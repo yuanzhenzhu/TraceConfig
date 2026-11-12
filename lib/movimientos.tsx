@@ -38,6 +38,7 @@ export type Movimiento = {
   anulado?: { fecha: string; por: string };
   grupo?: string; // movimientos seguidos: mismo grupo
   motivo?: string; // fin de vida
+  principal?: { serie: string; categoria: string }; // rotación: el bogie que gira (sus filas son solo los hijos)
   por: string;
 };
 

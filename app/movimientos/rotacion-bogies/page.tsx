@@ -65,7 +65,7 @@ export default function RotacionBogies() {
   const elegir = (s: SeleccionUnidad) => { setSel(s ? { padre: s.padre, quedan: [] } : null); setVista("antes"); };
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.rotacionBogie, fecha: iso, almacenes: [], filas: plan.filas, registros: [{ unidad, km: kmNum }] });
+    const m = mov.registrar({ tipo: TIPOS.rotacionBogie, fecha: iso, almacenes: [], filas: plan.filas, registros: [{ unidad, km: kmNum }], principal: bogie ? { serie: bogie.serie, categoria: bogie.categoria } : undefined });
     setConfirmar(false); setVista("antes"); setSel(null); setIntentado(false);
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };

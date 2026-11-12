@@ -5,18 +5,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Banner, Breadcrumb, Button, EmptyState, Field, Icon, IconButton, Loading, Menu, Tag } from "@/components/ds";
-import { DialogAnular, DialogDetalle, kmDe, resumenActivos, useDonde } from "@/components/movimientos/detalle";
+import { CeldaParticipante, DialogAnular, DialogDetalle, participantes, type Participante } from "@/components/movimientos/detalle";
 import { textoFecha, useMovimientos, type Movimiento } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 
 type Demo = "normal" | "cargando" | "vacio" | "error";
 const POR_PAGINA = [10, 25, 50];
-const VACIO = { desde: "", hasta: "", flota: "", unidad: "", almacen: "", tipo: "", serie: "", estado: "" };
+const VACIO = { desde: "", hasta: "", flota: "", unidad: "", tipo: "", serie: "" };
 
 export default function HistorialMovimientos() {
   const store = useStore();
   const mov = useMovimientos();
-  const donde = useDonde();
   const [demo, setDemo] = useState<Demo>("normal");
   const [f, setF] = useState(VACIO);
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
@@ -34,10 +33,8 @@ export default function HistorialMovimientos() {
       .filter((m) => (!f.desde || m.fecha.slice(0, 10) >= f.desde) && (!f.hasta || m.fecha.slice(0, 10) <= f.hasta))
       .filter((m) => !f.flota || m.registros.some((r) => mov.unidades.find((u) => u.serie === r.unidad)?.flotaId === f.flota))
       .filter((m) => !f.unidad || m.registros.some((r) => r.unidad === f.unidad))
-      .filter((m) => !f.almacen || m.almacenes.includes(f.almacen))
       .filter((m) => !f.tipo || m.tipo === f.tipo)
       .filter((m) => !s || m.filas.some((x) => x.serie.toLowerCase().includes(s)))
-      .filter((m) => !f.estado || m.estado === f.estado)
       .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
   }, [mov.movimientos, mov.unidades, f]);
 
@@ -64,8 +61,9 @@ export default function HistorialMovimientos() {
   const hayFiltros = Object.values(f).some(Boolean);
 
   const exportar = () => {
-    const cab = ["Nº", "Fecha", "Tipo", "Activos", "Dónde", "Km", "Estado"];
-    const datos = lista.map((m) => [m.id, textoFecha(m.fecha), m.tipo, resumenActivos(m), donde(m), kmDe(m), m.estado === "anulado" ? "Anulado" : "Registrado"]);
+    const cab = ["Fecha", "Tipo", "Participante 1", "Participante 2", "Anulado"];
+    const txt = (p?: Participante) => (p ? [`${p.categoria} ${p.serie}`, ...p.hijos.map((h) => `${h.pos}${h.cambio ? ` → ${h.cambio}` : ""} ${h.serie}`)].join(" / ") : "");
+    const datos = lista.map((m) => { const p = participantes(m); return [textoFecha(m.fecha), m.tipo, txt(p[0]), txt(p[1]), m.estado === "anulado" ? "Sí" : ""]; });
     const csv = "﻿" + [cab, ...datos].map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = "historial-de-movimientos.csv"; a.click(); URL.revokeObjectURL(url);
@@ -78,14 +76,10 @@ export default function HistorialMovimientos() {
     const anulado = m.estado === "anulado";
     const tachado = anulado ? { textDecoration: "line-through", color: "var(--lm-sys-on-surface-variant)" } : undefined;
     return (
-      <tr key={m.id} className={enGrupo ? "is-child" : undefined} style={{ cursor: "pointer" }} onClick={() => setDetalle(m.id)}>
-        <td className="emph" style={tachado}>{enGrupo && <Icon name="link" size="m" />} {m.id}</td>
-        <td style={tachado}>{textoFecha(m.fecha)}</td>
-        <td style={tachado}>{m.tipo}</td>
-        <td style={tachado}>{resumenActivos(m)}</td>
-        <td style={tachado}>{donde(m)}</td>
-        <td className="num" style={tachado}>{kmDe(m)}</td>
-        <td>{anulado ? <Tag tone="neutral">Anulado</Tag> : <Tag tone="success">Registrado</Tag>}</td>
+      <tr key={m.id} className={enGrupo ? "is-child" : undefined} style={{ cursor: "pointer", verticalAlign: "top" }} onClick={() => setDetalle(m.id)} title="Ver el detalle">
+        <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)", whiteSpace: "nowrap" }}>{enGrupo && <Icon name="link" size="m" />} {textoFecha(m.fecha)}</td>
+        <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{m.tipo}{anulado && <div><Tag tone="neutral">Anulado</Tag></div>}</td>
+        {[0, 1].map((i) => <td key={i} style={{ verticalAlign: "top" }}><CeldaParticipante p={participantes(m)[i]} tachado={anulado} /></td>)}
         <td className="actions" onClick={(e) => e.stopPropagation()}>
           <Menu label={`Acciones de ${m.id}`} items={[
             { label: "Ver detalle", icon: "visibility", onSelect: () => setDetalle(m.id) },
@@ -137,12 +131,6 @@ export default function HistorialMovimientos() {
                   {unidadesFlota.map((u) => <option key={u.serie} value={u.serie}>{u.serie}</option>)}
                 </select>
               </Field>
-              <Field label="Almacén" htmlFor="f-almacen" style={{ width: 220 }}>
-                <select id="f-almacen" className="lm-select lm-select--dense" value={f.almacen} onChange={(e) => cambiar("almacen", e.target.value)}>
-                  <option value="">Todos</option>
-                  {store.almacenes.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-                </select>
-              </Field>
               <Field label="Tipo de movimiento" htmlFor="f-tipo" style={{ width: 260 }}>
                 <select id="f-tipo" className="lm-select lm-select--dense" value={f.tipo} onChange={(e) => cambiar("tipo", e.target.value)}>
                   <option value="">Todos</option>
@@ -151,13 +139,6 @@ export default function HistorialMovimientos() {
               </Field>
               <Field label="Nº de serie" htmlFor="f-serie" style={{ width: 160 }}>
                 <input id="f-serie" className="lm-input lm-input--dense" placeholder="Por ejemplo: 415875" value={f.serie} onChange={(e) => cambiar("serie", e.target.value)} />
-              </Field>
-              <Field label="Estado" htmlFor="f-estado" style={{ width: 150 }}>
-                <select id="f-estado" className="lm-select lm-select--dense" value={f.estado} onChange={(e) => cambiar("estado", e.target.value)}>
-                  <option value="">Todos</option>
-                  <option value="registrado">Registrado</option>
-                  <option value="anulado">Anulado</option>
-                </select>
               </Field>
               <Button variant="text" icon="restart_alt" disabled={!hayFiltros} onClick={() => { setF(VACIO); setPagina(0); }}>Restablecer</Button>
             </div>
@@ -169,22 +150,19 @@ export default function HistorialMovimientos() {
               <>
                 <table className="lm-table">
                   <thead>
-                    <tr><th>Nº</th><th>Fecha</th><th>Tipo</th><th>Activos</th><th>Dónde</th><th className="num">Km</th><th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
+                    <tr><th>Fecha</th><th>Tipo</th><th>Participante 1</th><th>Participante 2</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
                   </thead>
                   <tbody>
                     {visibles.map((x) => x.tipo === "mov" ? filaMov(x.m, x.enGrupo) : (
                       <tr key={x.id} style={{ cursor: "pointer" }} onClick={() => setAbiertos((a) => ({ ...a, [x.id]: !a[x.id] }))}>
-                        <td className="emph">
+                        <td style={{ verticalAlign: "top", whiteSpace: "nowrap" }}>
                           <span className="row gap-5">
                             <IconButton compact icon={abiertos[x.id] ? "expand_less" : "expand_more"} label={`${abiertos[x.id] ? "Plegar" : "Desplegar"} movimientos seguidos`} />
-                            <Icon name="link" size="m" /> {x.ms.length} seguidos
+                            {textoFecha(x.ms[0].fecha)}
                           </span>
                         </td>
-                        <td>{textoFecha(x.ms[0].fecha)}</td>
-                        <td>{x.ms[0].tipo}</td>
-                        <td>{x.ms.map((m) => m.filas[0]?.serie).join(", ")}</td>
-                        <td>{donde(x.ms[0])}</td>
-                        <td className="num">{kmDe(x.ms[0])}</td>
+                        <td style={{ verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{x.ms[0].tipo}<div className="row gap-5 lm-body-small muted"><Icon name="link" size="m" /> {x.ms.length} movimientos seguidos</div></td>
+                        <td style={{ verticalAlign: "top" }}><div className="stack" style={{ padding: "var(--lm-space-10) 0" }}>{x.ms.map((m) => { const p = participantes(m)[0]; return p ? <span key={m.id} style={{ fontWeight: 500 }}>{p.categoria} {p.serie}</span> : null; })}</div></td>
                         <td />
                         <td />
                       </tr>

@@ -41,6 +41,65 @@ export function resumenActivos(m: Movimiento) {
   return hijos ? `${base} + ${hijos} con su padre` : base;
 }
 
+/* ---------- Participantes de un movimiento (historial) ---------- */
+export type Participante = { categoria: string; serie: string; hijos: { pos: string; serie: string; cambio?: string }[] };
+
+const relHueco = (h: string, base: string) => (h.startsWith(base + " › ") ? h.slice(base.length + 3) : h);
+
+/**
+ * Activos que participan en un movimiento (1 o 2), cada uno con sus activos montados que se mueven con él.
+ * En una rotación, el participante es el bogie y sus hijos llevan el cambio de posición.
+ */
+export function participantes(m: Movimiento): Participante[] {
+  const principales = m.filas.filter((f) => !f.conPadre);
+  const hijos = m.filas.filter((f) => f.conPadre);
+  if (!principales.length) {
+    // Rotación: posición común (el hueco del bogie) a partir de las filas
+    const huecos = hijos.map((f) => (f.antes.tipo === "unidad" ? f.antes.hueco : ""));
+    const partes = huecos[0]?.split(" › ") ?? [];
+    let base = "";
+    for (let i = partes.length; i > 0; i--) { const p = partes.slice(0, i).join(" › "); if (huecos.every((h) => h.startsWith(p + " › "))) { base = p; break; } }
+    return [{
+      categoria: m.principal?.categoria ?? "Bogie", serie: m.principal?.serie ?? base,
+      hijos: hijos.map((f) => ({ serie: f.serie, pos: f.antes.tipo === "unidad" ? relHueco(f.antes.hueco, base) : "", cambio: f.despues.tipo === "unidad" ? relHueco(f.despues.hueco, base) : "" })),
+    }];
+  }
+  // Cada hijo pertenece al principal bajo el que estaba antes (en la unidad, por la ruta; en el almacén, por la cadena de padres)
+  const padreAntes = new Map(m.filas.map((f) => [f.serie, f.antes.tipo === "almacen" ? f.antes.padre : undefined]));
+  const dueno = (f: FilaMov): string | undefined => {
+    if (f.antes.tipo === "unidad") {
+      const p = principales.find((x) => x.antes.tipo === "unidad" && f.antes.tipo === "unidad" && x.antes.unidad === f.antes.unidad && f.antes.hueco.startsWith(x.antes.hueco + " › "));
+      return p?.serie;
+    }
+    let s = padreAntes.get(f.serie);
+    for (let i = 0; s && i < 10; i++) { if (principales.some((p) => p.serie === s)) return s; s = padreAntes.get(s); }
+    return undefined;
+  };
+  return principales.map((p) => ({
+    categoria: p.categoria, serie: p.serie,
+    hijos: hijos.filter((h) => dueno(h) === p.serie).map((h) => ({
+      serie: h.serie,
+      pos: h.antes.tipo === "unidad" && p.antes.tipo === "unidad" ? relHueco(h.antes.hueco, p.antes.hueco) : h.antes.tipo === "almacen" ? h.antes.enHueco ?? "" : "",
+    })),
+  }));
+}
+
+/** Celda de un participante: el activo y, debajo, sus activos montados desplegados. */
+export function CeldaParticipante({ p, tachado }: { p?: Participante; tachado?: boolean }) {
+  if (!p) return <span className="muted">—</span>;
+  const estilo = tachado ? { textDecoration: "line-through" } : undefined;
+  return (
+    <div className="stack" style={{ padding: "var(--lm-space-10) 0", ...estilo }}>
+      <span style={{ fontWeight: 500 }}>{p.categoria} {p.serie}</span>
+      {p.hijos.map((h) => (
+        <span key={h.serie} className="lm-body-small muted" style={{ paddingLeft: "var(--lm-space-15)" }}>
+          {h.cambio !== undefined ? <>{h.pos} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.cambio}</strong></> : h.pos} · {h.serie}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** Dónde ocurrió: unidades y almacenes. */
 export function useDonde() {
   const t = useTextos();
