@@ -15,6 +15,7 @@ import type { SeleccionUnidad } from "./tablas";
 import { SEP } from "@/lib/datos";
 import { art, TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUU, textoFecha, useMovimientos, useTextos, type ActivoM, type PuntoKm } from "@/lib/movimientos";
 import type { Nodo } from "@/lib/model";
+import { useMotivoCambio } from "./motivo";
 import { useStore } from "@/lib/store";
 
 const ROTABLES = ["Eje", "Bogie"];
@@ -52,6 +53,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [intentado, setIntentado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const [descartar, setDescartar] = useState(false);
   const set = <T,>(arr: T[], i: number, v: T) => arr.map((x, j) => (j === i ? v : x));
 
@@ -115,7 +117,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
   const elegir = (i: number) => (s: SeleccionUnidad) => { setSel((x) => set(x, i, s)); setRot((x) => set(x, i, false)); setVista("antes"); };
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({
+    const m = mov.registrar({ motivo: mc.valor,
       tipo: misma ? TIPOS.intercambioMU : TIPOS.intercambioUU, fecha: iso, almacenes: [], filas: drv.aplicar(plan.filas),
       registros: lados.map((i) => ({ unidad: uDe(i), km: kmInfo(i).n })),
     });
@@ -254,6 +256,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
             <Button onClick={registrar}>Registrar</Button>
           </>}>
           <TablaAntesDespues filas={plan.filas} />
+          {mc.campo}
         </Dialog>
       )}
       {descartar && (

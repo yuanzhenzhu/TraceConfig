@@ -14,6 +14,7 @@ import { AhoraDespues, CabeceraPantalla, SelectorDonde } from "@/components/movi
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
 import { SEP } from "@/lib/datos";
+import { useMotivoCambio } from "@/components/movimientos/motivo";
 import { art, TIPOS, descendientes, type ActivoM, type FilaMov, formatoKm, planDesmontajeAlmacen, planDesmontajeUnidad, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
 
 type Modo = "unidad" | "almacen";
@@ -39,6 +40,7 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
   const [busca, setBusca] = useState("");
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const cab = useCabecera({ conUnidad: true, conAlmacen: true, etiquetaAlmacen: "Almacén de destino", onCambio: () => { setSel(null); setVista("antes"); } });
 
   const A = sel ? mov.activos[sel.padre] : undefined;
@@ -55,7 +57,7 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
 
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.desmontajeUnidad, fecha: cab.iso, almacenes: necesitaAlmacen ? [cab.almacen] : [], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
+    const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.desmontajeUnidad, fecha: cab.iso, almacenes: necesitaAlmacen ? [cab.almacen] : [], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
     setConfirmar(false); setSel(null); setBaja(false); setVista("antes"); drv.reset();
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
@@ -119,6 +121,7 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
           message={`${textoFecha(cab.iso)} · Unidad ${cab.unidad} (${t.flotaDeUnidad(cab.unidad)}) · ${formatoKm(cab.kmNum)} km${drv.texto ? ` · ${drv.texto}` : ""}${baja ? " · Los activos de baja no se podrán usar en ningún movimiento" : ` · a ${t.nombreAlmacen(cab.almacen)}`}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>{baja ? "Desmontar y dar de baja" : "Registrar"}</Button></>}>
           <TablaAntesDespues filas={plan.filas} />
+          {mc.campo}
         </Dialog>
       )}
     </>
@@ -136,6 +139,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
   const [busca, setBusca] = useState("");
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const cab = useCabecera({ conUnidad: false, conAlmacen: true, onCambio: () => { setPadre(""); setMarcados(new Set()); setVista("antes"); } });
 
   const posDe = (a: ActivoM) => (a.lugar.tipo === "almacen" ? a.lugar.enHueco ?? a.categoria : a.categoria);
@@ -161,7 +165,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
   const registrar = () => {
     if (!P || !filas.length) return;
     // Un movimiento por activo desmontado, en orden; en cada uno el participante es el padre con lo que lleva montado en ese momento
-    const ids = filas.map((f) => mov.registrar({ tipo: TIPOS.desmontajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [f], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
+    const ids = filas.map((f) => mov.registrar({ motivo: mc.valor, tipo: TIPOS.desmontajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [f], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
     setConfirmar(false); setPadre(""); setMarcados(new Set()); setVista("antes");
     snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
@@ -210,6 +214,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
           message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · ${art(P.categoria, "del")} ${P.serie}${marcados.size > 1 ? ` · ${marcados.size} activos` : ""}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={filas} />
+          {mc.campo}
         </Dialog>
       )}
     </>

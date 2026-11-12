@@ -17,6 +17,7 @@ import { art,
 } from "@/lib/movimientos";
 import { useStore } from "@/lib/store";
 import { SEP } from "@/lib/datos";
+import { useMotivoCambio } from "@/components/movimientos/motivo";
 import type { Nodo } from "@/lib/model";
 
 // En este intercambio solo se rotan ejes (en el almacén, antes de montarlo)
@@ -43,6 +44,7 @@ export default function IntercambioUnidadAlmacen() {
   const [buscaA, setBuscaA] = useState("");
   const [intentado, setIntentado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const [descartar, setDescartar] = useState(false);
 
   const flotasConUnidades = store.flotas.filter((f) => mov.unidades.some((u) => u.flotaId === f.id));
@@ -132,7 +134,7 @@ export default function IntercambioUnidadAlmacen() {
   };
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({
+    const m = mov.registrar({ motivo: mc.valor,
       tipo: TIPOS.intercambioUA, fecha: iso, almacenes: [almacen], filas: drv.aplicar(plan.filas),
       registros: [{ unidad, km: kmNum }],
     });
@@ -271,6 +273,7 @@ export default function IntercambioUnidadAlmacen() {
             <Button onClick={registrar}>Registrar</Button>
           </>}>
           <ResultadoIntercambio filas={plan.filas} activos={mov.activos} serieUnidad={A!.serie} serieAlmacen={B!.serie} huecos={huecosPos} />
+          {mc.campo}
         </Dialog>
       )}
       {descartar && (

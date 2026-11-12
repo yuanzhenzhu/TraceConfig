@@ -11,6 +11,7 @@ import { useCabecera } from "@/components/movimientos/cabecera";
 import { AhoraDespues, CabeceraPantalla } from "@/components/movimientos/pantalla";
 import { Panel, PanelAlmacen } from "@/components/movimientos/paneles";
 import { art, TIPOS, descendientes, planEnvio, textoFecha, useMovimientos, useTextos, type ActivoM } from "@/lib/movimientos";
+import { useMotivoCambio } from "@/components/movimientos/motivo";
 import { useStore } from "@/lib/store";
 
 export default function EnvioAlmacenes() {
@@ -24,6 +25,7 @@ export default function EnvioAlmacenes() {
   const [busca, setBusca] = useState("");
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const cab = useCabecera({ conUnidad: false, conAlmacen: true, etiquetaAlmacen: "Almacén de origen", onCambio: () => { setSel(""); setVista("antes"); } });
 
   const sueltos = (alm: string, estado: Record<string, ActivoM>) => Object.values(estado)
@@ -42,7 +44,7 @@ export default function EnvioAlmacenes() {
 
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.envio, fecha: cab.iso, almacenes: [cab.almacen, destino], filas: plan.filas, registros: [] });
+    const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.envio, fecha: cab.iso, almacenes: [cab.almacen, destino], filas: plan.filas, registros: [] });
     setConfirmar(false); setSel(""); setVista("antes");
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
@@ -90,6 +92,7 @@ export default function EnvioAlmacenes() {
         <Dialog large title="¿Registrar el envío?" onClose={() => setConfirmar(false)} message={`${textoFecha(cab.iso)} · de ${t.nombreAlmacen(cab.almacen)} a ${t.nombreAlmacen(destino)}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={plan.filas} />
+          {mc.campo}
         </Dialog>
       )}
     </main>

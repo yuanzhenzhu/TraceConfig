@@ -15,6 +15,7 @@ import { useDrivers } from "@/components/movimientos/drivers";
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import { SEP } from "@/lib/datos";
 import { art, TIPOS, descendientes, formatoKm, huecosLibres, planMontajeAlmacen, planMontajeUnidad, posicionesDe, textoFecha, useMovimientos, useTextos, type FilaMov } from "@/lib/movimientos";
+import { useMotivoCambio } from "@/components/movimientos/motivo";
 import { useStore } from "@/lib/store";
 
 type Modo = "unidad" | "almacen";
@@ -39,6 +40,7 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
   const [busca, setBusca] = useState("");
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const [verHuecos, setVerHuecos] = useState<"libres" | "arbol">("libres");
   // Huecos libres de cada unidad, para verlos en los desplegables y en la lista
   const libresDe = useMemo(() => Object.fromEntries(mov.unidades.map((u) => [u.serie, huecosLibres(u.raiz, u.serie, mov.activos)])), [mov.unidades, mov.activos]);
@@ -78,7 +80,7 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
 
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.montajeUnidad, fecha: cab.iso, almacenes: [cab.almacen], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
+    const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.montajeUnidad, fecha: cab.iso, almacenes: [cab.almacen], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
     setConfirmar(false); setHueco(null); setSelA(""); setVista("antes"); drv.reset();
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
@@ -157,6 +159,7 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
           message={`${textoFecha(cab.iso)} · Unidad ${cab.unidad} (${t.flotaDeUnidad(cab.unidad)}) · ${formatoKm(cab.kmNum)} km${drv.texto ? ` · ${drv.texto}` : ""} · desde ${t.nombreAlmacen(cab.almacen)}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={plan.filas} />
+          {mc.campo}
         </Dialog>
       )}
     </>
@@ -175,6 +178,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
   const [busca, setBusca] = useState("");
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const cab = useCabecera({ conUnidad: false, conAlmacen: true, onCambio: () => { setPadre(""); setAsig({}); setVista("antes"); } });
 
   const raices = useMemo(() => store.estructuras.map((e) => e.raiz), [store.estructuras]);
@@ -205,7 +209,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
   const registrar = () => {
     if (!P) return;
     // Un movimiento por activo montado, en orden; en cada uno el participante es el padre con lo que lleva montado en ese momento
-    const ids = filas.map((f) => mov.registrar({ tipo: TIPOS.montajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [{ ...f, conPadre: true }], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
+    const ids = filas.map((f) => mov.registrar({ motivo: mc.valor, tipo: TIPOS.montajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [{ ...f, conPadre: true }], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
     setConfirmar(false); setPadre(""); setAsig({}); setVista("antes");
     snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
@@ -254,6 +258,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
           message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · en ${art(P?.categoria, "el")} ${P?.serie}${elegidas.length > 1 ? ` · ${elegidas.length} activos` : ""}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={filas} />
+          {mc.campo}
         </Dialog>
       )}
     </>

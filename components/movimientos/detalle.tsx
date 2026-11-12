@@ -318,7 +318,7 @@ export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; on
           <span className="muted">· Registrado por {m.por}</span>
           {m.estado === "anulado" && <Tag tone="neutral">Deshecho el {textoFecha(m.anulado!.fecha)} por {m.anulado!.por}</Tag>}
         </div>
-        {m.motivo && <span className="lm-body-medium">Motivo: {m.motivo}</span>}
+        {m.motivo && <span className="lm-body-medium"><span className="muted">{m.tipo === TIPOS.finVida ? "Motivo de baja" : "Motivo de cambio"}:</span> {m.motivo}</span>}
         <div className="row">
           <ButtonToggle label="Ver antes o después del movimiento" value={vista} onChange={setVista}
             options={[{ value: "antes", label: "Antes" }, { value: "despues", label: "Después" }]} />

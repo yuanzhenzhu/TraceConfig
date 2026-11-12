@@ -58,9 +58,9 @@ export default function HistorialMovimientos() {
   const restablecer = () => { setF(VACIO); setBorrador(VACIO_UNIDAD); setAplicado(VACIO_UNIDAD); setPagina(0); };
 
   const exportar = () => {
-    const cab = ["Fecha", "Tipo", "Participante 1", "Participante 2", "Deshecho"];
+    const cab = ["Fecha", "Tipo", "Participante 1", "Participante 2", "Motivo", "Deshecho"];
     const txt = (p?: Participante) => (p ? [`${p.categoria} ${p.serie}`, ...p.hijos.map((h) => `${h.pos}${h.cambio ? ` → ${h.cambio}` : ""} ${h.serie}`)].join(" / ") : "");
-    const datos = lista.map((m) => { const p = participantes(m); return [textoFecha(m.fecha), m.tipo, txt(p[0]), txt(p[1]), m.estado === "anulado" ? "Sí" : ""]; });
+    const datos = lista.map((m) => { const p = participantes(m); return [textoFecha(m.fecha), m.tipo, txt(p[0]), txt(p[1]), m.motivo ?? "", m.estado === "anulado" ? "Sí" : ""]; });
     const csv = "﻿" + [cab, ...datos].map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = "historial-de-movimientos.csv"; a.click(); URL.revokeObjectURL(url);

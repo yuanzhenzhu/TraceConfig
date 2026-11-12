@@ -13,6 +13,7 @@ import { Panel, PanelUnidad } from "@/components/movimientos/paneles";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
 import { SEP } from "@/lib/datos";
 import { TIPOS, ahoraIso, formatoKm, planRotacion, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
+import { useMotivoCambio } from "@/components/movimientos/motivo";
 import { useStore } from "@/lib/store";
 
 export default function RotacionBogies() {
@@ -33,6 +34,7 @@ export default function RotacionBogies() {
   const [vista, setVista] = useState<"antes" | "despues">("antes");
   const [intentado, setIntentado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const mc = useMotivoCambio(confirmar); // motivo de cambio (opcional), en la confirmación
   const [descartar, setDescartar] = useState(false);
 
   const iso = `${fecha}T${hora}`;
@@ -65,7 +67,7 @@ export default function RotacionBogies() {
   const elegir = (s: SeleccionUnidad) => { setSel(s ? { padre: s.padre, quedan: [] } : null); setVista("antes"); };
   const registrar = () => {
     if (!plan) return;
-    const m = mov.registrar({ tipo: TIPOS.rotacionBogie, fecha: iso, almacenes: [], filas: plan.filas, registros: [{ unidad, km: kmNum }], principal: bogie ? { serie: bogie.serie, categoria: bogie.categoria } : undefined });
+    const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.rotacionBogie, fecha: iso, almacenes: [], filas: plan.filas, registros: [{ unidad, km: kmNum }], principal: bogie ? { serie: bogie.serie, categoria: bogie.categoria } : undefined });
     setConfirmar(false); setVista("antes"); setSel(null); setIntentado(false);
     snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
@@ -169,6 +171,7 @@ export default function RotacionBogies() {
             <Button onClick={registrar}>Registrar</Button>
           </>}>
           <TablaAntesDespues filas={plan.filas} />
+          {mc.campo}
         </Dialog>
       )}
       {descartar && (
