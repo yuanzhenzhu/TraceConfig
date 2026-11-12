@@ -64,6 +64,17 @@ export const TIPOS = {
 } as const;
 
 
+/* ---------- Artículos ---------- */
+/** Categorías femeninas: la primera palabra acaba en "a" (Rueda, Reductora, Puerta, Tarjeta Electrónica; no Motor Puerta). */
+export const femenina = (categoria?: string) => /a$/i.test((categoria ?? "").split(" ")[0]);
+/** "el eje" / "la rueda" (o "del eje" / "de la rueda", "al eje" / "a la rueda", "un eje" / "una rueda"). */
+export function art(categoria: string | undefined, forma: "el" | "del" | "al" | "un" = "el", mayuscula = false) {
+  const f = femenina(categoria);
+  const a = { el: f ? "la" : "el", del: f ? "de la" : "del", al: f ? "a la" : "al", un: f ? "una" : "un" }[forma];
+  const t = `${a} ${(categoria ?? "").replace(/^./, (c) => c.toLowerCase())}`;
+  return mayuscula ? t.replace(/^./, (c) => c.toUpperCase()) : t;
+}
+
 /* ---------- Fechas ---------- */
 const p2 = (n: number) => String(n).padStart(2, "0");
 /** "20-08-2026 12:09" o "20-08-2026" -> "2026-08-20T12:09". */
@@ -136,7 +147,7 @@ export type PlanIntercambio = { filas: FilaMov[]; error?: string };
 export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad: string, serieAlmacen: string, quedan: Set<string>, rotar: boolean): PlanIntercambio {
   const A = activos[serieUnidad], B = activos[serieAlmacen];
   if (!A || !B || A.lugar.tipo !== "unidad" || B.lugar.tipo !== "almacen") return { filas: [] };
-  if (A.categoria !== B.categoria) return { filas: [], error: `Categorías diferentes: no se puede intercambiar un ${A.categoria} con un ${B.categoria}` };
+  if (A.categoria !== B.categoria) return { filas: [], error: `Categorías diferentes: no se puede intercambiar ${art(A.categoria, "un")} con ${art(B.categoria, "un")}` };
   const dA = descendientes(activos, A), dB = descendientes(activos, B);
   const nuevo: Record<string, Lugar> = {};
   const lA = A.lugar, lB = B.lugar;
@@ -150,7 +161,7 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
   // Lo que se queda ocupa sus posiciones: el que entra no puede traer activos en ellas
   const posQuedan = new Set(dA.filter((d) => quedan.has(d.a.serie)).map((d) => d.rel));
   const choque = dB.find((d) => posQuedan.has(relB[d.a.serie]));
-  if (choque) return { filas: [], error: `El ${B.categoria.replace(/^./, (c) => c.toLowerCase())} ${B.serie} trae un activo en ${relB[choque.a.serie]}, que se queda ocupado en la unidad: elige otro o marca también ese activo` };
+  if (choque) return { filas: [], error: `${art(B.categoria, "el", true)} ${B.serie} trae un activo en ${relB[choque.a.serie]}, que se queda ocupado en la unidad: elige otro o marca también ese activo` };
   // Lo que se queda necesita a su padre: si su padre sale, el que entra tiene que traer otro en esa posición
   const posEntran = new Set(dB.map((d) => relB[d.a.serie]));
   const huerfano = dA.find((d) => {
@@ -160,7 +171,7 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
   });
   if (huerfano) {
     const p = padreRuta(huerfano.rel);
-    return { filas: [], error: `${huerfano.a.categoria} ${huerfano.a.serie} (${huerfano.rel}) se quedaría sin su padre: ${p} sale y el ${B.categoria.replace(/^./, (c) => c.toLowerCase())} ${B.serie} no trae otro en esa posición. Marca también lo que cuelga de ${p} o desmarca ${p}` };
+    return { filas: [], error: `${huerfano.a.categoria} ${huerfano.a.serie} (${huerfano.rel}) se quedaría sin su padre: ${p} sale y ${art(B.categoria, "el")} ${B.serie} no trae otro en esa posición. Marca también lo que cuelga de ${p} o desmarca ${p}` };
   }
 
   // A y los que viajan pasan al sitio de B en el almacén; B y sus hijos, al hueco de A.
@@ -189,7 +200,7 @@ export function planIntercambioUU(activos: Record<string, ActivoM>, l1: Lado, l2
   const A = activos[l1.serie], B = activos[l2.serie];
   if (!A || !B || A.lugar.tipo !== "unidad" || B.lugar.tipo !== "unidad") return { filas: [] };
   if (A.serie === B.serie) return { filas: [], error: "Elige dos activos distintos" };
-  if (A.categoria !== B.categoria) return { filas: [], error: `Categorías diferentes: no se puede intercambiar un ${A.categoria} con un ${B.categoria}` };
+  if (A.categoria !== B.categoria) return { filas: [], error: `Categorías diferentes: no se puede intercambiar ${art(A.categoria, "un")} con ${art(B.categoria, "un")}` };
   const hA = A.lugar.hueco, hB = B.lugar.hueco, uA = A.lugar.unidad, uB = B.lugar.unidad;
   if (uA === uB && (hA.startsWith(hB + SEP) || hB.startsWith(hA + SEP))) return { filas: [], error: "No se puede intercambiar un activo con otro que lleva montado o en el que está montado" };
 
@@ -205,9 +216,9 @@ export function planIntercambioUU(activos: Record<string, ActivoM>, l1: Lado, l2
   // Lo que llega a una posición no puede chocar con lo que se queda allí, ni dejar a nadie sin su padre
   const comprobar = (llega: typeof dA, destino: typeof dA, quien: ActivoM, donde: ActivoM) => {
     const choque = llega.viajan.find((e) => destino.posQuedan.has(llega.nueva[e.a.serie]));
-    if (choque) return `El ${quien.categoria.replace(/^./, (c) => c.toLowerCase())} ${quien.serie} trae un activo en ${llega.nueva[choque.a.serie]}, que se queda ocupado junto al ${donde.categoria.replace(/^./, (c) => c.toLowerCase())} ${donde.serie}`;
+    if (choque) return `${art(quien.categoria, "el", true)} ${quien.serie} trae un activo en ${llega.nueva[choque.a.serie]}, que se queda ocupado junto ${art(donde.categoria, "al")} ${donde.serie}`;
     const huerf = destino.d.find((e) => destino.posQuedan.has(e.rel) && padreRuta(e.rel) && !destino.posQuedan.has(padreRuta(e.rel)) && !llega.posLlegan.has(padreRuta(e.rel)));
-    if (huerf) return `${huerf.a.categoria} ${huerf.a.serie} (${huerf.rel}) se quedaría sin su padre: ${padreRuta(huerf.rel)} sale y el ${quien.categoria.replace(/^./, (c) => c.toLowerCase())} ${quien.serie} no trae otro en esa posición`;
+    if (huerf) return `${huerf.a.categoria} ${huerf.a.serie} (${huerf.rel}) se quedaría sin su padre: ${padreRuta(huerf.rel)} sale y ${art(quien.categoria, "el")} ${quien.serie} no trae otro en esa posición`;
     return "";
   };
   const e1 = comprobar(dB, dA, B, A) || comprobar(dA, dB, A, B);
@@ -252,7 +263,7 @@ export function planMontajeUnidad(activos: Record<string, ActivoM>, unidad: stri
   if (!B || B.lugar.tipo !== "almacen") return { filas: [] };
   const d = descendientes(activos, B);
   const fuera = d.find((e) => !huecos.has(`${hueco}${SEP}${e.rel}`));
-  if (fuera) return { filas: [], error: `El ${B.categoria.replace(/^./, (c) => c.toLowerCase())} ${B.serie} trae ${fuera.a.categoria.replace(/^./, (c) => c.toLowerCase())} ${fuera.a.serie} en ${fuera.rel}, una posición que no existe en la estructura de la unidad` };
+  if (fuera) return { filas: [], error: `${art(B.categoria, "el", true)} ${B.serie} trae ${fuera.a.categoria.replace(/^./, (c) => c.toLowerCase())} ${fuera.a.serie} en ${fuera.rel}, una posición que no existe en la estructura de la unidad` };
   return { filas: [fila(B, { tipo: "unidad", unidad, hueco }, false), ...d.map((e) => fila(e.a, { tipo: "unidad", unidad, hueco: `${hueco}${SEP}${e.rel}` }, true))] };
 }
 
@@ -278,7 +289,7 @@ export function planDesmontajeUnidad(activos: Record<string, ActivoM>, serie: st
 export function planMontajeAlmacen(activos: Record<string, ActivoM>, padre: string, posicion: string, serie: string): PlanIntercambio {
   const P = activos[padre], H = activos[serie];
   if (!P || !H || P.lugar.tipo !== "almacen" || H.lugar.tipo !== "almacen") return { filas: [] };
-  if (H.lugar.padre) return { filas: [], error: `El ${H.categoria.replace(/^./, (c) => c.toLowerCase())} ${H.serie} ya está montado en ${H.lugar.padre}` };
+  if (H.lugar.padre) return { filas: [], error: `${art(H.categoria, "el", true)} ${H.serie} ya está montado en ${H.lugar.padre}` };
   return { filas: [fila(H, { tipo: "almacen", almacenId: P.lugar.almacenId, padre: P.serie, enHueco: posicion }, false)] };
 }
 
@@ -301,7 +312,7 @@ export function posicionesDe(raices: Nodo[], categoria: string): { nombre: strin
 export function planEnvio(activos: Record<string, ActivoM>, serie: string, destino: string): PlanIntercambio {
   const A = activos[serie];
   if (!A || A.lugar.tipo !== "almacen") return { filas: [] };
-  if (A.lugar.padre) return { filas: [], error: `El ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie} está montado en ${A.lugar.padre}: desmóntalo antes` };
+  if (A.lugar.padre) return { filas: [], error: `${art(A.categoria, "el", true)} ${A.serie} está montado en ${A.lugar.padre}: desmóntalo antes` };
   if (A.lugar.almacenId === destino) return { filas: [], error: "Elige un almacén de destino distinto del de origen" };
   const d = descendientes(activos, A);
   return { filas: [fila(A, { tipo: "almacen", almacenId: destino }, false), ...d.map((e) => fila(e.a, { ...(e.a.lugar as Extract<Lugar, { tipo: "almacen" }>), almacenId: destino }, true))] };
@@ -311,7 +322,7 @@ export function planEnvio(activos: Record<string, ActivoM>, serie: string, desti
 export function planBaja(activos: Record<string, ActivoM>, serie: string, incluirHijos: boolean): PlanIntercambio {
   const A = activos[serie];
   if (!A || A.lugar.tipo !== "almacen") return { filas: [] };
-  if (A.lugar.padre) return { filas: [], error: `El ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie} está montado en ${A.lugar.padre}: desmóntalo antes` };
+  if (A.lugar.padre) return { filas: [], error: `${art(A.categoria, "el", true)} ${A.serie} está montado en ${A.lugar.padre}: desmóntalo antes` };
   const alm = A.lugar.almacenId;
   const d = descendientes(activos, A);
   return { filas: [fila(A, { tipo: "baja" }, false), ...d.map((e) => fila(e.a, incluirHijos ? { tipo: "baja" }

@@ -14,7 +14,7 @@ import { AhoraDespues, CabeceraPantalla, SelectorDonde } from "@/components/movi
 import { Panel, PanelAlmacen, PanelUnidad } from "@/components/movimientos/paneles";
 import type { SeleccionUnidad } from "@/components/movimientos/tablas";
 import { SEP } from "@/lib/datos";
-import { TIPOS, descendientes, type ActivoM, type FilaMov, formatoKm, planDesmontajeAlmacen, planDesmontajeUnidad, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
+import { art, TIPOS, descendientes, type ActivoM, type FilaMov, formatoKm, planDesmontajeAlmacen, planDesmontajeUnidad, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
 
 type Modo = "unidad" | "almacen";
 
@@ -84,7 +84,7 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
               </>
             )}
           </Panel>
-          <Panel titulo="Destino" subtitulo={A ? `A dónde va el ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie}` : "Marca antes el activo"}>
+          <Panel titulo="Destino" subtitulo={A ? `A dónde va ${art(A.categoria, "el")} ${A.serie}` : "Marca antes el activo"}>
             {!A ? <EmptyState icon="arrow_left" title="Marca el activo" text="Después elige a dónde va" /> : (
               <div className="stack gap-15" style={{ padding: "var(--lm-space-15)" }}>
                 <label className="lm-radio row gap-10">
@@ -103,7 +103,7 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
                 )}
                 {vista === "despues" && planOk && (
                   <div className="lm-body-small muted">
-                    {baja ? `El ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie}${hijos.length && hijosBaja ? " y sus activos montados" : ""} quedan De baja.` : `El ${A.categoria.replace(/^./, (c) => c.toLowerCase())} ${A.serie} queda suelto en ${t.nombreAlmacen(cab.almacen)}${hijos.length ? ", con sus activos montados" : ""}.`}
+                    {baja ? `${art(A.categoria, "el", true)} ${A.serie}${hijos.length && hijosBaja ? " y sus activos montados" : ""} quedan De baja.` : `${art(A.categoria, "el", true)} ${A.serie} queda suelto en ${t.nombreAlmacen(cab.almacen)}${hijos.length ? ", con sus activos montados" : ""}.`}
                   </div>
                 )}
                 {necesitaAlmacen && !cab.almacen && <Banner type="attention" title="Elige el almacén de destino arriba" />}
@@ -176,7 +176,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
         <AhoraDespues vista={vista} setVista={setVista} ok={planOk} texto="Elige el padre y al menos un activo para desmontar; después podrás ver cómo queda." />
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
           <Panel titulo={`${cab.almacen ? t.nombreAlmacen(cab.almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" && P ? <>Así queda el <strong>{minus(P.categoria)} {P.serie}</strong> y, sueltos, los activos desmontados</> : P ? <>Padre: <strong>{minus(P.categoria)} {P.serie}</strong></> : "Elige el activo del que se desmonta (con activos montados)"}
+            subtitulo={vista === "despues" && P ? <>Así queda <strong>{art(P.categoria)} {P.serie}</strong> y, sueltos, los activos desmontados</> : P ? <>Padre: <strong>{minus(P.categoria)} {P.serie}</strong></> : "Elige el activo del que se desmonta (con activos montados)"}
             accion={cab.almacen && vista === "antes" ? <SearchInput label="Buscar el padre por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
             {!cab.almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indícalo arriba" />
               : vista === "despues" && P ? (
@@ -186,7 +186,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
                 : <PanelAlmacen candidatos={padres} activos={mov.activos} sel={padre} onSel={(s) => { setPadre(s); setMarcados(new Set()); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420}
                     detalle={(a) => `Montados: ${hijosDe(a.serie).map(posDe).join(", ")}`} />}
           </Panel>
-          <Panel titulo="Activos que se desmontan" subtitulo={P ? `Marca los que se desmontan del ${minus(P.categoria)} ${P.serie}; si llevan activos montados, salen con ellos.` : "Elige antes el padre"}>
+          <Panel titulo="Activos que se desmontan" subtitulo={P ? `Marca los que se desmontan ${art(P.categoria, "del")} ${P.serie}; si llevan activos montados, salen con ellos.` : "Elige antes el padre"}>
             {!P ? <EmptyState icon="arrow_left" title="Elige el padre" text="Aquí aparecerán sus activos montados" /> : (
               <div className="stack gap-10" style={{ padding: "var(--lm-space-15)" }}>
                 {hijos.map((h) => {
@@ -207,7 +207,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
       </div>
       {confirmar && P && (
         <Dialog large title="¿Registrar el desmontaje?" onClose={() => setConfirmar(false)}
-          message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · del ${minus(P.categoria)} ${P.serie}${marcados.size > 1 ? ` · ${marcados.size} activos` : ""}`}
+          message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · ${art(P.categoria, "del")} ${P.serie}${marcados.size > 1 ? ` · ${marcados.size} activos` : ""}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Registrar</Button></>}>
           <TablaAntesDespues filas={filas} />
         </Dialog>

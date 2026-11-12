@@ -13,7 +13,7 @@ import { useDrivers } from "./drivers";
 import { Panel, PanelUnidad } from "./paneles";
 import type { SeleccionUnidad } from "./tablas";
 import { SEP } from "@/lib/datos";
-import { TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUU, textoFecha, useMovimientos, useTextos, type ActivoM, type PuntoKm } from "@/lib/movimientos";
+import { art, TIPOS, ahoraIso, descendientes, formatoKm, planIntercambioUU, textoFecha, useMovimientos, useTextos, type ActivoM, type PuntoKm } from "@/lib/movimientos";
 import type { Nodo } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -129,9 +129,9 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
     const a = act(i);
     if (vista === "despues") {
       const otro = act(1 - i);
-      return otro && a?.lugar.tipo === "unidad" ? <>En {a.lugar.hueco} queda el <strong>{otro.categoria.replace(/^./, (c) => c.toLowerCase())} {otro.serie}</strong>{vac[i].size ? ` · ${vac[i].size} huecos quedan vacíos` : ""}</> : "";
+      return otro && a?.lugar.tipo === "unidad" ? <>En {a.lugar.hueco} queda <strong>{art(otro.categoria)} {otro.serie}</strong>{vac[i].size ? ` · ${vac[i].size} huecos quedan vacíos` : ""}</> : "";
     }
-    if (!a) return i === 1 && A ? `Marca un ${A.categoria.replace(/^./, (c) => c.toLowerCase())} para intercambiar` : "Marca el activo; sus activos montados se marcan con él";
+    if (!a) return i === 1 && A ? `Marca ${art(A.categoria, "un")} para intercambiar` : "Marca el activo; sus activos montados se marcan con él";
     const d = descendientes(mov.activos, a), n = d.filter((x) => !sel[i]!.quedan.includes(x.a.serie)).length;
     return <>Marcado: <strong>{a.categoria.replace(/^./, (c) => c.toLowerCase())} {a.serie}</strong>{d.length ? (n === d.length ? ` con sus ${d.length} activos montados` : n ? ` con ${n} de sus ${d.length} activos montados` : " sin sus activos montados") : ""}{rot[i] && rotable(i) ? " · rotado 180°" : ""}</>;
   };
@@ -148,7 +148,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
               <PanelUnidad key={`${i}-${u}`} raiz={inf.raiz} unidad={u} activos={mov.activos} sel={sel[i]} onSel={elegir(i)} busca={busca[i]} elegible={elegible(i)} alto={400} />
               {rotable(i) && (
                 <div className="row gap-10" style={{ padding: "var(--lm-space-10) var(--lm-space-15)", borderTop: "1px solid var(--lm-sys-outline-variant)" }}>
-                  <span className="grow lm-body-small muted">Rotar el {act(i)!.categoria.replace(/^./, (c) => c.toLowerCase())} {act(i)!.serie} (180°): sus activos montados cambian de lado</span>
+                  <span className="grow lm-body-small muted">Rotar {art(act(i)!.categoria, "el")} {act(i)!.serie} (180°): sus activos montados cambian de lado</span>
                   <Button variant={rot[i] ? "tonal" : "text"} small onClick={() => { setRot((x) => set(x, i, !x[i])); }}>{rot[i] ? "Deshacer rotación" : "Rotar"}</Button>
                 </div>
               )}

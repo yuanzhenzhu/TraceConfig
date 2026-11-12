@@ -6,7 +6,7 @@
 
 import { Banner, Tag } from "@/components/ds";
 import { SEP } from "@/lib/datos";
-import { descendientes, useTextos, type ActivoM, type FilaMov } from "@/lib/movimientos";
+import { art, descendientes, useTextos, type ActivoM, type FilaMov } from "@/lib/movimientos";
 
 type Item = { pos: string; categoria: string; serie: string; cambia?: string; vacio?: "antes" | "nuevo" };
 
@@ -110,7 +110,7 @@ export function ResultadoIntercambio({ filas, activos, serieUnidad, serieAlmacen
     </div>
     {nuevosVacios.length > 0 && (
       <Banner type="attention" title={`${nuevosVacios.length === 1 ? "Queda 1 hueco vacío" : `Quedan ${nuevosVacios.length} huecos vacíos`} en la unidad ${unidad}`}>
-        {nuevosVacios.map((p) => `${hueco} › ${p}`).join(" · ")}. El {B.categoria.replace(/^./, (c) => c.toLowerCase())} {B.serie} no tiene activos para esas posiciones; podrás montarlos después con Montaje.
+        {nuevosVacios.map((p) => `${hueco} › ${p}`).join(" · ")}. {art(B.categoria, "el", true)} {B.serie} no tiene activos para esas posiciones; podrás montarlos después con Montaje.
       </Banner>
     )}
     </div>

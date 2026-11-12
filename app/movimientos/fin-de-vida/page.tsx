@@ -12,7 +12,7 @@ import { useCabecera } from "@/components/movimientos/cabecera";
 import { CabeceraPantalla } from "@/components/movimientos/pantalla";
 import { Panel, PanelAlmacen } from "@/components/movimientos/paneles";
 import { textoDriver } from "@/components/movimientos/tablas";
-import { TIPOS, descendientes, planBaja, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
+import { art, TIPOS, descendientes, planBaja, textoFecha, useMovimientos, useTextos } from "@/lib/movimientos";
 
 type Pestana = "dar" | "lista";
 
@@ -96,7 +96,7 @@ function DarDeBaja({ tabs, onHecho }: { tabs: React.ReactNode; onHecho: () => vo
         {plan?.error && <Banner type="error" title={plan.error} />}
       </div>
       {confirmar && plan && (
-        <Dialog large title={`¿Dar de baja el ${A?.categoria.replace(/^./, (c) => c.toLowerCase())} ${A?.serie}?`} onClose={() => setConfirmar(false)}
+        <Dialog large title={`¿Dar de baja ${art(A?.categoria, "el")} ${A?.serie}?`} onClose={() => setConfirmar(false)}
           message={`${textoFecha(cab.iso)} · ${t.nombreAlmacen(cab.almacen)} · No se podrá usar en ningún movimiento${motivo.trim() ? ` · Motivo: ${motivo.trim()}` : ""}`}
           footer={<><Button variant="outlined" onClick={() => setConfirmar(false)}>Cancelar</Button><Button onClick={registrar}>Dar de baja</Button></>}>
           <TablaAntesDespues filas={plan.filas} />

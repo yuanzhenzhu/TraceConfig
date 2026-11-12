@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { Button, ButtonToggle, Dialog, Icon, Tag, useSnackbar } from "@/components/ds";
 import { SEP } from "@/lib/datos";
-import { TIPOS, formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Lugar, type Movimiento } from "@/lib/movimientos";
+import { art, TIPOS, formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Lugar, type Movimiento } from "@/lib/movimientos";
 
 /** Tabla ACTIVO · CATEGORÍA · ANTES · DESPUÉS. */
 export function TablaAntesDespues({ filas }: { filas: FilaMov[] }) {
@@ -363,7 +363,7 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
         <Button onClick={() => { mov.anular(m.id); onClose(); snack(`Movimiento ${m.id} deshecho`); }}>Deshacer movimiento</Button>
       </>}>
       <div className="stack gap-10">
-        {principales.map((f) => <span key={f.serie}>El {f.categoria.replace(/^./, (c) => c.toLowerCase())} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}
+        {principales.map((f) => <span key={f.serie}>{art(f.categoria, "el", true)} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}
         {!principales.length && m.principal && (m.tipo === TIPOS.montajeAlmacen || m.tipo === TIPOS.desmontajeAlmacen) && <span>{m.tipo === TIPOS.montajeAlmacen ? "Se desmontan del" : "Se vuelven a montar en el"} {m.principal.categoria.replace(/^./, (c) => c.toLowerCase())} {m.principal.serie}{m.tipo === TIPOS.montajeAlmacen ? " y vuelven a quedar sueltos" : ", en su posición anterior"}: {m.filas.map((f) => `${f.categoria} ${f.serie}`).join(", ")}.</span>}
         {hijos > 0 && !(m.principal && (m.tipo === TIPOS.montajeAlmacen || m.tipo === TIPOS.desmontajeAlmacen) && !principales.length) && <span>Sus {hijos} activos montados vuelven también a su posición anterior.</span>}
         <span className="muted">El movimiento seguirá en el historial como deshecho (filtro Estado).</span>
