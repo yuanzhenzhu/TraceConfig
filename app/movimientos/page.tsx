@@ -23,6 +23,8 @@ export default function HistorialMovimientos() {
   const [borrador, setBorrador] = useState(VACIO_UNIDAD);
   const [aplicado, setAplicado] = useState(VACIO_UNIDAD);
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
+  // Activos montados de cada movimiento: plegados por defecto para que la tabla quede limpia
+  const [hijosAbiertos, setHijosAbiertos] = useState<Record<string, boolean>>({});
   const [detalle, setDetalle] = useState<string | null>(null);
   const [anular, setAnular] = useState<string | null>(null);
   const [pagina, setPagina] = useState(0);
@@ -88,7 +90,10 @@ export default function HistorialMovimientos() {
       <tr key={m.id} className={enGrupo ? "is-child" : undefined} style={{ cursor: "pointer", verticalAlign: "top" }} onClick={() => setDetalle(m.id)} title="Ver el detalle">
         <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)", whiteSpace: "nowrap" }}>{enGrupo && <Icon name="link" size="m" />} {textoFecha(m.fecha)}</td>
         <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{m.tipo}{anulado && <div><Tag tone="neutral">Anulado</Tag></div>}</td>
-        {[0, 1].map((i) => <td key={i} style={{ verticalAlign: "top" }}><CeldaParticipante p={participantes(m)[i]} tachado={anulado} /></td>)}
+        {[0, 1].map((i) => <td key={i} style={{ verticalAlign: "top" }}>
+          <CeldaParticipante p={participantes(m)[i]} tachado={anulado} abierto={hijosAbiertos[m.id]}
+            onToggle={() => setHijosAbiertos((a) => ({ ...a, [m.id]: !a[m.id] }))} />
+        </td>)}
         <td className="actions" onClick={(e) => e.stopPropagation()}>
           <Menu label={`Acciones de ${m.id}`} items={[
             { label: "Ver detalle", icon: "visibility", onSelect: () => setDetalle(m.id) },

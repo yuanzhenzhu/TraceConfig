@@ -86,14 +86,24 @@ export function participantes(m: Movimiento): Participante[] {
   }));
 }
 
-/** Celda de un participante: el activo y, debajo, sus activos montados desplegados. */
-export function CeldaParticipante({ p, tachado }: { p?: Participante; tachado?: boolean }) {
+/** Celda de un participante: el activo y, plegados, sus activos montados (se despliegan con el botón). */
+export function CeldaParticipante({ p, tachado, abierto, onToggle }: { p?: Participante; tachado?: boolean; abierto?: boolean; onToggle?: () => void }) {
   if (!p) return <span className="muted">—</span>;
   const estilo = tachado ? { textDecoration: "line-through" } : undefined;
+  const n = p.hijos.length;
+  const cambian = p.hijos.some((h) => h.cambio !== undefined);
   return (
-    <div className="stack" style={{ padding: "var(--lm-space-10) 0", ...estilo }}>
+    <div className="stack" style={{ padding: "var(--lm-space-10) 0", alignItems: "flex-start", ...estilo }}>
       <span style={{ fontWeight: 500 }}>{p.categoria} {p.serie}</span>
-      {p.hijos.map((h) => (
+      {n > 0 && onToggle && (
+        <button type="button" className="lm-btn lm-btn--text lm-btn--small" aria-expanded={!!abierto}
+          style={{ marginLeft: "calc(-1 * var(--lm-space-10))" }}
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+          <Icon name={abierto ? "expand_less" : "expand_more"} />
+          {cambian ? `${n} ${n === 1 ? "cambia" : "cambian"} de posición` : `${n} ${n === 1 ? "activo montado" : "activos montados"}`}
+        </button>
+      )}
+      {(abierto || !onToggle) && p.hijos.map((h) => (
         <span key={h.serie} className="lm-body-small muted" style={{ paddingLeft: "var(--lm-space-15)" }}>
           {h.cambio !== undefined ? <>{h.pos} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.cambio}</strong></> : h.pos} · {h.serie}
         </span>
