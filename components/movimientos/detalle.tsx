@@ -2,8 +2,10 @@
 
 // Piezas comunes de Movimientos: tabla Antes → Después, resumen de un movimiento, detalle y anular (HU-M00 §1, HU-M01, HU-M02).
 
-import { Button, Dialog, Icon, Tag, useSnackbar } from "@/components/ds";
-import { formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Movimiento } from "@/lib/movimientos";
+import { useState } from "react";
+import { Button, ButtonToggle, Dialog, Icon, Tag, useSnackbar } from "@/components/ds";
+import { SEP } from "@/lib/datos";
+import { formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Lugar, type Movimiento } from "@/lib/movimientos";
 
 /** Tabla ACTIVO · CATEGORÍA · ANTES · DESPUÉS. */
 export function TablaAntesDespues({ filas }: { filas: FilaMov[] }) {
@@ -108,40 +110,169 @@ export function useDonde() {
 
 export const kmDe = (m: Movimiento) => m.registros.filter((r) => r.km !== null).map((r) => formatoKm(r.km)).join(" · ") || "—";
 
-/** Detalle de un movimiento (igual para todos los tipos). */
+/* ---------- Detalle: Antes | Después de cada sitio ---------- */
+type Sitio = { key: string; titulo: string; sub?: string; lugar: Lugar };
+type ItemSitio = { serie: string; categoria: string; pos: string; nivel: number; nota?: string; antesEn?: string; enPadre?: string; sintetico?: boolean };
+
+const ultimo = (ruta: string) => ruta.split(SEP).pop() ?? ruta;
+/** Posición común (hueco del bogie) de una rotación. */
+function baseRotacion(m: Movimiento) {
+  const huecos = m.filas.map((f) => (f.antes.tipo === "unidad" ? f.antes.hueco : ""));
+  const partes = huecos[0]?.split(SEP) ?? [];
+  for (let i = partes.length - 1; i > 0; i--) { const p = partes.slice(0, i).join(SEP); if (huecos.every((h) => h.startsWith(p + SEP))) return p; }
+  return "";
+}
+
+/** Sitios que intervienen: las posiciones de unidad de los activos principales, los almacenes y De baja. */
+function sitiosDe(m: Movimiento, nombreAlmacen: (id: string) => string): Sitio[] {
+  const out: Sitio[] = [];
+  const principales = m.filas.filter((f) => !f.conPadre);
+  const unidadesSitio: { unidad: string; hueco: string }[] = [];
+  const add = (l: Lugar, esPrincipal: boolean) => {
+    if (l.tipo === "unidad") {
+      if (unidadesSitio.some((u) => u.unidad === l.unidad && (l.hueco === u.hueco || l.hueco.startsWith(u.hueco + SEP)))) return;
+      if (!esPrincipal) return;
+      unidadesSitio.push({ unidad: l.unidad, hueco: l.hueco });
+      out.push({ key: `u|${l.unidad}|${l.hueco}`, titulo: `Unidad ${l.unidad}`, sub: l.hueco, lugar: l });
+    } else if (l.tipo === "almacen") {
+      if (!out.some((s) => s.key === `a|${l.almacenId}`)) out.push({ key: `a|${l.almacenId}`, titulo: nombreAlmacen(l.almacenId), sub: "Almacén", lugar: l });
+    } else if (!out.some((s) => s.key === "baja")) out.push({ key: "baja", titulo: "De baja", sub: "Fin de vida", lugar: l });
+  };
+  if (!principales.length) {
+    const f0 = m.filas[0];
+    if (f0?.antes.tipo === "unidad") add({ tipo: "unidad", unidad: f0.antes.unidad, hueco: baseRotacion(m) }, true);
+  }
+  principales.forEach((f) => add(f.antes, true));
+  principales.forEach((f) => add(f.despues, true));
+  m.filas.forEach((f) => { add(f.antes, false); add(f.despues, false); });
+  return out;
+}
+
+function claveSitio(sitios: Sitio[], l: Lugar) {
+  if (l.tipo === "baja") return "baja";
+  if (l.tipo === "almacen") return `a|${l.almacenId}`;
+  return sitios.find((s) => s.lugar.tipo === "unidad" && s.lugar.unidad === l.unidad && (l.hueco === s.lugar.hueco || l.hueco.startsWith(s.lugar.hueco + SEP)))?.key ?? "";
+}
+
+/** Activos del movimiento que están en un sitio, en la vista Antes o Después, como árbol (padre y sus hijos). */
+function itemsSitio(m: Movimiento, sitios: Sitio[], s: Sitio, vista: "antes" | "despues", corto: (l: Lugar) => string): ItemSitio[] {
+  const otra = vista === "antes" ? "despues" : "antes";
+  const aqui = m.filas.filter((f) => claveSitio(sitios, f[vista]) === s.key);
+  const nota = (f: FilaMov) => {
+    const o = f[otra];
+    if (claveSitio(sitios, o) === s.key) return undefined;
+    if (o.tipo === "baja") return "Se da de baja";
+    return vista === "antes" ? `Pasa a ${corto(o)}` : `Viene de ${corto(o)}`;
+  };
+  if (s.lugar.tipo === "unidad") {
+    const base = s.lugar.hueco;
+    const rel = (h: string) => (h === base ? "" : h.slice(base.length + SEP.length));
+    const items: ItemSitio[] = aqui.map((f) => {
+      const h = (f[vista] as { hueco: string }).hueco, r = rel(h);
+      const a = f.antes;
+      // Posición anterior, si en el Después ha cambiado (rotación o activo girado)
+      const prev = vista === "despues" ? (a.tipo === "unidad" && claveSitio(sitios, a) === s.key ? rel(a.hueco) : a.tipo === "almacen" && f.conPadre ? a.enHueco : undefined) : undefined;
+      const cambia = prev !== undefined && prev !== "" && (claveSitio(sitios, a) === s.key ? prev !== r : prev !== ultimo(r));
+      return { serie: f.serie, categoria: f.categoria, pos: r || ultimo(base), nivel: r ? r.split(SEP).length : 0, nota: nota(f), antesEn: cambia ? prev : undefined };
+    });
+    if (!items.some((i) => i.nivel === 0) && m.principal && items.length) items.push({ serie: m.principal.serie, categoria: m.principal.categoria, pos: ultimo(base), nivel: 0, sintetico: true });
+    // Los hijos solo dicen adónde van si no van con su padre
+    const notaRaiz = items.find((i) => i.nivel === 0)?.nota;
+    items.forEach((i) => { if (i.nivel > 0 && i.nota === notaRaiz) i.nota = undefined; });
+    return items.sort((x, y) => (x.nivel === 0 ? -1 : y.nivel === 0 ? 1 : x.pos.localeCompare(y.pos, "es", { numeric: true })));
+  }
+  if (s.lugar.tipo === "almacen") {
+    const enEste = new Map(aqui.map((f) => [f.serie, f]));
+    const padreDe = (f: FilaMov) => { const l = f[vista]; return l.tipo === "almacen" ? l.padre : undefined; };
+    const out: ItemSitio[] = [];
+    const ir = (f: FilaMov, nivel: number) => {
+      const l = f[vista] as Extract<Lugar, { tipo: "almacen" }>;
+      out.push({ serie: f.serie, categoria: f.categoria, pos: l.enHueco ?? f.categoria, nivel, nota: nivel === 0 ? nota(f) : undefined, enPadre: nivel === 0 ? (l.padre ? `Montado en ${l.padre}${l.enHueco ? ` › ${l.enHueco}` : ""}` : "Suelto") : undefined });
+      aqui.filter((h) => padreDe(h) === f.serie).sort((a, b) => ((a[vista] as { enHueco?: string }).enHueco ?? "").localeCompare((b[vista] as { enHueco?: string }).enHueco ?? "", "es", { numeric: true })).forEach((h) => ir(h, nivel + 1));
+    };
+    aqui.filter((f) => { const p = padreDe(f); return !p || !enEste.has(p); }).forEach((f) => ir(f, 0));
+    return out;
+  }
+  return aqui.map((f) => ({ serie: f.serie, categoria: f.categoria, pos: f.categoria, nivel: f.conPadre ? 1 : 0, nota: f.conPadre ? undefined : nota(f) }));
+}
+
+const caja = {
+  border: "1px solid var(--lm-sys-outline-variant)", borderRadius: "var(--lm-corner-30)",
+  padding: "var(--lm-space-15) var(--lm-space-20)", minWidth: 0,
+};
+
+function CajaSitio({ sitio, items, vista }: { sitio: Sitio; items: ItemSitio[]; vista: "antes" | "despues" }) {
+  return (
+    <div className="stack gap-10" style={caja}>
+      <span className="stack">
+        <span className="lm-title-small">{sitio.titulo}</span>
+        {sitio.sub && <span className="lm-body-small muted">{sitio.sub}</span>}
+      </span>
+      {!items.length ? (
+        <span className="muted">{sitio.lugar.tipo === "unidad" ? "Hueco vacío" : vista === "antes" ? "Aún no estaba aquí" : "Ya no está aquí"}</span>
+      ) : (
+        <div className="stack gap-5">
+          {items.map((i) => i.nivel === 0 ? (
+            <span key={i.serie} className="stack" style={{ marginTop: "var(--lm-space-5)" }}>
+              <span style={{ fontWeight: 500 }}>{i.categoria} {i.serie}</span>
+              {i.enPadre && <span className="lm-body-small muted">{i.enPadre}</span>}
+              {i.nota && <span className="lm-body-small" style={{ color: "var(--lm-sys-primary)" }}>{i.nota}</span>}
+            </span>
+          ) : (
+            <span key={i.serie} className="lm-body-small" style={{ paddingLeft: `calc(var(--lm-space-15) * ${i.nivel})` }}>
+              <span className="muted">{ultimo(i.pos)}</span>{" "}
+              {i.antesEn ? <strong>{i.serie}</strong> : i.serie}
+              {i.antesEn && <span className="muted"> · antes en {i.antesEn}</span>}
+              {i.nota && <span style={{ color: "var(--lm-sys-primary)" }}> · {i.nota}</span>}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Detalle de un movimiento: Antes | Después de cada sitio que interviene (igual para todos los tipos). */
 export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; onClose: () => void; onAnular: (id: string) => void; onVer: (id: string) => void }) {
   const mov = useMovimientos();
   const t = useTextos();
-  const donde = useDonde();
+  const [vista, setVista] = useState<"antes" | "despues">("antes");
   const m = mov.movimientos.find((x) => x.id === id);
   if (!m) return null;
   const post = mov.posteriores(id);
   const seguidos = m.grupo ? mov.movimientos.filter((x) => x.grupo === m.grupo && x.id !== id) : [];
   const motivo = m.estado === "anulado" ? "Ya está anulado" : post.length ? "Tiene movimientos posteriores" : undefined;
+  const sitios = sitiosDe(m, t.nombreAlmacen);
+  const corto = (l: Lugar) => (l.tipo === "unidad" ? `unidad ${l.unidad}` : l.tipo === "almacen" ? t.nombreAlmacen(l.almacenId) : "baja");
   return (
-    <Dialog large title={`Movimiento ${m.id} · ${m.tipo}`} onClose={onClose}
+    <Dialog large title={m.tipo} onClose={onClose}
       footer={<>
         <Button variant="outlined" icon="block" disabled={!!motivo} title={motivo} onClick={() => onAnular(m.id)}>Anular movimiento</Button>
         <Button onClick={onClose}>Cerrar</Button>
       </>}>
       <div className="stack gap-15">
         <div className="row gap-10 wrap lm-body-medium">
-          <span style={{ fontWeight: 500 }}>{textoFecha(m.fecha)}</span>
+          <span style={{ fontWeight: 500 }}>{m.id}</span>
+          <span>· {textoFecha(m.fecha)}</span>
           {m.registros.map((r) => (
-            <span key={r.unidad}>· Unidad {r.unidad} ({t.flotaDeUnidad(r.unidad)}){r.km !== null && ` · ${formatoKm(r.km)} km`}{r.horas != null && ` · ${formatoKm(r.horas)} h`}{r.ciclos != null && ` · ${formatoKm(r.ciclos)} ciclos`}</span>
+            <span key={r.unidad}>· Unidad {r.unidad}{r.km !== null && ` a ${formatoKm(r.km)} km`}{r.horas != null && ` · ${formatoKm(r.horas)} h`}{r.ciclos != null && ` · ${formatoKm(r.ciclos)} ciclos`}</span>
           ))}
-          {m.almacenes.map((a) => <span key={a}>· {t.nombreAlmacen(a)}</span>)}
           <span className="muted">· Registrado por {m.por}</span>
-          {m.estado === "anulado"
-            ? <Tag tone="neutral">Anulado el {textoFecha(m.anulado!.fecha)} por {m.anulado!.por}</Tag>
-            : <Tag tone="success">Registrado</Tag>}
+          {m.estado === "anulado" && <Tag tone="neutral">Anulado el {textoFecha(m.anulado!.fecha)} por {m.anulado!.por}</Tag>}
         </div>
+        {m.motivo && <span className="lm-body-medium">Motivo: {m.motivo}</span>}
         {seguidos.length > 0 && (
           <span className="row gap-5 lm-body-small"><Icon name="link" size="m" /> Seguido de
             {seguidos.map((s) => <Button key={s.id} variant="text" small onClick={() => onVer(s.id)}>{s.id}</Button>)}
           </span>
         )}
-        <TablaAntesDespues filas={m.filas} />
+        <div className="row">
+          <ButtonToggle label="Ver antes o después del movimiento" value={vista} onChange={setVista}
+            options={[{ value: "antes", label: "Antes" }, { value: "despues", label: "Después" }]} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(sitios.length, 3)}, minmax(0, 1fr))`, gap: "var(--lm-space-15)", alignItems: "start" }}>
+          {sitios.map((s) => <CajaSitio key={s.key} sitio={s} vista={vista} items={itemsSitio(m, sitios, s, vista, corto)} />)}
+        </div>
       </div>
     </Dialog>
   );

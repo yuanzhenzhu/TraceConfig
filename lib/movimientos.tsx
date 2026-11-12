@@ -321,7 +321,7 @@ export function planBaja(activos: Record<string, ActivoM>, serie: string, inclui
 /* ---------- Estado inicial ---------- */
 type UnidadInfo = { serie: string; flotaId: string; configId: string; estructuraId: string };
 
-function inicial(activosBase: ReturnType<typeof generarActivos>, unidades: UnidadInfo[]): Estado {
+function inicial(activosBase: ReturnType<typeof generarActivos>, unidades: (UnidadInfo & { raiz?: Nodo })[]): Estado {
   const activos: Record<string, ActivoM> = {};
   activosBase.forEach((a) => {
     activos[a.serie] = {
@@ -356,7 +356,186 @@ function inicial(activosBase: ReturnType<typeof generarActivos>, unidades: Unida
       filas: filas.map((f) => ({ serie: f.serie, categoria: f.categoria, antes: lugarDe(f.origen, f.huecoOrigen), despues: lugarDe(f.destino, f.huecoDestino) })),
     };
   });
-  return { activos, movimientos, km };
+  return ejemplos({ activos, movimientos, km }, unidades);
+}
+
+/* ---------- Registrar un movimiento sobre el estado ---------- */
+type NuevoMov = Omit<Movimiento, "id" | "estado" | "por">;
+function aplicar(s: Estado, m: NuevoMov, por: string = USUARIO): { s: Estado; mov: Movimiento } {
+  const n = Math.max(0, ...s.movimientos.map((x) => Number(x.id.replace(/\D/g, "")) || 0)) + 1;
+  const mov: Movimiento = { ...m, id: `M-${String(n).padStart(4, "0")}`, estado: "registrado", por };
+  const activos = { ...s.activos };
+  m.filas.forEach((f) => { activos[f.serie] = { ...activos[f.serie], lugar: f.despues }; });
+  const km = { ...s.km };
+  m.registros.forEach((r) => { if (r.km !== null) km[r.unidad] = [...(km[r.unidad] ?? []), { fecha: m.fecha, km: r.km, mov: mov.id }]; });
+  return { s: { activos, km, movimientos: [...s.movimientos, mov] }, mov };
+}
+
+/* ---------- Ejemplos de partida: todos los tipos de movimiento, varios con padre e hijos ---------- */
+/**
+ * Se generan aplicando las mismas reglas que las pantallas sobre los activos del Excel, así que cuadran con dónde
+ * está cada activo. Si faltan datos para un ejemplo, se omite.
+ */
+function ejemplos(inicio: Estado, unidades: (UnidadInfo & { raiz?: Nodo })[]): Estado {
+  let s = inicio;
+  const usados = new Set<string>();
+  const lista = () => Object.values(s.activos).sort((a, b) => a.serie.localeCompare(b.serie, "es", { numeric: true }));
+  const hijos = (a: ActivoM) => descendientes(s.activos, a);
+  const libre = (a: ActivoM) => !usados.has(a.serie) && hijos(a).every((d) => !usados.has(d.a.serie));
+  const enUnidad = (cat: string) => lista().filter((a) => a.lugar.tipo === "unidad" && a.categoria === cat && libre(a));
+  const enAlmacen = (cat: string) => lista().filter((a) => a.lugar.tipo === "almacen" && !a.lugar.padre && a.categoria === cat && libre(a));
+  const unidadDe = (a: ActivoM) => (a.lugar.tipo === "unidad" ? a.lugar.unidad : "");
+  const almacenDe = (a: ActivoM) => (a.lugar.tipo === "almacen" ? a.lugar.almacenId : "");
+  const kmEn = (u: string, fecha: string) => {
+    const previo = (s.km[u] ?? []).filter((p) => p.fecha <= fecha).sort((a, b) => a.fecha.localeCompare(b.fecha)).pop()?.km ?? 120000;
+    return previo + 640 + (Number(u.replace(/\D/g, "")) % 7) * 133;
+  };
+  const reg = (m: NuevoMov, por: string = USUARIO) => {
+    if (!m.filas.length) return null;
+    const r = aplicar(s, m, por); s = r.s;
+    m.filas.forEach((f) => usados.add(f.serie));
+    return r.mov;
+  };
+  const intento = (f: () => void) => { try { f(); } catch { /* sin datos para este ejemplo */ } };
+  const huecosDe = (u: string) => {
+    const set = new Set<string>();
+    const raiz = unidades.find((x) => x.serie === u)?.raiz;
+    const ir = (n: Nodo, ruta: string) => { if (ruta) set.add(ruta); n.hijos.forEach((h) => ir(h, ruta ? `${ruta}${SEP}${h.nombre}` : h.nombre)); };
+    if (raiz) ir(raiz, "");
+    return set;
+  };
+  const almacenes = [...new Set(lista().map(almacenDe).filter(Boolean))];
+
+  // 1. Intercambio entre unidad y almacén: un bogie con sus ejes y ruedas
+  intento(() => {
+    const B = enAlmacen("Bogie").find((a) => hijos(a).length >= 2);
+    const A = B && enUnidad("Bogie").find((a) => hijos(a).length >= 2);
+    if (!A || !B) return;
+    const p = planIntercambioUA(s.activos, A.serie, B.serie, new Set(), false);
+    if (p.error) return;
+    const f = "2026-09-02T08:15";
+    reg({ tipo: TIPOS.intercambioUA, fecha: f, almacenes: [almacenDe(B)], filas: p.filas, registros: [{ unidad: unidadDe(A), km: kmEn(unidadDe(A), f) }] });
+  });
+  // 2. Intercambio entre unidad y almacén: un eje con sus ruedas, girado 180° al montarlo
+  intento(() => {
+    const B = enAlmacen("Eje").find((a) => hijos(a).length >= 2);
+    if (!B) return;
+    for (const A of enUnidad("Eje").filter((a) => hijos(a).length >= 2)) {
+      const p = planIntercambioUA(s.activos, A.serie, B.serie, new Set(), true);
+      if (p.error) continue;
+      const f = "2026-09-04T11:40";
+      reg({ tipo: TIPOS.intercambioUA, fecha: f, almacenes: [almacenDe(B)], filas: p.filas, registros: [{ unidad: unidadDe(A), km: kmEn(unidadDe(A), f) }] });
+      return;
+    }
+  });
+  // 3. Intercambio entre unidad y almacén: un activo sin hijos (reductora)
+  intento(() => {
+    const B = enAlmacen("Reductora")[0];
+    const A = enUnidad("Reductora")[0];
+    if (!A || !B) return;
+    const p = planIntercambioUA(s.activos, A.serie, B.serie, new Set(), false);
+    const f = "2026-09-08T09:05";
+    reg({ tipo: TIPOS.intercambioUA, fecha: f, almacenes: [almacenDe(B)], filas: p.filas, registros: [{ unidad: unidadDe(A), km: kmEn(unidadDe(A), f) }] });
+  });
+  // 4. Intercambio entre unidades: un bogie con sus ejes y ruedas entre dos unidades de la misma estructura
+  intento(() => {
+    const bogies = enUnidad("Bogie").filter((a) => hijos(a).length >= 2);
+    const estr = (a: ActivoM) => unidades.find((u) => u.serie === unidadDe(a))?.estructuraId;
+    for (const A of bogies) {
+      const B = bogies.find((b) => unidadDe(b) !== unidadDe(A) && estr(b) === estr(A));
+      if (!B) continue;
+      const p = planIntercambioUU(s.activos, { serie: A.serie, quedan: new Set(), rotar: false }, { serie: B.serie, quedan: new Set(), rotar: false });
+      if (p.error) continue;
+      const f = "2026-09-12T07:30";
+      reg({ tipo: TIPOS.intercambioUU, fecha: f, almacenes: [], filas: p.filas, registros: [unidadDe(A), unidadDe(B)].map((u) => ({ unidad: u, km: kmEn(u, f) })) });
+      return;
+    }
+  });
+  // 5. Intercambio dentro de la unidad: dos ejes con sus ruedas de bogies distintos
+  intento(() => {
+    const ejes = enUnidad("Eje").filter((a) => hijos(a).length >= 2);
+    for (const A of ejes) {
+      const B = ejes.find((b) => b.serie !== A.serie && unidadDe(b) === unidadDe(A) && padreRuta((b.lugar as { hueco: string }).hueco) !== padreRuta((A.lugar as { hueco: string }).hueco));
+      if (!B) continue;
+      const p = planIntercambioUU(s.activos, { serie: A.serie, quedan: new Set(), rotar: false }, { serie: B.serie, quedan: new Set(), rotar: false });
+      if (p.error) continue;
+      const f = "2026-09-15T13:20";
+      reg({ tipo: TIPOS.intercambioMU, fecha: f, almacenes: [], filas: p.filas, registros: [{ unidad: unidadDe(A), km: kmEn(unidadDe(A), f) }] });
+      return;
+    }
+  });
+  // 6. Rotación de bogies
+  intento(() => {
+    for (const B of enUnidad("Bogie")) {
+      const p = planRotacion(s.activos, B.serie);
+      if (p.error) continue;
+      const f = "2026-09-19T10:00";
+      reg({ tipo: TIPOS.rotacionBogie, fecha: f, almacenes: [], filas: p.filas, registros: [{ unidad: unidadDe(B), km: kmEn(unidadDe(B), f) }], principal: { serie: B.serie, categoria: B.categoria } });
+      usados.add(B.serie);
+      return;
+    }
+  });
+  // 7-11. Un eje sale de la unidad, entra otro en su hueco; en el almacén se desmontan sus ruedas, se vuelven a montar y se envía
+  intento(() => {
+    const A = enUnidad("Eje").find((a) => hijos(a).length >= 2);
+    if (!A || !almacenes.length) return;
+    const u = unidadDe(A), hueco = (A.lugar as { hueco: string }).hueco, alm = almacenes[0];
+    let f = "2026-09-23T08:45";
+    const pD = planDesmontajeUnidad(s.activos, A.serie, { almacenId: alm }, false, "");
+    if (pD.error) return;
+    reg({ tipo: TIPOS.desmontajeUnidad, fecha: f, almacenes: [alm], filas: pD.filas, registros: [{ unidad: u, km: kmEn(u, f) }] });
+    // Montaje en unidad: otro eje del almacén (con sus ruedas) en el hueco que ha quedado libre
+    const huecos = huecosDe(u);
+    for (const B of enAlmacen("Eje").sort((x, y) => hijos(y).length - hijos(x).length)) {
+      const p = planMontajeUnidad(s.activos, u, hueco, B.serie, huecos);
+      if (p.error) continue;
+      f = "2026-09-24T16:10";
+      reg({ tipo: TIPOS.montajeUnidad, fecha: f, almacenes: [almacenDe(B)], filas: p.filas, registros: [{ unidad: u, km: kmEn(u, f) }] });
+      break;
+    }
+    // Desmontaje en almacén: las ruedas del eje que ha salido, seguidas
+    const ruedas = hijosDirectos(s.activos, s.activos[A.serie]).filter((h) => h.categoria === "Rueda").slice(0, 2);
+    const posiciones = ruedas.map((r) => (r.lugar.tipo === "almacen" ? r.lugar.enHueco ?? "" : ""));
+    const g1 = "G-ejemplo-1";
+    ruedas.forEach((r) => reg({ tipo: TIPOS.desmontajeAlmacen, fecha: "2026-09-29T09:30", almacenes: [alm], filas: planDesmontajeAlmacen(s.activos, r.serie).filas, registros: [], grupo: ruedas.length > 1 ? g1 : undefined }));
+    // Montaje en almacén: las mismas ruedas, torneadas, vuelven a su posición
+    const g2 = "G-ejemplo-2";
+    ruedas.forEach((r, i) => reg({ tipo: TIPOS.montajeAlmacen, fecha: "2026-10-06T12:00", almacenes: [alm], filas: planMontajeAlmacen(s.activos, A.serie, posiciones[i], r.serie).filas, registros: [], grupo: ruedas.length > 1 ? g2 : undefined }));
+    // Envío entre almacenes: el eje con sus ruedas
+    const destino = almacenes.find((x) => x !== alm);
+    if (destino) reg({ tipo: TIPOS.envio, fecha: "2026-10-09T15:25", almacenes: [alm, destino], filas: planEnvio(s.activos, A.serie, destino).filas, registros: [] });
+  });
+  // 12. Fin de vida: un bogie del almacén con todo lo que lleva montado
+  intento(() => {
+    const A = enAlmacen("Bogie").find((a) => hijos(a).length >= 1) ?? enAlmacen("Eje").find((a) => hijos(a).length >= 1);
+    if (!A) return;
+    reg({ tipo: TIPOS.finVida, fecha: "2026-10-14T10:50", almacenes: [almacenDe(A)], filas: planBaja(s.activos, A.serie, true).filas, registros: [], motivo: "Grietas en el bastidor detectadas en la inspección" });
+  });
+  // 13. Desmontaje de unidad a baja: un eje de baja y sus ruedas al almacén
+  intento(() => {
+    const A = enUnidad("Eje").find((a) => hijos(a).length >= 2);
+    if (!A || !almacenes.length) return;
+    const p = planDesmontajeUnidad(s.activos, A.serie, "baja", false, almacenes[0]);
+    if (p.error) return;
+    const f = "2026-10-20T07:55";
+    reg({ tipo: TIPOS.desmontajeUnidad, fecha: f, almacenes: [almacenes[0]], filas: p.filas, registros: [{ unidad: unidadDe(A), km: kmEn(unidadDe(A), f) }] });
+  });
+  // 14. Un intercambio anulado (sigue en el historial, tachado)
+  intento(() => {
+    const B = enAlmacen("Reductora")[0];
+    const A = enUnidad("Reductora")[0];
+    if (!A || !B) return;
+    const f = "2026-10-27T18:05";
+    const m = reg({ tipo: TIPOS.intercambioUA, fecha: f, almacenes: [almacenDe(B)], filas: planIntercambioUA(s.activos, A.serie, B.serie, new Set(), false).filas, registros: [{ unidad: unidadDe(A), km: kmEn(unidadDe(A), f) }] });
+    if (!m) return;
+    const activos = { ...s.activos };
+    m.filas.forEach((x) => { activos[x.serie] = { ...activos[x.serie], lugar: x.antes }; });
+    s = {
+      activos, km: Object.fromEntries(Object.entries(s.km).map(([u, l]) => [u, l.filter((p) => p.mov !== m.id)])),
+      movimientos: s.movimientos.map((x) => (x.id === m.id ? { ...x, estado: "anulado", anulado: { fecha: "2026-10-28T08:10", por: USUARIO } } : x)),
+    };
+  });
+  return s;
 }
 
 /* ---------- Contexto ---------- */
@@ -383,7 +562,7 @@ export const useMovimientos = () => {
 
 export function MovimientosProvider({ children }: { children: ReactNode }) {
   const store = useStore();
-  const clave = `lm-trace-movimientos-v1-${DATOS.version}`;
+  const clave = `lm-trace-movimientos-v2-${DATOS.version}`;
   const [estado, setEstado] = useState<Estado | null>(null);
 
   const unidades = useMemo(() => {
@@ -413,14 +592,7 @@ export function MovimientosProvider({ children }: { children: ReactNode }) {
   const ref = useRef<Estado | null>(null);
   ref.current = estado;
   const registrar = useCallback((m: Omit<Movimiento, "id" | "estado" | "por">) => {
-    const s = ref.current!;
-    const n = Math.max(0, ...s.movimientos.map((x) => Number(x.id.replace(/\D/g, "")) || 0)) + 1;
-    const nuevo: Movimiento = { ...m, id: `M-${String(n).padStart(4, "0")}`, estado: "registrado", por: USUARIO };
-    const activos = { ...s.activos };
-    m.filas.forEach((f) => { activos[f.serie] = { ...activos[f.serie], lugar: f.despues }; });
-    const km = { ...s.km };
-    m.registros.forEach((r) => { if (r.km !== null) km[r.unidad] = [...(km[r.unidad] ?? []), { fecha: m.fecha, km: r.km, mov: nuevo.id }]; });
-    const siguiente: Estado = { activos, km, movimientos: [...s.movimientos, nuevo] };
+    const { s: siguiente, mov: nuevo } = aplicar(ref.current!, m);
     ref.current = siguiente;
     setEstado(siguiente);
     return nuevo;
