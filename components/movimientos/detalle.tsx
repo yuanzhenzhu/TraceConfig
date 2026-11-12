@@ -102,7 +102,7 @@ export function participantes(m: Movimiento): Participante[] {
 }
 
 /** Celda de un participante: el activo y, plegados, sus activos montados (se despliegan con el botón). */
-export function CeldaParticipante({ p, tachado, abierto, onToggle }: { p?: Participante; tachado?: boolean; abierto?: boolean; onToggle?: () => void }) {
+export function CeldaParticipante({ p, tachado, abierto, onToggle, resaltar }: { p?: Participante; tachado?: boolean; abierto?: boolean; onToggle?: () => void; resaltar?: string }) {
   if (!p) return <span className="muted">—</span>;
   const estilo = tachado ? { textDecoration: "line-through" } : undefined;
   const n = p.hijos.length;
@@ -119,7 +119,7 @@ export function CeldaParticipante({ p, tachado, abierto, onToggle }: { p?: Parti
       )}
       {(abierto || !onToggle) && p.hijos.map((h) => (
         <span key={h.serie} className="lm-body-small muted" style={{ paddingLeft: "var(--lm-space-15)" }}>
-          {h.cambio !== undefined ? <>{h.pos} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.cambio}</strong></> : h.pos} · {h.nota ? <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.serie}</strong> : h.serie}{h.nota && <> · {h.nota}</>}
+          {h.cambio !== undefined ? <>{h.pos} → <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.cambio}</strong></> : h.pos} · {h.nota || (resaltar && h.serie.toLowerCase().includes(resaltar)) ? <strong style={{ color: "var(--lm-sys-on-surface)" }}>{h.serie}</strong> : h.serie}{h.nota && <> · {h.nota}</>}
         </span>
       ))}
     </div>
@@ -237,6 +237,18 @@ const caja = {
 };
 
 function CajaSitio({ sitio, items, vista }: { sitio: Sitio; items: ItemSitio[]; vista: "antes" | "despues" }) {
+  // Los nietos (nivel 2 y más) van plegados bajo su hijo; se despliegan solos si alguno cambia de posición o de sitio
+  const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
+  const grupos: { item: ItemSitio; nietos: ItemSitio[] }[] = [];
+  items.forEach((i) => { if (i.nivel >= 2 && grupos.length && grupos[grupos.length - 1].item.nivel >= 1) grupos[grupos.length - 1].nietos.push(i); else grupos.push({ item: i, nietos: [] }); });
+  const linea = (i: ItemSitio) => (
+    <span key={i.serie} className="lm-body-small" style={{ paddingLeft: `calc(var(--lm-space-15) * ${i.nivel})` }}>
+      <span className="muted">{ultimo(i.pos)}</span>{" "}
+      {i.antesEn ? <strong>{i.serie}</strong> : i.serie}
+      {i.antesEn && <span className="muted"> · antes en {i.antesEn}</span>}
+      {i.nota && <span style={{ color: "var(--lm-sys-primary)" }}> · {i.nota}</span>}
+    </span>
+  );
   return (
     <div className="stack gap-10" style={caja}>
       <span className="stack">
@@ -247,20 +259,29 @@ function CajaSitio({ sitio, items, vista }: { sitio: Sitio; items: ItemSitio[]; 
         <span className="muted">{sitio.lugar.tipo === "unidad" ? "Hueco vacío" : vista === "antes" ? "Aún no estaba aquí" : "Ya no está aquí"}</span>
       ) : (
         <div className="stack gap-5">
-          {items.map((i) => i.nivel === 0 ? (
-            <span key={i.serie} className="stack" style={{ marginTop: "var(--lm-space-5)" }}>
-              <span style={{ fontWeight: 500 }}>{i.categoria} {i.serie}</span>
-              {i.enPadre && <span className="lm-body-small muted">{i.enPadre}</span>}
-              {i.nota && <span className="lm-body-small" style={{ color: "var(--lm-sys-primary)" }}>{i.nota}</span>}
-            </span>
-          ) : (
-            <span key={i.serie} className="lm-body-small" style={{ paddingLeft: `calc(var(--lm-space-15) * ${i.nivel})` }}>
-              <span className="muted">{ultimo(i.pos)}</span>{" "}
-              {i.antesEn ? <strong>{i.serie}</strong> : i.serie}
-              {i.antesEn && <span className="muted"> · antes en {i.antesEn}</span>}
-              {i.nota && <span style={{ color: "var(--lm-sys-primary)" }}> · {i.nota}</span>}
-            </span>
-          ))}
+          {grupos.map(({ item: i, nietos }) => {
+            if (i.nivel === 0) return (
+              <span key={i.serie} className="stack" style={{ marginTop: "var(--lm-space-5)" }}>
+                <span style={{ fontWeight: 500 }}>{i.categoria} {i.serie}</span>
+                {i.enPadre && <span className="lm-body-small muted">{i.enPadre}</span>}
+                {i.nota && <span className="lm-body-small" style={{ color: "var(--lm-sys-primary)" }}>{i.nota}</span>}
+              </span>
+            );
+            if (!nietos.length) return linea(i);
+            const cambian = nietos.some((n) => n.antesEn || n.nota);
+            const abierto = abiertos[i.serie] ?? cambian;
+            return (
+              <span key={i.serie} className="stack gap-5">
+                <span className="row gap-5" style={{ alignItems: "center" }}>
+                  {linea(i)}
+                  <button type="button" className="lm-disclosure" aria-expanded={abierto} onClick={() => setAbiertos((x) => ({ ...x, [i.serie]: !abierto }))}>
+                    <Icon name={abierto ? "expand_less" : "expand_more"} size="m" />{nietos.length} {nietos.length === 1 ? "activo montado" : "activos montados"}
+                  </button>
+                </span>
+                {abierto && nietos.map(linea)}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

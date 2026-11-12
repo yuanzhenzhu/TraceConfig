@@ -12,7 +12,7 @@ import { useStore } from "@/lib/store";
 type Demo = "normal" | "cargando" | "vacio" | "error";
 const POR_PAGINA = [10, 25, 50];
 // Estado: por defecto solo los registrados (los deshechos se ven eligiéndolos)
-const VACIO = { estado: "registrado", fecha: "", categoria: "", tipo: "", busca: "" };
+const VACIO = { estado: "registrado", desde: "", hasta: "", categoria: "", tipo: "", busca: "" };
 const VACIO_UNIDAD = { flota: "", unidad: "" };
 
 export default function HistorialMovimientos() {
@@ -42,7 +42,7 @@ export default function HistorialMovimientos() {
       .filter((m) => !aplicado.flota || unidadesDe(m).some((u) => mov.unidades.find((x) => x.serie === u)?.flotaId === aplicado.flota))
       .filter((m) => !aplicado.unidad || unidadesDe(m).includes(aplicado.unidad))
       .filter((m) => !f.estado || m.estado === f.estado)
-      .filter((m) => !f.fecha || m.fecha.slice(0, 10) === f.fecha)
+      .filter((m) => (!f.desde || m.fecha.slice(0, 10) >= f.desde) && (!f.hasta || m.fecha.slice(0, 10) <= f.hasta))
       .filter((m) => !f.categoria || m.filas.some((x) => x.categoria === f.categoria))
       .filter((m) => !f.tipo || m.tipo === f.tipo)
       .filter((m) => !s || m.principal?.serie.toLowerCase().includes(s) || m.filas.some((x) => x.serie.toLowerCase().includes(s) || x.categoria.toLowerCase().includes(s)) || unidadesDe(m).some((u) => u.includes(s)))
@@ -69,6 +69,9 @@ export default function HistorialMovimientos() {
   const cargando = !mov.listo || demo === "cargando";
   const vacio = demo === "vacio" || (mov.listo && mov.movimientos.length === 0);
 
+  // Si lo buscado es un activo montado (un hijo), la fila se despliega sola y el nº de serie sale resaltado
+  const busca = f.busca.trim().toLowerCase();
+  const buscaEnHijos = (m: Movimiento) => !!busca && participantes(m).some((p) => p.hijos.some((h) => h.serie.toLowerCase().includes(busca)));
   const filaMov = (m: Movimiento) => {
     const anulado = m.estado === "anulado";
     const tachado = anulado ? { textDecoration: "line-through", color: "var(--lm-sys-on-surface-variant)" } : undefined;
@@ -77,8 +80,8 @@ export default function HistorialMovimientos() {
         <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)", whiteSpace: "nowrap" }}>{textoFecha(m.fecha)}</td>
         <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{m.tipo}{anulado && <div><Tag tone="neutral">Deshecho</Tag></div>}</td>
         {[0, 1].map((i) => <td key={i} style={{ verticalAlign: "top" }}>
-          <CeldaParticipante p={participantes(m)[i]} tachado={anulado} abierto={hijosAbiertos[m.id]}
-            onToggle={() => setHijosAbiertos((a) => ({ ...a, [m.id]: !a[m.id] }))} />
+          <CeldaParticipante p={participantes(m)[i]} tachado={anulado} abierto={hijosAbiertos[m.id] ?? buscaEnHijos(m)} resaltar={busca}
+            onToggle={() => setHijosAbiertos((a) => ({ ...a, [m.id]: !(a[m.id] ?? buscaEnHijos(m)) }))} />
         </td>)}
         <td className="actions" onClick={(e) => e.stopPropagation()}>
           <Menu label={`Acciones de ${m.id}`} items={[
@@ -127,8 +130,11 @@ export default function HistorialMovimientos() {
               <option value="">Todos</option>
             </select>
           </FieldOutlined>
-          <FieldOutlined label="Fecha" htmlFor="f-fecha" grow>
-            <input id="f-fecha" type="date" className="lm-input lm-input--dense" value={f.fecha} onChange={(e) => cambiar("fecha", e.target.value)} />
+          <FieldOutlined label="Desde" htmlFor="f-desde" width={150}>
+            <input id="f-desde" type="date" className="lm-input lm-input--dense" value={f.desde} max={f.hasta || undefined} onChange={(e) => cambiar("desde", e.target.value)} />
+          </FieldOutlined>
+          <FieldOutlined label="Hasta" htmlFor="f-hasta" width={150}>
+            <input id="f-hasta" type="date" className="lm-input lm-input--dense" value={f.hasta} min={f.desde || undefined} onChange={(e) => cambiar("hasta", e.target.value)} />
           </FieldOutlined>
           <FieldOutlined label="Categoría" htmlFor="f-categoria" grow>
             <select id="f-categoria" className="lm-select lm-select--dense" value={f.categoria} onChange={(e) => cambiar("categoria", e.target.value)}>
