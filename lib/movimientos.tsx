@@ -562,8 +562,10 @@ export const useMovimientos = () => {
 
 export function MovimientosProvider({ children }: { children: ReactNode }) {
   const store = useStore();
-  const clave = `lm-trace-movimientos-v2-${DATOS.version}`;
+  // Al cambiar los ejemplos se cambia la clave: así nunca se mezclan con lo guardado antes en el navegador
+  const clave = `lm-trace-movimientos-v3-${DATOS.version}`;
   const [estado, setEstado] = useState<Estado | null>(null);
+  const [claveCargada, setClaveCargada] = useState("");
 
   const unidades = useMemo(() => {
     if (!store.listo) return [];
@@ -577,17 +579,18 @@ export function MovimientosProvider({ children }: { children: ReactNode }) {
     [store.flotas, store.configs, store.estructuras, store.almacenes, unidades]);
 
   useEffect(() => {
-    if (!store.listo || estado) return;
+    if (!store.listo || claveCargada === clave) return;
     try {
       const raw = localStorage.getItem(clave);
       setEstado(raw ? JSON.parse(raw) : crear());
     } catch { setEstado(crear()); }
-  }, [store.listo, estado, clave, crear]);
+    setClaveCargada(clave);
+  }, [store.listo, claveCargada, clave, crear]);
 
   useEffect(() => {
-    if (!estado) return;
+    if (!estado || claveCargada !== clave) return;
     try { localStorage.setItem(clave, JSON.stringify(estado)); } catch { /* sin almacenamiento: el prototipo sigue funcionando */ }
-  }, [estado, clave]);
+  }, [estado, clave, claveCargada]);
 
   const ref = useRef<Estado | null>(null);
   ref.current = estado;
