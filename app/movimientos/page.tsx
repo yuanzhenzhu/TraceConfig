@@ -1,7 +1,7 @@
 "use client";
 
 // HU-M01 · Historial de movimientos: pantalla de inicio del módulo. Filtros, tabla, movimientos seguidos agrupados,
-// detalle (Antes → Después) y anular (HU-M02). Los movimientos se empiezan desde el menú lateral.
+// detalle (Antes | Después) y deshacer (HU-M02). Los movimientos se empiezan desde el menú lateral.
 
 import { useEffect, useMemo, useState } from "react";
 import { Banner, Breadcrumb, Button, EmptyState, FieldOutlined, Icon, IconButton, Loading, Menu, Tag } from "@/components/ds";
@@ -11,7 +11,8 @@ import { useStore } from "@/lib/store";
 
 type Demo = "normal" | "cargando" | "vacio" | "error";
 const POR_PAGINA = [10, 25, 50];
-const VACIO = { fecha: "", categoria: "", tipo: "", busca: "" };
+// Estado: por defecto solo los registrados (los deshechos se ven eligiéndolos)
+const VACIO = { estado: "registrado", fecha: "", categoria: "", tipo: "", busca: "" };
 const VACIO_UNIDAD = { flota: "", unidad: "" };
 
 export default function HistorialMovimientos() {
@@ -41,6 +42,7 @@ export default function HistorialMovimientos() {
     return mov.movimientos
       .filter((m) => !aplicado.flota || unidadesDe(m).some((u) => mov.unidades.find((x) => x.serie === u)?.flotaId === aplicado.flota))
       .filter((m) => !aplicado.unidad || unidadesDe(m).includes(aplicado.unidad))
+      .filter((m) => !f.estado || m.estado === f.estado)
       .filter((m) => !f.fecha || m.fecha.slice(0, 10) === f.fecha)
       .filter((m) => !f.categoria || m.filas.some((x) => x.categoria === f.categoria))
       .filter((m) => !f.tipo || m.tipo === f.tipo)
@@ -68,11 +70,11 @@ export default function HistorialMovimientos() {
   const paginas = Math.max(1, Math.ceil(filas.length / porPagina));
   useEffect(() => { if (pagina >= paginas) setPagina(0); }, [pagina, paginas]);
   const visibles = filas.slice(pagina * porPagina, (pagina + 1) * porPagina);
-  const hayFiltros = Object.values(f).some(Boolean) || Object.values(aplicado).some(Boolean);
+  const hayFiltros = (Object.keys(VACIO) as (keyof typeof VACIO)[]).some((k) => f[k] !== VACIO[k]) || Object.values(aplicado).some(Boolean);
   const restablecer = () => { setF(VACIO); setBorrador(VACIO_UNIDAD); setAplicado(VACIO_UNIDAD); setPagina(0); };
 
   const exportar = () => {
-    const cab = ["Fecha", "Tipo", "Participante 1", "Participante 2", "Anulado"];
+    const cab = ["Fecha", "Tipo", "Participante 1", "Participante 2", "Deshecho"];
     const txt = (p?: Participante) => (p ? [`${p.categoria} ${p.serie}`, ...p.hijos.map((h) => `${h.pos}${h.cambio ? ` → ${h.cambio}` : ""} ${h.serie}`)].join(" / ") : "");
     const datos = lista.map((m) => { const p = participantes(m); return [textoFecha(m.fecha), m.tipo, txt(p[0]), txt(p[1]), m.estado === "anulado" ? "Sí" : ""]; });
     const csv = "﻿" + [cab, ...datos].map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\r\n");
@@ -89,7 +91,7 @@ export default function HistorialMovimientos() {
     return (
       <tr key={m.id} className={enGrupo ? "is-child" : undefined} style={{ cursor: "pointer", verticalAlign: "top" }} onClick={() => setDetalle(m.id)} title="Ver el detalle">
         <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)", whiteSpace: "nowrap" }}>{enGrupo && <Icon name="link" size="m" />} {textoFecha(m.fecha)}</td>
-        <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{m.tipo}{anulado && <div><Tag tone="neutral">Anulado</Tag></div>}</td>
+        <td style={{ ...tachado, verticalAlign: "top", paddingTop: "var(--lm-space-10)" }}>{m.tipo}{anulado && <div><Tag tone="neutral">Deshecho</Tag></div>}</td>
         {[0, 1].map((i) => <td key={i} style={{ verticalAlign: "top" }}>
           <CeldaParticipante p={participantes(m)[i]} tachado={anulado} abierto={hijosAbiertos[m.id]}
             onToggle={() => setHijosAbiertos((a) => ({ ...a, [m.id]: !a[m.id] }))} />
@@ -97,7 +99,7 @@ export default function HistorialMovimientos() {
         <td className="actions" onClick={(e) => e.stopPropagation()}>
           <Menu label={`Acciones de ${m.id}`} items={[
             { label: "Ver detalle", icon: "visibility", onSelect: () => setDetalle(m.id) },
-            { label: "Anular", icon: "block", disabled: anulado, onSelect: () => setAnular(m.id) },
+            { label: "Deshacer", icon: "restart_alt", disabled: anulado, onSelect: () => setAnular(m.id) },
           ]} />
         </td>
       </tr>
@@ -134,6 +136,13 @@ export default function HistorialMovimientos() {
       </section>
       <section className="lm-surface" aria-label="Filtros del historial" style={{ marginBottom: "var(--lm-space-15)" }}>
         <div className="lm-filter-bar">
+          <FieldOutlined label="Estado" htmlFor="f-estado" width={150}>
+            <select id="f-estado" className="lm-select lm-select--dense" value={f.estado} onChange={(e) => cambiar("estado", e.target.value)}>
+              <option value="registrado">Registrados</option>
+              <option value="anulado">Deshechos</option>
+              <option value="">Todos</option>
+            </select>
+          </FieldOutlined>
           <FieldOutlined label="Fecha" htmlFor="f-fecha" grow>
             <input id="f-fecha" type="date" className="lm-input lm-input--dense" value={f.fecha} onChange={(e) => cambiar("fecha", e.target.value)} />
           </FieldOutlined>

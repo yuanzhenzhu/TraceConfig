@@ -1,6 +1,6 @@
 "use client";
 
-// Piezas comunes de Movimientos: tabla Antes → Después, resumen de un movimiento, detalle y anular (HU-M00 §1, HU-M01, HU-M02).
+// Piezas comunes de Movimientos: tabla Antes → Después, resumen de un movimiento, detalle y deshacer (HU-M00 §1, HU-M01, HU-M02).
 
 import { useState } from "react";
 import { Button, ButtonToggle, Dialog, Icon, Tag, useSnackbar } from "@/components/ds";
@@ -96,10 +96,9 @@ export function CeldaParticipante({ p, tachado, abierto, onToggle }: { p?: Parti
     <div className="stack" style={{ padding: "var(--lm-space-10) 0", alignItems: "flex-start", ...estilo }}>
       <span style={{ fontWeight: 500 }}>{p.categoria} {p.serie}</span>
       {n > 0 && onToggle && (
-        <button type="button" className="lm-btn lm-btn--text lm-btn--small" aria-expanded={!!abierto}
-          style={{ marginLeft: "calc(-1 * var(--lm-space-10))" }}
+        <button type="button" className="lm-disclosure" aria-expanded={!!abierto}
           onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-          <Icon name={abierto ? "expand_less" : "expand_more"} />
+          <Icon name={abierto ? "expand_less" : "expand_more"} size="m" />
           {cambian ? `${n} ${n === 1 ? "cambia" : "cambian"} de posición` : `${n} ${n === 1 ? "activo montado" : "activos montados"}`}
         </button>
       )}
@@ -251,13 +250,13 @@ export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; on
   if (!m) return null;
   const post = mov.posteriores(id);
   const seguidos = m.grupo ? mov.movimientos.filter((x) => x.grupo === m.grupo && x.id !== id) : [];
-  const motivo = m.estado === "anulado" ? "Ya está anulado" : post.length ? "Tiene movimientos posteriores" : undefined;
+  const motivo = m.estado === "anulado" ? "Ya está deshecho" : post.length ? "Tiene movimientos posteriores" : undefined;
   const sitios = sitiosDe(m, t.nombreAlmacen);
   const corto = (l: Lugar) => (l.tipo === "unidad" ? `unidad ${l.unidad}` : l.tipo === "almacen" ? t.nombreAlmacen(l.almacenId) : "baja");
   return (
     <Dialog large title={m.tipo} onClose={onClose}
       footer={<>
-        <Button variant="outlined" icon="block" disabled={!!motivo} title={motivo} onClick={() => onAnular(m.id)}>Anular movimiento</Button>
+        <Button variant="outlined" icon="restart_alt" disabled={!!motivo} title={motivo} onClick={() => onAnular(m.id)}>Deshacer movimiento</Button>
         <Button onClick={onClose}>Cerrar</Button>
       </>}>
       <div className="stack gap-15">
@@ -268,7 +267,7 @@ export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; on
             <span key={r.unidad}>· Unidad {r.unidad}{r.km !== null && ` a ${formatoKm(r.km)} km`}{r.horas != null && ` · ${formatoKm(r.horas)} h`}{r.ciclos != null && ` · ${formatoKm(r.ciclos)} ciclos`}</span>
           ))}
           <span className="muted">· Registrado por {m.por}</span>
-          {m.estado === "anulado" && <Tag tone="neutral">Anulado el {textoFecha(m.anulado!.fecha)} por {m.anulado!.por}</Tag>}
+          {m.estado === "anulado" && <Tag tone="neutral">Deshecho el {textoFecha(m.anulado!.fecha)} por {m.anulado!.por}</Tag>}
         </div>
         {m.motivo && <span className="lm-body-medium">Motivo: {m.motivo}</span>}
         {seguidos.length > 0 && (
@@ -288,7 +287,7 @@ export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; on
   );
 }
 
-/** Anular: si tiene movimientos posteriores no se permite (HU-M02). */
+/** Deshacer: si tiene movimientos posteriores no se permite (HU-M02). */
 export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () => void; onVer: (id: string) => void }) {
   const mov = useMovimientos();
   const t = useTextos();
@@ -299,8 +298,8 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
   if (post.length) {
     const afectados = [...new Set(post.flatMap((p) => p.filas.map((f) => f.serie)).filter((s) => m.filas.some((f) => f.serie === s)))];
     return (
-      <Dialog title={`No se puede anular ${m.id}`} onClose={onClose}
-        message={`${afectados.length === 1 ? `El activo ${afectados[0]} tiene` : `Los activos ${afectados.join(", ")} tienen`} movimientos posteriores. Anula antes, empezando por el más reciente:`}
+      <Dialog title={`No se puede deshacer ${m.id}`} onClose={onClose}
+        message={`${afectados.length === 1 ? `El activo ${afectados[0]} tiene` : `Los activos ${afectados.join(", ")} tienen`} movimientos posteriores. Deshazlos antes, empezando por el más reciente:`}
         footer={<>
           <Button variant="outlined" onClick={() => onVer(post[0].id)}>Ver {post[0].id}</Button>
           <Button onClick={onClose}>Cerrar</Button>
@@ -314,15 +313,15 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
   const principales = m.filas.filter((f) => !f.conPadre);
   const hijos = m.filas.length - principales.length;
   return (
-    <Dialog title={`¿Anular el movimiento ${m.id}?`} onClose={onClose}
+    <Dialog title={`¿Deshacer el movimiento ${m.id}?`} onClose={onClose}
       footer={<>
         <Button variant="outlined" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => { mov.anular(m.id); onClose(); snack(`Movimiento ${m.id} anulado`); }}>Anular movimiento</Button>
+        <Button onClick={() => { mov.anular(m.id); onClose(); snack(`Movimiento ${m.id} deshecho`); }}>Deshacer movimiento</Button>
       </>}>
       <div className="stack gap-10">
         {principales.map((f) => <span key={f.serie}>El {f.categoria.replace(/^./, (c) => c.toLowerCase())} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}
         {hijos > 0 && <span>Sus {hijos} activos montados vuelven también a su posición anterior.</span>}
-        <span className="muted">El movimiento seguirá en el historial, tachado.</span>
+        <span className="muted">El movimiento seguirá en el historial como deshecho (filtro Estado).</span>
       </div>
     </Dialog>
   );

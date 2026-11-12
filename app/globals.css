@@ -294,3 +294,8 @@ textarea.lm-input { height: auto; min-height: var(--lm-space-90); padding: var(-
 .lm-btn-toggle button:hover { background: color-mix(in srgb, var(--lm-sys-on-surface) 8%, transparent); }
 .lm-btn-toggle button[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--lm-sys-on-secondary-container) 8%, var(--lm-sys-secondary-container)); }
 .lm-btn-toggle button:focus-visible { outline: none; background: color-mix(in srgb, var(--lm-sys-on-surface) 10%, transparent); }
+
+/* Desplegable discreto dentro de una celda (activos montados del historial): texto pequeño, sin aspecto de botón */
+.lm-disclosure { display: inline-flex; align-items: center; gap: var(--lm-space-0); padding: 0 var(--lm-space-5) 0 0; border: 0; border-radius: var(--lm-corner-20); background: transparent; color: var(--lm-sys-on-surface-variant); font: inherit; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; cursor: pointer; }
+.lm-disclosure:hover { color: var(--lm-sys-on-surface); }
+.lm-disclosure:focus-visible { outline: none; background: color-mix(in srgb, var(--lm-sys-on-surface) 10%, transparent); }
