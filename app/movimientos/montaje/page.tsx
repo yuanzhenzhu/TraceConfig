@@ -82,7 +82,7 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
     if (!plan) return;
     const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.montajeUnidad, fecha: cab.iso, almacenes: [cab.almacen], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
     setConfirmar(false); setHueco(null); setSelA(""); setVista("antes"); drv.reset();
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack("Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <Loading text="Cargando unidades y almacenes" />;
@@ -211,7 +211,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
     // Un movimiento por activo montado, en orden; en cada uno el participante es el padre con lo que lleva montado en ese momento
     const ids = filas.map((f) => mov.registrar({ motivo: mc.valor, tipo: TIPOS.montajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [{ ...f, conPadre: true }], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
     setConfirmar(false); setPadre(""); setAsig({}); setVista("antes");
-    snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack(ids.length > 1 ? `${ids.length} movimientos registrados` : "Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <Loading text="Cargando almacenes" />;

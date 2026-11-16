@@ -55,7 +55,7 @@ function DarDeBaja({ tabs, onHecho }: { tabs: React.ReactNode; onHecho: () => vo
     if (!plan) return;
     const m = mov.registrar({ tipo: TIPOS.finVida, fecha: cab.iso, almacenes: [cab.almacen], filas: plan.filas, registros: [], motivo: motivo.trim() || undefined });
     setConfirmar(false); setSel(""); setMotivo("");
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver activos de baja", onClick: onHecho });
+    snack("Movimiento registrado", { label: "Ver activos de baja", onClick: onHecho });
   };
 
   if (!mov.listo) return <Loading text="Cargando almacenes" />;
@@ -146,7 +146,7 @@ function Listado({ tabs }: { tabs: React.ReactNode }) {
                   {lista.map(({ a, m, antes }) => (
                     <tr key={a.serie}>
                       <td className="emph">{a.serie}</td><td>{a.categoria}</td><td>{textoDriver(a)}</td>
-                      <td>{m ? textoFecha(m.fecha) : "—"}</td><td>{antes}</td><td>{m?.motivo ?? "—"}</td><td>{m ? `${m.id} · ${m.tipo}` : "—"}</td>
+                      <td>{m ? textoFecha(m.fecha) : "—"}</td><td>{antes}</td><td>{m?.motivo ?? "—"}</td><td>{m ? `${m.tipo} · ${textoFecha(m.fecha)}` : "—"}</td>
                     </tr>
                   ))}
                 </tbody>

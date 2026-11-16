@@ -59,7 +59,7 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
     if (!plan) return;
     const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.desmontajeUnidad, fecha: cab.iso, almacenes: necesitaAlmacen ? [cab.almacen] : [], filas: drv.aplicar(plan.filas), registros: [{ unidad: cab.unidad, km: cab.kmNum }] });
     setConfirmar(false); setSel(null); setBaja(false); setVista("antes"); drv.reset();
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack("Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <Loading text="Cargando unidades" />;
@@ -168,7 +168,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
     // Un movimiento por activo desmontado, en orden; en cada uno el participante es el activo desmontado
     const ids = filas.map((f) => mov.registrar({ motivo: mc.valor, tipo: TIPOS.desmontajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [f], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
     setConfirmar(false); setPadre(""); setMarcados(new Set()); setVista("antes");
-    snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack(ids.length > 1 ? `${ids.length} movimientos registrados` : "Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <Loading text="Cargando almacenes" />;

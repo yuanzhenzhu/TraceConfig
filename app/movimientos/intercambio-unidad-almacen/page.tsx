@@ -139,7 +139,7 @@ export default function IntercambioUnidadAlmacen() {
       registros: [{ unidad, km: kmNum }],
     });
     setConfirmar(false); setVista("antes"); setSelU(null); setSelA(""); setRotar(false); drv.reset(); setIntentado(false); setBuscaU(""); setBuscaA("");
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack("Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <main className="lm-page"><Loading text="Cargando unidades y almacenes" /></main>;

@@ -46,7 +46,7 @@ export default function EnvioAlmacenes() {
     if (!plan) return;
     const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.envio, fecha: cab.iso, almacenes: [cab.almacen, destino], filas: plan.filas, registros: [] });
     setConfirmar(false); setSel(""); setVista("antes");
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack("Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <main className="lm-page"><Loading text="Cargando almacenes" /></main>;

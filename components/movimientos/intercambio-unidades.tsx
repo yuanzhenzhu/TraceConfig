@@ -122,7 +122,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
       registros: lados.map((i) => ({ unidad: uDe(i), km: kmInfo(i).n })),
     });
     setConfirmar(false); setVista("antes"); setSel([null, null]); setRot([false, false]); setBusca(["", ""]); setIntentado(false); drv.reset();
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack("Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <main className="lm-page"><Loading text="Cargando unidades" /></main>;

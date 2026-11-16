@@ -317,8 +317,7 @@ export function DialogDetalle({ id, onClose, onAnular, onVer }: { id: string; on
       </>}>
       <div className="stack gap-15">
         <div className="row gap-10 wrap lm-body-medium">
-          <span style={{ fontWeight: 500 }}>{m.id}</span>
-          <span>· {textoFecha(m.fecha)}</span>
+          <span style={{ fontWeight: 500 }}>{textoFecha(m.fecha)}</span>
           {m.registros.map((r) => (
             <span key={r.unidad}>· Unidad {r.unidad}{r.km !== null && ` a ${formatoKm(r.km)} km`}{r.horas != null && ` · ${formatoKm(r.horas)} h`}{r.ciclos != null && ` · ${formatoKm(r.ciclos)} ciclos`}</span>
           ))}
@@ -352,14 +351,14 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
   if (post.length) {
     const afectados = [...new Set(post.flatMap((p) => p.filas.map((f) => f.serie)).filter((s) => m.filas.some((f) => f.serie === s)))];
     return (
-      <Dialog title={`No se puede deshacer ${m.id}`} onClose={onClose}
+      <Dialog title="No se puede deshacer este movimiento" onClose={onClose}
         message={`${afectados.length === 1 ? `El activo ${afectados[0]} tiene` : `Los activos ${afectados.join(", ")} tienen`} movimientos posteriores. Deshazlos antes, empezando por el más reciente:`}
         footer={<>
-          <Button variant="outlined" onClick={() => onVer(post[0].id)}>Ver {post[0].id}</Button>
+          <Button variant="outlined" onClick={() => onVer(post[0].id)}>Ver el más reciente</Button>
           <Button onClick={onClose}>Cerrar</Button>
         </>}>
         <ul className="stack gap-5" style={{ margin: 0, paddingLeft: "var(--lm-space-20)" }}>
-          {post.map((p) => <li key={p.id}>{p.id} · {textoFecha(p.fecha)} · {p.tipo}</li>)}
+          {post.map((p) => <li key={p.id}>{textoFecha(p.fecha)} · {p.tipo}</li>)}
         </ul>
       </Dialog>
     );
@@ -367,10 +366,10 @@ export function DialogAnular({ id, onClose, onVer }: { id: string; onClose: () =
   const principales = m.filas.filter((f) => !f.conPadre);
   const hijos = m.filas.length - principales.length;
   return (
-    <Dialog title={`¿Deshacer el movimiento ${m.id}?`} onClose={onClose}
+    <Dialog title="¿Deshacer este movimiento?" message={`${m.tipo} · ${textoFecha(m.fecha)}`} onClose={onClose}
       footer={<>
         <Button variant="outlined" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => { mov.anular(m.id); onClose(); snack(`Movimiento ${m.id} deshecho`); }}>Deshacer movimiento</Button>
+        <Button onClick={() => { mov.anular(m.id); onClose(); snack("Movimiento deshecho"); }}>Deshacer movimiento</Button>
       </>}>
       <div className="stack gap-10">
         {principales.map((f) => <span key={f.serie}>{art(f.categoria, "el", true)} {f.serie} vuelve a {t.lugar(f.antes)}.</span>)}

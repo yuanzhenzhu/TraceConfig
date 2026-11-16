@@ -84,7 +84,7 @@ export default function HistorialMovimientos() {
             onToggle={() => setHijosAbiertos((a) => ({ ...a, [m.id]: !(a[m.id] ?? buscaEnHijos(m)) }))} />
         </td>)}
         <td className="actions" onClick={(e) => e.stopPropagation()}>
-          <Menu label={`Acciones de ${m.id}`} items={[
+          <Menu label={`Acciones del movimiento del ${textoFecha(m.fecha)}`} items={[
             { label: "Ver detalle", icon: "visibility", onSelect: () => setDetalle(m.id) },
             { label: "Deshacer", icon: "restart_alt", disabled: anulado, onSelect: () => setAnular(m.id) },
           ]} />

@@ -69,7 +69,7 @@ export default function RotacionBogies() {
     if (!plan) return;
     const m = mov.registrar({ motivo: mc.valor, tipo: TIPOS.rotacionBogie, fecha: iso, almacenes: [], filas: plan.filas, registros: [{ unidad, km: kmNum }], principal: bogie ? { serie: bogie.serie, categoria: bogie.categoria } : undefined });
     setConfirmar(false); setVista("antes"); setSel(null); setIntentado(false);
-    snack(`Movimiento ${m.id} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
+    snack("Movimiento registrado", { label: "Ver en el historial", onClick: () => router.push("/movimientos") });
   };
 
   if (!mov.listo) return <main className="lm-page"><Loading text="Cargando unidades" /></main>;
