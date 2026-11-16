@@ -119,14 +119,13 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
           </legend>
           <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
             <Field label="Periodo de cálculo (días)" required htmlFor="media-periodo" style={{ width: 220 }}
-              error={intentado ? errPeriodo : undefined} support="Normalmente, 180 días">
+              error={intentado ? errPeriodo : undefined}>
               <input id="media-periodo" className="lm-input" inputMode="numeric" value={periodo} disabled={!forma}
                 aria-invalid={intentado && !!errPeriodo} onChange={(e) => setPeriodo(e.target.value.replace(/[^\d]/g, ""))} />
             </Field>
             {conCategoria && (
               <Field label="Categoría" required htmlFor="media-categoria" style={{ width: 260 }}
-                error={intentado ? errCategoria : undefined}
-                support={forma.endsWith("posicion") ? "Una media por cada posición de esta categoría" : "Una media para todos los activos de esta categoría"}>
+                error={intentado ? errCategoria : undefined}>
                 <select id="media-categoria" className="lm-select" value={categoria} aria-invalid={intentado && !!errCategoria}
                   onChange={(e) => setCategoria(e.target.value)}>
                   <option value="">Elige una categoría</option>
