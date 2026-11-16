@@ -171,7 +171,7 @@ export function planIntercambioUA(activos: Record<string, ActivoM>, serieUnidad:
   });
   if (huerfano) {
     const p = padreRuta(huerfano.rel);
-    return { filas: [], error: `${huerfano.a.categoria} ${huerfano.a.serie} (${huerfano.rel}) se quedaría sin su padre: ${p} sale y ${art(B.categoria, "el")} ${B.serie} no trae otro en esa posición. Marca también lo que cuelga de ${p} o desmarca ${p}` };
+    return { filas: [], error: `${huerfano.a.categoria} ${huerfano.a.serie} (${huerfano.rel}) se quedaría sin su padre: ${p} se desmonta y ${art(B.categoria, "el")} ${B.serie} no trae otro en esa posición. Marca también lo que cuelga de ${p} o desmarca ${p}` };
   }
 
   // A y los que viajan pasan al sitio de B en el almacén; B y sus hijos, al hueco de A.
@@ -218,7 +218,7 @@ export function planIntercambioUU(activos: Record<string, ActivoM>, l1: Lado, l2
     const choque = llega.viajan.find((e) => destino.posQuedan.has(llega.nueva[e.a.serie]));
     if (choque) return `${art(quien.categoria, "el", true)} ${quien.serie} trae un activo en ${llega.nueva[choque.a.serie]}, que se queda ocupado junto ${art(donde.categoria, "al")} ${donde.serie}`;
     const huerf = destino.d.find((e) => destino.posQuedan.has(e.rel) && padreRuta(e.rel) && !destino.posQuedan.has(padreRuta(e.rel)) && !llega.posLlegan.has(padreRuta(e.rel)));
-    if (huerf) return `${huerf.a.categoria} ${huerf.a.serie} (${huerf.rel}) se quedaría sin su padre: ${padreRuta(huerf.rel)} sale y ${art(quien.categoria, "el")} ${quien.serie} no trae otro en esa posición`;
+    if (huerf) return `${huerf.a.categoria} ${huerf.a.serie} (${huerf.rel}) se quedaría sin su padre: ${padreRuta(huerf.rel)} se desmonta y ${art(quien.categoria, "el")} ${quien.serie} no trae otro en esa posición`;
     return "";
   };
   const e1 = comprobar(dB, dA, B, A) || comprobar(dA, dB, A, B);

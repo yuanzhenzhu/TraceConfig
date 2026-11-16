@@ -131,17 +131,17 @@ function EnUnidad({ selector }: { selector: ReactNode }) {
                 </div>
                 {vista === "despues" && planOk && (
                   <PanelUnidad key={`d-${cab.unidad}`} raiz={cab.info.raiz} unidad={cab.unidad} activos={despues} sel={null} onSel={() => {}} busca="" soloLectura alto={420}
-                    marcas={Object.fromEntries(plan!.filas.map((f) => [f.serie, "Entra" as const]))} abrirHasta={hueco!.ruta} />
+                    marcas={Object.fromEntries(plan!.filas.map((f) => [f.serie, "cambia" as const]))} abrirHasta={hueco!.ruta} />
                 )}
               </>
             )}
           </Panel>
           <Panel titulo={`${cab.almacen ? t.nombreAlmacen(cab.almacen) : "Almacén"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? `${art(B?.categoria, "el", true)} ${B?.serie} sale del almacén` : !hueco ? "Elige antes el hueco" : B ? <>Elegido: <strong>{B.categoria.replace(/^./, (c) => c.toLowerCase())} {B.serie}</strong>{descendientes(mov.activos, B).length ? ` con sus ${descendientes(mov.activos, B).length} activos montados` : ""}</> : `Activos sueltos de la categoría ${hueco.categoria}`}
+            subtitulo={vista === "despues" ? `${art(B?.categoria, "el", true)} ${B?.serie} se monta en la unidad ${cab.unidad}` : !hueco ? "Elige antes el hueco" : B ? <>Elegido: <strong>{B.categoria.replace(/^./, (c) => c.toLowerCase())} {B.serie}</strong>{descendientes(mov.activos, B).length ? ` con sus ${descendientes(mov.activos, B).length} activos montados` : ""}</> : `Activos sueltos de la categoría ${hueco.categoria}`}
             accion={cab.almacen && hueco && vista === "antes" ? <SearchInput label="Buscar en el almacén por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
             {!cab.almacen ? <EmptyState icon="domain" title="Elige el almacén de origen" text="Indícalo arriba" />
               : !hueco ? <EmptyState icon="arrow_left" title="Elige un hueco libre" text="Aquí aparecerán los activos sueltos de esa categoría" />
-                : vista === "despues" ? <EmptyState icon="check" title={`Sale ${B?.categoria.replace(/^./, (c) => c.toLowerCase())} ${B?.serie}`} text="Queda montado en la unidad" />
+                : vista === "despues" ? <EmptyState icon="check" title={`${art(B?.categoria, "el", true)} ${B?.serie} ya no está en el almacén`} text={`Se monta en la unidad ${cab.unidad}`} />
                   : !candidatos.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : `No hay activos sueltos de la categoría ${hueco.categoria}`} text={busca ? "Ningún activo coincide" : "Elige otro almacén"} />
                     : <PanelAlmacen candidatos={candidatos} activos={mov.activos} sel={selA} onSel={setSelA} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420} />}
           </Panel>
@@ -227,7 +227,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
             subtitulo={vista === "despues" ? <>Así queda <strong>{art(P?.categoria)} {P?.serie}</strong></> : P ? <>Padre: <strong>{P.categoria.replace(/^./, (c) => c.toLowerCase())} {P.serie}</strong></> : "Elige el activo en el que se monta (con posiciones libres)"}
             accion={cab.almacen && vista === "antes" ? <SearchInput label="Buscar el padre por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
             {!cab.almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indícalo arriba" />
-              : vista === "despues" && P ? <PanelAlmacen candidatos={[despues[P.serie]]} activos={despues} sel="" onSel={() => {}} conHijos sinRotar rotado={false} onRotar={() => {}} soloLectura alto={420} marcas={{ [P.serie]: "Entra" }} />
+              : vista === "despues" && P ? <PanelAlmacen candidatos={[despues[P.serie]]} activos={despues} sel="" onSel={() => {}} conHijos sinRotar rotado={false} onRotar={() => {}} soloLectura alto={420} marcas={{ [P.serie]: "cambia" as const }} />
                 : !padres.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : "No hay activos con posiciones libres"} text="Elige otro almacén" />
                   : <PanelAlmacen candidatos={padres} activos={mov.activos} sel={padre} onSel={(s) => { setPadre(s); setAsig({}); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420}
                       detalle={(a) => `Libres: ${libres(a.serie).map((x) => x.nombre).join(", ")}`} />}

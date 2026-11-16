@@ -141,7 +141,7 @@ export default function RotacionBogies() {
                 </div>
                 {vista === "despues" && planOk && (
                   <PanelUnidad key={`d-${unidad}`} raiz={info.raiz} unidad={unidad} activos={despues} sel={null} onSel={() => {}} busca="" soloLectura alto={420}
-                    marcas={Object.fromEntries(plan!.filas.map((f) => [f.serie, "Entra" as const]))} abrirHasta={hueco} />
+                    marcas={Object.fromEntries(plan!.filas.map((f) => [f.serie, "cambia" as const]))} abrirHasta={hueco} />
                 )}
               </>
             )}

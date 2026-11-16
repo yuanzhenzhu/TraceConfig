@@ -70,20 +70,20 @@ export default function EnvioAlmacenes() {
         <AhoraDespues vista={vista} setVista={setVista} ok={planOk} texto="Elige el activo que se envía y el almacén de destino; después podrás ver cómo queda." />
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", gap: "var(--lm-space-15)", alignItems: "start" }}>
           <Panel titulo={`${cab.almacen ? t.nombreAlmacen(cab.almacen) : "Origen"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? `${art(A?.categoria, "el", true)} ${A?.serie} sale del almacén` : A ? <>Elegido: <strong>{A.categoria.replace(/^./, (c) => c.toLowerCase())} {A.serie}</strong>{nHijos ? ` con sus ${nHijos} activos montados` : ""}</> : "Activos sueltos (los montados en otro no se pueden enviar sin desmontarlos)"}
+            subtitulo={vista === "despues" ? `${art(A?.categoria, "el", true)} ${A?.serie} se envía a ${t.nombreAlmacen(destino)}` : A ? <>Elegido: <strong>{A.categoria.replace(/^./, (c) => c.toLowerCase())} {A.serie}</strong>{nHijos ? ` con sus ${nHijos} activos montados` : ""}</> : "Activos sueltos (los montados en otro no se pueden enviar sin desmontarlos)"}
             accion={cab.almacen && vista === "antes" ? <SearchInput label="Buscar en el origen por nº de serie" placeholder="Nº de serie" value={busca} onChange={setBusca} /> : undefined}>
             {!cab.almacen ? <EmptyState icon="domain" title="Elige el almacén de origen" text="Indícalo arriba" />
-              : vista === "despues" && planOk ? <EmptyState icon="north_east" title={`Sale ${A?.categoria.replace(/^./, (c) => c.toLowerCase())} ${A?.serie}`} text={`Va a ${t.nombreAlmacen(destino)}`} />
+              : vista === "despues" && planOk ? <EmptyState icon="north_east" title={`${art(A?.categoria, "el", true)} ${A?.serie} ya no está en este almacén`} text={`Se envía a ${t.nombreAlmacen(destino)}`} />
                 : !candidatos.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : "No hay activos sueltos"} text={busca ? "Ningún activo coincide" : "Elige otro almacén"} />
                   : <PanelAlmacen candidatos={candidatos} activos={mov.activos} sel={sel} onSel={(s) => { setSel(s); setVista("antes"); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420} />}
           </Panel>
           <span className="row" aria-hidden="true" style={{ alignSelf: "center", color: "var(--lm-sys-on-surface-variant)" }}><Icon name="arrow_right" /></span>
           <Panel titulo={`${destino ? t.nombreAlmacen(destino) : "Destino"} · ${vista === "despues" ? "Después" : "Ahora"}`}
-            subtitulo={vista === "despues" ? `Llega ${art(A?.categoria, "el")} ${A?.serie}` : destino ? `${listaDestino.length} activos sueltos` : "Elige el almacén de destino"}>
+            subtitulo={vista === "despues" ? `Queda ${art(A?.categoria, "el")} ${A?.serie}, enviado desde ${t.nombreAlmacen(cab.almacen)}` : destino ? `${listaDestino.length} activos sueltos` : "Elige el almacén de destino"}>
             {!destino ? <EmptyState icon="domain" title="Elige el almacén de destino" text="Indícalo arriba" />
               : !listaDestino.length ? <EmptyState icon="domain" title="Sin activos sueltos" text="El almacén de destino no tiene activos sueltos" />
                 : <PanelAlmacen candidatos={listaDestino} activos={vista === "despues" && planOk ? despues : mov.activos} sel="" onSel={() => {}} conHijos sinRotar rotado={false} onRotar={() => {}} soloLectura alto={420}
-                    marcas={vista === "despues" && sel ? { [sel]: "Entra" } : {}} />}
+                    marcas={vista === "despues" && sel ? { [sel]: "cambia" as const } : {}} />}
           </Panel>
         </div>
         {plan?.error && <Banner type="error" title={plan.error} />}

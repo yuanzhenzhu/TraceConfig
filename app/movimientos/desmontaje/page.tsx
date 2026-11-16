@@ -65,7 +65,7 @@ function DeUnidad({ selector }: { selector: ReactNode }) {
   if (!mov.listo) return <Loading text="Cargando unidades" />;
   return (
     <>
-      <CabeceraPantalla miga="Desmontaje" selector={selector} titulo="Desmontaje de unidad" texto="Marca el activo que se desmonta; sale con todo lo que lleva montado." valido={valido} hayDatos={cab.hayDatos || !!sel}
+      <CabeceraPantalla miga="Desmontaje" selector={selector} titulo="Desmontaje de unidad" texto="Marca el activo que se desmonta; se desmonta con todo lo que lleva montado." valido={valido} hayDatos={cab.hayDatos || !!sel}
         onRegistrar={() => { cab.setIntentado(true); if (valido) setConfirmar(true); }} />
       <div className="stack gap-20">
         {cab.bloque}
@@ -186,12 +186,12 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
             {!cab.almacen ? <EmptyState icon="domain" title="Elige un almacén" text="Indícalo arriba" />
               : vista === "despues" && P ? (
                 <PanelAlmacen candidatos={[despues[P.serie], ...[...marcados].map((s) => despues[s])]} activos={despues} sel="" onSel={() => {}} conHijos sinRotar rotado={false} onRotar={() => {}} soloLectura alto={420}
-                  marcas={Object.fromEntries([...marcados].map((s) => [s, "Sale"]))} detalle={donde} />
+                  marcas={Object.fromEntries([...marcados].map((s) => [s, "cambia" as const]))} detalle={donde} />
               ) : !padres.length ? <EmptyState icon={busca ? "search_off" : "domain"} title={busca ? "No hay resultados" : "No hay activos con activos montados"} text={busca ? "Ningún activo coincide" : "Elige otro almacén"} />
                 : <PanelAlmacen candidatos={padres} activos={mov.activos} sel={padre} onSel={(s) => { setPadre(s); setMarcados(new Set()); }} conHijos sinRotar rotado={false} onRotar={() => {}} alto={420}
                     detalle={(a) => `Montados: ${hijosDe(a.serie).map(posDe).join(", ")}`} />}
           </Panel>
-          <Panel titulo="Activos que se desmontan" subtitulo={P ? `Marca los que se desmontan ${art(P.categoria, "del")} ${P.serie}; si llevan activos montados, salen con ellos.` : "Elige antes el padre"}>
+          <Panel titulo="Activos que se desmontan" subtitulo={P ? `Marca los que se desmontan ${art(P.categoria, "del")} ${P.serie}; si llevan activos montados, se desmontan con ellos.` : "Elige antes el padre"}>
             {!P ? <EmptyState icon="arrow_left" title="Elige el padre" text="Aquí aparecerán sus activos montados" /> : (
               <div className="stack gap-10" style={{ padding: "var(--lm-space-15)" }}>
                 {hijos.map((h) => {

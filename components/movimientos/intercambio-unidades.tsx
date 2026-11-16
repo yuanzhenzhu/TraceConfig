@@ -157,7 +157,7 @@ export function IntercambioUnidades({ misma }: { misma: boolean }) {
             </div>
             {vista === "despues" && planOk && (
               <PanelUnidad key={`d${i}-${u}`} raiz={inf.raiz} unidad={u} activos={despues} sel={null} onSel={() => {}} busca="" soloLectura alto={400}
-                marcas={Object.fromEntries(plan!.filas.filter((f) => f.despues.tipo === "unidad" && f.despues.unidad === u && act(i)?.lugar.tipo === "unidad" && (f.despues.hueco === (act(i)!.lugar as { hueco: string }).hueco || f.despues.hueco.startsWith((act(i)!.lugar as { hueco: string }).hueco + SEP))).map((f) => [f.serie, "Entra" as const]))}
+                marcas={Object.fromEntries(plan!.filas.filter((f) => f.despues.tipo === "unidad" && f.despues.unidad === u && act(i)?.lugar.tipo === "unidad" && (f.despues.hueco === (act(i)!.lugar as { hueco: string }).hueco || f.despues.hueco.startsWith((act(i)!.lugar as { hueco: string }).hueco + SEP))).map((f) => [f.serie, "cambia" as const]))}
                 vacios={vac[i]} abrirHasta={act(i)?.lugar.tipo === "unidad" ? (act(i)!.lugar as { hueco: string }).hueco : undefined} />
             )}
           </>

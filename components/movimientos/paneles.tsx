@@ -37,10 +37,10 @@ export function Panel({ titulo, subtitulo, accion, children }: { titulo: string;
   );
 }
 
-/** Árbol de la unidad en lista. marcas: serie -> etiqueta ("Sale" / "Entra"); vacios: rutas que quedan vacías. */
+/** Árbol de la unidad en lista. marcas: serie -> "cambia" (fila resaltada: el activo cambia de sitio); vacios: rutas que quedan vacías. */
 export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 440, soloLectura, marcas = {}, vacios = new Set<string>(), abrirHasta, elegible, hueco }: {
   raiz: Nodo; unidad: string; activos: Record<string, ActivoM>; sel: SeleccionUnidad; onSel: (s: SeleccionUnidad) => void; busca: string; alto?: number;
-  soloLectura?: boolean; marcas?: Record<string, "Sale" | "Entra">; vacios?: Set<string>; abrirHasta?: string;
+  soloLectura?: boolean; marcas?: Record<string, "cambia">; vacios?: Set<string>; abrirHasta?: string;
   /** Si se indica, devuelve el motivo por el que un activo no se puede marcar (o null si se puede). */
   elegible?: (a: ActivoM) => string | null;
   /** Modo hueco: se elige una posición vacía cuyo padre está ocupado (Montaje en unidad), en lugar de un activo. */
@@ -124,7 +124,7 @@ export function PanelUnidad({ raiz, unidad, activos, sel, onSel, busca, alto = 4
 /** Activos del almacén en lista. Con conHijos, sus activos montados debajo; en los ejes, Rotar. */
 export function PanelAlmacen({ candidatos, activos, sel, onSel, conHijos, rotado, onRotar, alto = 440, marcas = {}, soloLectura, sinRotar, detalle }: {
   candidatos: ActivoM[]; activos: Record<string, ActivoM>; sel: string; onSel: (s: string) => void; conHijos: boolean;
-  rotado: boolean; onRotar: (s: string) => void; alto?: number; marcas?: Record<string, "Sale" | "Entra">; soloLectura?: boolean;
+  rotado: boolean; onRotar: (s: string) => void; alto?: number; marcas?: Record<string, "cambia">; soloLectura?: boolean;
   sinRotar?: boolean; detalle?: (a: ActivoM) => string;
 }) {
   return (
