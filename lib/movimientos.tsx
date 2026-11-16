@@ -514,11 +514,11 @@ function ejemplos(inicio: Estado, unidades: (UnidadInfo & { raiz?: Nodo })[]): E
       reg({ tipo: TIPOS.montajeUnidad, fecha: f, almacenes: [almacenDe(B)], filas: p.filas, registros: [{ unidad: u, km: kmEn(u, f) }] });
       break;
     }
-    // Desmontaje en almacén: las ruedas del eje que ha salido, una a una (un movimiento por rueda; el eje es el participante)
+    // Desmontaje en almacén: las ruedas del eje que ha salido, una a una (un movimiento por rueda; la rueda es el participante y el eje, su padre, se ve en el detalle)
     const ruedas = hijosDirectos(s.activos, s.activos[A.serie]).filter((h) => h.categoria === "Rueda").slice(0, 2);
     const posiciones = ruedas.map((r) => (r.lugar.tipo === "almacen" ? r.lugar.enHueco ?? "" : ""));
     const P = { serie: A.serie, categoria: A.categoria };
-    ruedas.forEach((r, i) => reg({ tipo: TIPOS.desmontajeAlmacen, fecha: `2026-09-29T09:${30 + i * 5}`, almacenes: [alm], filas: planDesmontajeAlmacen(s.activos, r.serie).filas.map((x) => ({ ...x, conPadre: true })), registros: [], principal: P }));
+    ruedas.forEach((r, i) => reg({ tipo: TIPOS.desmontajeAlmacen, fecha: `2026-09-29T09:${30 + i * 5}`, almacenes: [alm], filas: planDesmontajeAlmacen(s.activos, r.serie).filas, registros: [], principal: P }));
     // Montaje en almacén: las mismas ruedas, torneadas, vuelven a su posición, una a una
     ruedas.forEach((r, i) => reg({ tipo: TIPOS.montajeAlmacen, fecha: `2026-10-06T12:${String(i * 5).padStart(2, "0")}`, almacenes: [alm], filas: planMontajeAlmacen(s.activos, A.serie, posiciones[i], r.serie).filas.map((x) => ({ ...x, conPadre: true })), registros: [], principal: P }));
     // Envío entre almacenes: el eje con sus ruedas
@@ -583,7 +583,7 @@ export const useMovimientos = () => {
 export function MovimientosProvider({ children }: { children: ReactNode }) {
   const store = useStore();
   // Al cambiar los ejemplos se cambia la clave: así nunca se mezclan con lo guardado antes en el navegador
-  const clave = `lm-trace-movimientos-v7-${DATOS.version}`;
+  const clave = `lm-trace-movimientos-v8-${DATOS.version}`;
   const [estado, setEstado] = useState<Estado | null>(null);
   const [claveCargada, setClaveCargada] = useState("");
 

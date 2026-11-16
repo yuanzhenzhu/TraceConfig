@@ -153,8 +153,9 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.serie.localeCompare(b.serie)), [mov.activos, cab.almacen, busca]);
   const P = padre ? mov.activos[padre] : undefined;
   const hijos = P ? hijosDe(P.serie) : [];
-  // Un solo movimiento: el padre es el participante y los activos que se desmontan, sus hijos (con lo que llevan montado)
-  const filas: FilaMov[] = [...marcados].flatMap((serie) => planDesmontajeAlmacen(mov.activos, serie).filas.map((f) => ({ ...f, conPadre: true })));
+  // Un movimiento por activo desmontado: el participante es el activo que sale (con lo que lleva montado); el padre queda
+  // guardado en "principal" para verlo en el detalle (decidido 16-11-2026)
+  const filas: FilaMov[] = [...marcados].flatMap((serie) => planDesmontajeAlmacen(mov.activos, serie).filas);
   const planOk = !!P && filas.length > 0;
   const valido = cab.ok && planOk;
   const despues = useMemo(() => { const d = { ...mov.activos }; filas.forEach((f) => { d[f.serie] = { ...d[f.serie], lugar: f.despues }; }); return d; }, [mov.activos, filas]);
@@ -164,7 +165,7 @@ function EnAlmacen({ selector }: { selector: ReactNode }) {
 
   const registrar = () => {
     if (!P || !filas.length) return;
-    // Un movimiento por activo desmontado, en orden; en cada uno el participante es el padre con lo que lleva montado en ese momento
+    // Un movimiento por activo desmontado, en orden; en cada uno el participante es el activo desmontado
     const ids = filas.map((f) => mov.registrar({ motivo: mc.valor, tipo: TIPOS.desmontajeAlmacen, fecha: cab.iso, almacenes: [cab.almacen], filas: [f], registros: [], principal: { serie: P.serie, categoria: P.categoria } }).id);
     setConfirmar(false); setPadre(""); setMarcados(new Set()); setVista("antes");
     snack(ids.length > 1 ? `${ids.length} movimientos registrados: ${ids.join(" y ")}` : `Movimiento ${ids[0]} registrado`, { label: "Ver en el historial", onClick: () => router.push("/movimientos") });

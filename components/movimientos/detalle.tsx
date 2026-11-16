@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { Button, ButtonToggle, Dialog, Icon, Tag, useSnackbar } from "@/components/ds";
 import { SEP } from "@/lib/datos";
-import { art, TIPOS, formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Lugar, type Movimiento } from "@/lib/movimientos";
+import { art, femenina, TIPOS, formatoKm, textoFecha, useMovimientos, useTextos, type FilaMov, type Lugar, type Movimiento } from "@/lib/movimientos";
 
 /** Tabla ACTIVO · CATEGORÍA · ANTES · DESPUÉS. */
 export function TablaAntesDespues({ filas }: { filas: FilaMov[] }) {
@@ -226,6 +226,16 @@ function itemsSitio(m: Movimiento, sitios: Sitio[], s: Sitio, vista: "antes" | "
       [...quietos, ...mueven].sort((a, b) => a.pos.localeCompare(b.pos, "es", { numeric: true })).forEach((x) => x.poner());
     }
     aqui.filter((f) => { const p = padreDe(f); return (!p || !enEste.has(p)) && !(P && p === P.serie); }).forEach((f) => ir(f, 0));
+    // Montaje y desmontaje en almacén: se marca el activo que se monta o se desmonta, y de qué padre
+    if (P && (m.tipo === TIPOS.montajeAlmacen || m.tipo === TIPOS.desmontajeAlmacen)) {
+      const mueve = new Set(m.filas.map((f) => f.serie));
+      const deP = `${art(P.categoria, "del")} ${P.serie}`;
+      out.forEach((i) => {
+        if (!mueve.has(i.serie)) return;
+        if (i.nivel > 0) i.nota = m.tipo === TIPOS.montajeAlmacen ? "Se monta" : "Se desmonta";
+        else i.nota = m.tipo === TIPOS.montajeAlmacen ? `Se monta en ${art(P.categoria)} ${P.serie}` : `Desmontad${femenina(i.categoria) ? "a" : "o"} ${deP}`;
+      });
+    }
     return out;
   }
   return aqui.map((f) => ({ serie: f.serie, categoria: f.categoria, pos: f.categoria, nivel: f.conPadre ? 1 : 0, nota: f.conPadre ? undefined : nota(f) }));
