@@ -12,7 +12,7 @@ import { ALMACENES, DATOS, PROPS_POR_CATEGORIA, idConfig, idEstructura, idFlota 
 /** Datos del cliente: catálogo de estructuras (con sus propiedades de hueco), propiedades de categoría únicas y flotas. */
 type Estado = { flotas: Flota[]; configs: Configuracion[]; estructuras: Estructura[]; propsCategoria: PropsCategoria; almacenes: Almacen[]; media: Record<string, CalculoMedia[]> };
 // Cambia con el Excel: al editar datos/datos.xlsx, el prototipo vuelve a sus datos.
-const CLAVE = `lm-trace-prototipo-v27-${DATOS.version}`;
+const CLAVE = `lm-trace-prototipo-v28-${DATOS.version}`;
 
 function base(flotaId: string, extra: Partial<Configuracion>): Configuracion {
   return {
@@ -76,7 +76,7 @@ function semilla(): Estado {
   const media: Record<string, CalculoMedia[]> = {};
   const mediaFlota = (nombre: string, l: CalculoMedia[]) => { if (flotas.some((f) => f.nombre === nombre)) media[claveMedia("flota", idFlota(nombre))] = l; };
   const cat = (c: string) => (CATEGORIAS.includes(c) ? c : CATEGORIAS[0]);
-  mediaFlota("Metro Línea 1", [{ driver: "km", forma: "flota", periodo: 180 }, { driver: "ciclos", forma: "flota-categoria", periodo: 180, categoria: cat("Puerta") }]);
+  mediaFlota("Metro Línea 1", [{ driver: "km", forma: "flota", periodo: 180 }, { driver: "ciclos", forma: "flota-categoria", periodo: 180, categoria: cat("Puerta") }, { driver: "ciclos", forma: "flota-categoria-posicion", periodo: 180, categoria: cat("Motor Puerta") }]);
   mediaFlota("Tranvía Norte", [{ driver: "km", forma: "flota", periodo: 90 }]);
   if (LINEAS[0]) media[claveMedia("linea", LINEAS[0].id)] = [{ driver: "km", forma: "linea", periodo: 180 }, { driver: "horas", forma: "linea-categoria-posicion", periodo: 180, categoria: cat("Rueda") }];
 

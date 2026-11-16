@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Icon, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
 import { cuentaDrivers } from "@/components/drivers";
-import { DialogMedia, nombreDriver, nombreForma, type FilaMedia } from "@/components/media";
+import { DialogMedia, mismoCalculo, nombreDriver, nombreForma, type FilaMedia } from "@/components/media";
 import { DRIVERS, LINEAS, PERIODO_MEDIA, claveMedia, driversEfectivos, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -130,16 +130,18 @@ function PestanaMedia() {
   const ordenDriver = (d: DriverId) => DRIVERS.findIndex((x) => x.id === d);
   const lista = filas
     .filter((f) => filtro === "todos" || f.nivel === filtro)
-    .sort((a, b) => a.nivel.localeCompare(b.nivel) || nombreDestino(a).localeCompare(nombreDestino(b)) || ordenDriver(a.driver) - ordenDriver(b.driver));
+    .sort((a, b) => a.nivel.localeCompare(b.nivel) || nombreDestino(a).localeCompare(nombreDestino(b)) || ordenDriver(a.driver) - ordenDriver(b.driver)
+      || (a.categoria ?? "").localeCompare(b.categoria ?? ""));
   const deClave = (nivel: NivelMedia, destino: string) => store.media[claveMedia(nivel, destino)] ?? [];
 
-  const quitar = (f: FilaMedia) => store.guardarMedia(claveMedia(f.nivel, f.destino), deClave(f.nivel, f.destino).filter((x) => x.driver !== f.driver));
+  // Un cálculo se identifica por su driver y su categoría (sin categoría = toda la flota o línea)
+  const quitar = (f: FilaMedia) => store.guardarMedia(claveMedia(f.nivel, f.destino), deClave(f.nivel, f.destino).filter((x) => !mismoCalculo(x, f)));
   const guardar = (nueva: FilaMedia) => {
     const antes = editando !== "nuevo" ? editando : null;
     const mismaClave = !!antes && antes.nivel === nueva.nivel && antes.destino === nueva.destino;
-    // Si cambia de flota o línea, se quita de la anterior; en la nueva, se sustituye el del mismo driver
+    // Si cambia de flota o línea, se quita de la anterior; en la nueva, se sustituye el del mismo driver y categoría
     if (antes && !mismaClave) quitar(antes);
-    const actual = deClave(nueva.nivel, nueva.destino).filter((x) => x.driver !== nueva.driver && !(mismaClave && x.driver === antes!.driver));
+    const actual = deClave(nueva.nivel, nueva.destino).filter((x) => !mismoCalculo(x, nueva) && !(mismaClave && mismoCalculo(x, antes!)));
     store.guardarMedia(claveMedia(nueva.nivel, nueva.destino), [...actual, { driver: nueva.driver, forma: nueva.forma, periodo: nueva.periodo, categoria: nueva.categoria }]);
     setEditando(null);
     snack(antes ? "Cálculo de media modificado" : `Cálculo de media de ${nombreDestino(nueva)} añadido`);
@@ -167,7 +169,7 @@ function PestanaMedia() {
           </thead>
           <tbody>
             {lista.map((f) => (
-              <tr key={`${f.nivel}:${f.destino}:${f.driver}`}>
+              <tr key={`${f.nivel}:${f.destino}:${f.driver}:${f.categoria ?? ""}`}>
                 <td><Tag tone={f.nivel === "flota" ? "primary" : "neutral"}>{f.nivel === "flota" ? "Flota" : "Línea"}</Tag></td>
                 <td className="emph">{nombreDestino(f)}</td>
                 <td>{nombreDriver(f.driver)}</td>
@@ -175,7 +177,7 @@ function PestanaMedia() {
                 <td>{f.categoria ?? <span className="muted">—</span>}</td>
                 <td>{f.periodo} días</td>
                 <td className="actions">
-                  <Menu label={`Acciones del cálculo de ${nombreDriver(f.driver)} en ${nombreDestino(f)}`} items={[
+                  <Menu label={`Acciones del cálculo de ${nombreDriver(f.driver)}${f.categoria ? ` de ${f.categoria}` : ""} en ${nombreDestino(f)}`} items={[
                     { label: "Modificar", icon: "edit", onSelect: () => setEditando(f) },
                     { label: "Eliminar", icon: "delete", onSelect: () => setAEliminar(f) },
                   ]} />
@@ -188,13 +190,14 @@ function PestanaMedia() {
 
       {editando && (
         <DialogMedia fila={editando === "nuevo" ? undefined : editando} flotas={store.flotas.map((x) => ({ id: x.id, nombre: x.nombre }))}
-          usados={(nivel, destino) => deClave(nivel, destino).map((x) => x.driver as DriverId)
-            .filter((d) => !(editando !== "nuevo" && editando.nivel === nivel && editando.destino === destino && editando.driver === d))}
+          usados={(nivel, destino) => deClave(nivel, destino).filter((x) => x.driver)
+            .filter((x) => !(editando !== "nuevo" && editando.nivel === nivel && editando.destino === destino && mismoCalculo(x, editando)))
+            .map((x) => ({ driver: x.driver as DriverId, categoria: x.categoria }))}
           onClose={() => setEditando(null)} onGuardar={guardar} />
       )}
       {aEliminar && (
         <Dialog title="¿Eliminar el cálculo de media?" onClose={() => setAEliminar(null)}
-          message={`Se dejará de calcular la media de ${nombreDriver(aEliminar.driver).toLowerCase()} en ${nombreDestino(aEliminar)}.`}
+          message={`Se dejará de calcular la media de ${nombreDriver(aEliminar.driver).toLowerCase()}${aEliminar.categoria ? ` de ${aEliminar.categoria}` : ""} en ${nombreDestino(aEliminar)}.`}
           footer={<>
             <Button variant="outlined" onClick={() => setAEliminar(null)}>Cancelar</Button>
             <Button onClick={() => { quitar(aEliminar); setAEliminar(null); snack("Cálculo de media eliminado"); }}>Eliminar</Button>

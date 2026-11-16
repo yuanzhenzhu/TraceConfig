@@ -4,7 +4,8 @@
 // Se muestra como una tabla con todos los cálculos; cada uno se añade o modifica en un dialog, con los pasos en orden:
 // 1) por flota o por línea, 2) la flota o línea concreta, 3) el driver, 4) su forma de cálculo (solo las de ese nivel)
 // y 5) sus opciones: periodo de cálculo (normalmente 180 días) y, en las formas por categoría, la categoría (prueba 16-11-2026).
-// Una flota o línea tiene como mucho un cálculo por driver. Es opcional.
+// Un cálculo se identifica por su driver y su categoría: una flota o línea puede tener varios del mismo driver
+// si son de categorías distintas (y uno sin categoría, para toda la flota o línea). Es opcional.
 
 import { useState } from "react";
 import { Button, Dialog, Field } from "./ds";
@@ -15,12 +16,15 @@ export type FilaMedia = { nivel: NivelMedia; destino: string; driver: DriverId; 
 
 export const nombreDriver = (id: DriverId) => DRIVERS.find((d) => d.id === id)?.nombre ?? id;
 export const nombreForma = (id: FormaMedia) => FORMAS_MEDIA.find((f) => f.id === id)?.nombre ?? id;
+/** Mismo cálculo: mismo driver y misma categoría (o los dos sin categoría). */
+export type ClaveCalculo = { driver: DriverId | ""; categoria?: string };
+export const mismoCalculo = (a: ClaveCalculo, b: ClaveCalculo) => a.driver === b.driver && (a.categoria ?? "") === (b.categoria ?? "");
 
 export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
   fila?: FilaMedia;
   flotas: { id: string; nombre: string }[];
-  /** Drivers que ya tienen cálculo en cada flota o línea (clave "flota:<id>" o "linea:<id>"), sin contar el que se modifica. */
-  usados: (nivel: NivelMedia, destino: string) => DriverId[];
+  /** Cálculos (driver y categoría) que ya tiene cada flota o línea, sin contar el que se modifica. */
+  usados: (nivel: NivelMedia, destino: string) => ClaveCalculo[];
   onClose: () => void;
   onGuardar: (f: FilaMedia) => void;
 }) {
@@ -34,17 +38,24 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
 
   const opciones = nivel === "flota" ? flotas : nivel === "linea" ? LINEAS : [];
   const ocupados = nivel && destino ? usados(nivel, destino) : [];
-  const libres = DRIVERS.filter((d) => !ocupados.includes(d.id));
+  // Con este driver: ¿ya hay cálculo para toda la flota o línea? ¿Y qué categorías tienen ya cálculo?
+  const tomado = (d: DriverId | "", c?: string) => !!d && ocupados.some((x) => mismoCalculo(x, { driver: d, categoria: c }));
   const conCategoria = formaConCategoria(forma);
   const dias = Number(periodo);
   const errPeriodo = !periodo.trim() ? "Indica el periodo de cálculo"
     : !Number.isInteger(dias) || dias < 1 || dias > 3650 ? "Indica un número de días entre 1 y 3650" : "";
-  const errCategoria = conCategoria && !categoria ? "Elige una categoría" : "";
-  const valido = !!(nivel && destino && driver && forma) && !errPeriodo && !errCategoria;
+  const errCategoria = conCategoria && !categoria ? "Elige una categoría"
+    : conCategoria && tomado(driver, categoria) ? "Esta categoría ya tiene un cálculo de este driver" : "";
+  const valido = !!(nivel && destino && driver && forma) && !errPeriodo && !errCategoria && (conCategoria || !tomado(driver));
   const etiqueta = nivel === "linea" ? "Línea" : "Flota";
 
   const cambiarNivel = (n: NivelMedia) => { if (n !== nivel) { setNivel(n); setDestino(""); setForma(""); } };
-  const cambiarDestino = (d: string) => { setDestino(d); if (driver && nivel && usados(nivel, d).includes(driver)) setDriver(""); };
+  // Si con el nuevo destino o driver la forma "sin categoría" ya está tomada, se quita la forma elegida
+  const revisar = (d: DriverId | "", lista: ClaveCalculo[]) => {
+    if (forma && !formaConCategoria(forma) && lista.some((x) => mismoCalculo(x, { driver: d }))) setForma("");
+  };
+  const cambiarDestino = (d: string) => { setDestino(d); if (nivel) revisar(driver, usados(nivel, d)); };
+  const cambiarDriver = (d: DriverId) => { setDriver(d); revisar(d, ocupados); };
   const guardar = () => {
     setIntentado(true);
     if (!valido || !nivel || !driver || !forma) return;
@@ -77,13 +88,10 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
           </select>
         </Field>
 
-        <Field label="3. Tipo de driver" required htmlFor="media-driver"
-          support={destino && !libres.length ? "Esta flota o línea ya tiene un cálculo para cada driver" : undefined}>
-          <select id="media-driver" className="lm-select" value={driver} disabled={!destino} onChange={(e) => setDriver(e.target.value as DriverId)}>
+        <Field label="3. Tipo de driver" required htmlFor="media-driver">
+          <select id="media-driver" className="lm-select" value={driver} disabled={!destino} onChange={(e) => cambiarDriver(e.target.value as DriverId)}>
             <option value="">{destino ? "Elige un driver" : `Elige antes la ${etiqueta.toLowerCase()}`}</option>
-            {DRIVERS.map((d) => (
-              <option key={d.id} value={d.id} disabled={ocupados.includes(d.id)}>{d.nombre}{ocupados.includes(d.id) ? " (ya tiene cálculo)" : ""}</option>
-            ))}
+            {DRIVERS.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
           </select>
         </Field>
 
@@ -91,12 +99,18 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
           <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>
             4. Forma de cálculo *{(!nivel || !driver) && <span className="muted"> · elige antes el driver</span>}
           </legend>
-          {(nivel ? FORMAS_MEDIA.filter((f) => f.grupo === nivel) : FORMAS_MEDIA.filter((f) => f.grupo === "flota")).map((f) => (
-            <label key={f.id} className="lm-radio" style={{ alignItems: "flex-start", opacity: nivel && driver ? 1 : "var(--lm-state-disabled-content)" }}>
-              <input type="radio" name="media-forma" checked={forma === f.id} onChange={() => setForma(f.id)} />
-              <span className="lm-radio__text"><span>{f.nombre}</span><span className="lm-radio__support">{f.desc}</span></span>
-            </label>
-          ))}
+          {(nivel ? FORMAS_MEDIA.filter((f) => f.grupo === nivel) : FORMAS_MEDIA.filter((f) => f.grupo === "flota")).map((f) => {
+            const ya = !formaConCategoria(f.id) && tomado(driver);
+            return (
+              <label key={f.id} className="lm-radio" style={{ alignItems: "flex-start", opacity: nivel && driver && !ya ? 1 : "var(--lm-state-disabled-content)" }}>
+                <input type="radio" name="media-forma" checked={forma === f.id} disabled={ya} onChange={() => setForma(f.id)} />
+                <span className="lm-radio__text">
+                  <span>{f.nombre}</span>
+                  <span className="lm-radio__support">{ya ? `Esta ${etiqueta.toLowerCase()} ya tiene un cálculo de este driver para toda la ${etiqueta.toLowerCase()}` : f.desc}</span>
+                </span>
+              </label>
+            );
+          })}
         </fieldset>
 
         <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }} disabled={!forma}>
@@ -116,7 +130,9 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
                 <select id="media-categoria" className="lm-select" value={categoria} aria-invalid={intentado && !!errCategoria}
                   onChange={(e) => setCategoria(e.target.value)}>
                   <option value="">Elige una categoría</option>
-                  {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {CATEGORIAS.map((c) => (
+                    <option key={c} value={c} disabled={tomado(driver, c)}>{c}{tomado(driver, c) ? " (ya tiene cálculo de este driver)" : ""}</option>
+                  ))}
                 </select>
               </Field>
             )}
