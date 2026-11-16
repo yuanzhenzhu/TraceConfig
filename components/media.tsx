@@ -2,15 +2,16 @@
 
 // Cálculo de media de los drivers: pestaña propia en Configuración › Drivers (no está en el alta ni en cada configuración).
 // Se muestra como una tabla con todos los cálculos; cada uno se añade o modifica en un dialog, con los pasos en orden:
-// 1) por flota o por línea, 2) la flota o línea concreta, 3) el driver y 4) su forma de cálculo (solo las de ese nivel).
+// 1) por flota o por línea, 2) la flota o línea concreta, 3) el driver, 4) su forma de cálculo (solo las de ese nivel)
+// y 5) sus opciones: periodo de cálculo (normalmente 180 días) y, en las formas por categoría, la categoría (prueba 16-11-2026).
 // Una flota o línea tiene como mucho un cálculo por driver. Es opcional.
 
 import { useState } from "react";
 import { Button, Dialog, Field } from "./ds";
-import { DRIVERS, FORMAS_MEDIA, LINEAS, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
+import { CATEGORIAS, DRIVERS, FORMAS_MEDIA, LINEAS, PERIODO_MEDIA, formaConCategoria, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
 
 /** Un cálculo de media, con su flota o línea. */
-export type FilaMedia = { nivel: NivelMedia; destino: string; driver: DriverId; forma: FormaMedia };
+export type FilaMedia = { nivel: NivelMedia; destino: string; driver: DriverId; forma: FormaMedia; periodo: number; categoria?: string };
 
 export const nombreDriver = (id: DriverId) => DRIVERS.find((d) => d.id === id)?.nombre ?? id;
 export const nombreForma = (id: FormaMedia) => FORMAS_MEDIA.find((f) => f.id === id)?.nombre ?? id;
@@ -27,21 +28,34 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
   const [destino, setDestino] = useState(fila?.destino ?? "");
   const [driver, setDriver] = useState<DriverId | "">(fila?.driver ?? "");
   const [forma, setForma] = useState<FormaMedia | "">(fila?.forma ?? "");
+  const [periodo, setPeriodo] = useState(String(fila?.periodo ?? PERIODO_MEDIA));
+  const [categoria, setCategoria] = useState(fila?.categoria ?? "");
+  const [intentado, setIntentado] = useState(false);
 
   const opciones = nivel === "flota" ? flotas : nivel === "linea" ? LINEAS : [];
   const ocupados = nivel && destino ? usados(nivel, destino) : [];
   const libres = DRIVERS.filter((d) => !ocupados.includes(d.id));
-  const valido = !!(nivel && destino && driver && forma);
+  const conCategoria = formaConCategoria(forma);
+  const dias = Number(periodo);
+  const errPeriodo = !periodo.trim() ? "Indica el periodo de cálculo"
+    : !Number.isInteger(dias) || dias < 1 || dias > 3650 ? "Indica un número de días entre 1 y 3650" : "";
+  const errCategoria = conCategoria && !categoria ? "Elige una categoría" : "";
+  const valido = !!(nivel && destino && driver && forma) && !errPeriodo && !errCategoria;
   const etiqueta = nivel === "linea" ? "Línea" : "Flota";
 
   const cambiarNivel = (n: NivelMedia) => { if (n !== nivel) { setNivel(n); setDestino(""); setForma(""); } };
   const cambiarDestino = (d: string) => { setDestino(d); if (driver && nivel && usados(nivel, d).includes(driver)) setDriver(""); };
+  const guardar = () => {
+    setIntentado(true);
+    if (!valido || !nivel || !driver || !forma) return;
+    onGuardar({ nivel, destino, driver, forma, periodo: dias, ...(conCategoria ? { categoria } : {}) });
+  };
 
   return (
     <Dialog large title={fila ? "Modificar cálculo de media" : "Añadir cálculo de media"} onClose={onClose}
       footer={<>
         <Button variant="outlined" onClick={onClose}>Cancelar</Button>
-        <Button disabled={!valido} onClick={() => valido && onGuardar({ nivel, destino, driver, forma })}>{fila ? "Guardar" : "Añadir"}</Button>
+        <Button disabled={!(nivel && destino && driver && forma)} onClick={guardar}>{fila ? "Guardar" : "Añadir"}</Button>
       </>}>
       <div className="stack gap-20">
         <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }}>
@@ -63,7 +77,7 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
           </select>
         </Field>
 
-        <Field label="3. Driver" required htmlFor="media-driver"
+        <Field label="3. Tipo de driver" required htmlFor="media-driver"
           support={destino && !libres.length ? "Esta flota o línea ya tiene un cálculo para cada driver" : undefined}>
           <select id="media-driver" className="lm-select" value={driver} disabled={!destino} onChange={(e) => setDriver(e.target.value as DriverId)}>
             <option value="">{destino ? "Elige un driver" : `Elige antes la ${etiqueta.toLowerCase()}`}</option>
@@ -83,6 +97,30 @@ export function DialogMedia({ fila, flotas, usados, onClose, onGuardar }: {
               <span className="lm-radio__text"><span>{f.nombre}</span><span className="lm-radio__support">{f.desc}</span></span>
             </label>
           ))}
+        </fieldset>
+
+        <fieldset className="stack gap-10" style={{ border: 0, padding: 0, margin: 0 }} disabled={!forma}>
+          <legend className="lm-field__label" style={{ marginBottom: "var(--lm-space-10)" }}>
+            5. Opciones{!forma && <span className="muted"> · elige antes la forma de cálculo</span>}
+          </legend>
+          <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
+            <Field label="Periodo de cálculo (días)" required htmlFor="media-periodo" style={{ width: 220 }}
+              error={intentado ? errPeriodo : undefined} support="Normalmente, 180 días">
+              <input id="media-periodo" className="lm-input" inputMode="numeric" value={periodo} disabled={!forma}
+                aria-invalid={intentado && !!errPeriodo} onChange={(e) => setPeriodo(e.target.value.replace(/[^\d]/g, ""))} />
+            </Field>
+            {conCategoria && (
+              <Field label="Categoría" required htmlFor="media-categoria" style={{ width: 260 }}
+                error={intentado ? errCategoria : undefined}
+                support={forma.endsWith("posicion") ? "Una media por cada posición de esta categoría" : "Una media para todos los activos de esta categoría"}>
+                <select id="media-categoria" className="lm-select" value={categoria} aria-invalid={intentado && !!errCategoria}
+                  onChange={(e) => setCategoria(e.target.value)}>
+                  <option value="">Elige una categoría</option>
+                  {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+            )}
+          </div>
         </fieldset>
       </div>
     </Dialog>

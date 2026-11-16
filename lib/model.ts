@@ -18,7 +18,11 @@ export type PropAsignada = { propId: string; historico: boolean };
 export type EstadoPlantilla = "pendiente" | "cargada" | "errores";
 /** Cálculo de media de un driver: primero el driver y después su forma de cálculo. "" = aún sin elegir. */
 export type FormaMedia = "flota" | "flota-categoria" | "flota-categoria-posicion" | "linea" | "linea-categoria" | "linea-categoria-posicion";
-export type CalculoMedia = { driver: DriverId | ""; forma: FormaMedia | "" };
+/** (Prueba 16-11-2026) Periodo de cálculo en días (normalmente 180) y, en las formas por categoría, la categoría. */
+export type CalculoMedia = { driver: DriverId | ""; forma: FormaMedia | ""; periodo?: number; categoria?: string };
+export const PERIODO_MEDIA = 180;
+/** La forma de cálculo pide una categoría (por categoría, o por categoría y posición). */
+export const formaConCategoria = (f: FormaMedia | "") => f.includes("categoria");
 
 export type EstadoConfig = "en-configuracion" | "activa";
 

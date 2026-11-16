@@ -10,7 +10,7 @@ import { useState } from "react";
 import { Breadcrumb, Button, ButtonToggle, Dialog, EmptyState, Field, Icon, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
 import { cuentaDrivers } from "@/components/drivers";
 import { DialogMedia, nombreDriver, nombreForma, type FilaMedia } from "@/components/media";
-import { DRIVERS, LINEAS, claveMedia, driversEfectivos, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
+import { DRIVERS, LINEAS, PERIODO_MEDIA, claveMedia, driversEfectivos, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 export default function DriversPage() {
@@ -123,7 +123,9 @@ function PestanaMedia() {
   // Todas las filas, a partir de lo guardado por flota o línea
   const filas: FilaMedia[] = Object.entries(store.media).flatMap(([clave, lista]) => {
     const [nivel, destino] = clave.split(":") as [NivelMedia, string];
-    return lista.filter((x) => x.driver && x.forma).map((x) => ({ nivel, destino, driver: x.driver as DriverId, forma: x.forma as FormaMedia }));
+    return lista.filter((x) => x.driver && x.forma).map((x) => ({
+      nivel, destino, driver: x.driver as DriverId, forma: x.forma as FormaMedia, periodo: x.periodo ?? PERIODO_MEDIA, categoria: x.categoria,
+    }));
   });
   const ordenDriver = (d: DriverId) => DRIVERS.findIndex((x) => x.id === d);
   const lista = filas
@@ -138,7 +140,7 @@ function PestanaMedia() {
     // Si cambia de flota o línea, se quita de la anterior; en la nueva, se sustituye el del mismo driver
     if (antes && !mismaClave) quitar(antes);
     const actual = deClave(nueva.nivel, nueva.destino).filter((x) => x.driver !== nueva.driver && !(mismaClave && x.driver === antes!.driver));
-    store.guardarMedia(claveMedia(nueva.nivel, nueva.destino), [...actual, { driver: nueva.driver, forma: nueva.forma }]);
+    store.guardarMedia(claveMedia(nueva.nivel, nueva.destino), [...actual, { driver: nueva.driver, forma: nueva.forma, periodo: nueva.periodo, categoria: nueva.categoria }]);
     setEditando(null);
     snack(antes ? "Cálculo de media modificado" : `Cálculo de media de ${nombreDestino(nueva)} añadido`);
   };
@@ -161,7 +163,7 @@ function PestanaMedia() {
       ) : (
         <table className="lm-table">
           <thead>
-            <tr><th>Calcular por</th><th>Flota o línea</th><th>Driver</th><th>Forma de cálculo</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
+            <tr><th>Calcular por</th><th>Flota o línea</th><th>Driver</th><th>Forma de cálculo</th><th>Categoría</th><th>Periodo de cálculo</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
           </thead>
           <tbody>
             {lista.map((f) => (
@@ -170,6 +172,8 @@ function PestanaMedia() {
                 <td className="emph">{nombreDestino(f)}</td>
                 <td>{nombreDriver(f.driver)}</td>
                 <td>{nombreForma(f.forma)}</td>
+                <td>{f.categoria ?? <span className="muted">—</span>}</td>
+                <td>{f.periodo} días</td>
                 <td className="actions">
                   <Menu label={`Acciones del cálculo de ${nombreDriver(f.driver)} en ${nombreDestino(f)}`} items={[
                     { label: "Modificar", icon: "edit", onSelect: () => setEditando(f) },
