@@ -25,7 +25,7 @@ export default function ValoresHuecoPage() {
 
   useEffect(() => { if (c && !borrador) setBorrador(structuredClone(c.valoresHueco ?? {})); }, [c, borrador]);
 
-  const volver = "/configuracion-prueba/propiedades-hueco";
+  const volver = "/configuracion-prueba/propiedades-hueco?pestana=valores";
   if (!store.listo || (c && !borrador)) return <main className="lm-page"><Loading text="Cargando valores" /></main>;
   if (!c || !est || !flota) {
     return (
@@ -62,7 +62,7 @@ export default function ValoresHuecoPage() {
       <section className="lm-surface lm-surface--p24 stack gap-20">
         {!hayDef ? (
           <EmptyState icon="radio_button_checked" title={`${est.nombre} no tiene propiedades de hueco`} text="Defínelas primero en la estructura para poder darles valor"
-            action={<Link className="lm-btn lm-btn--outlined" href={`/configuracion-prueba/propiedades-hueco/estructura/${est.id}`}>Definir propiedades</Link>} />
+            action={<Link className="lm-btn lm-btn--outlined" href={`/configuracion-prueba/propiedades-hueco/estructura/${est.id}`}>Definir propiedades de hueco</Link>} />
         ) : (
           <>
             {otras.length > 0 && (

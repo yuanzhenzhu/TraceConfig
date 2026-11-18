@@ -21,7 +21,7 @@ export default function DefinicionHuecoPage() {
 
   useEffect(() => { if (est && !borrador) setBorrador(structuredClone(est.propsHueco ?? {})); }, [est, borrador]);
 
-  const volver = "/configuracion-prueba/propiedades-hueco?pestana=definicion";
+  const volver = "/configuracion-prueba/propiedades-hueco";
   if (!store.listo || (est && !borrador)) return <main className="lm-page"><Loading text="Cargando estructura" /></main>;
   if (!est) {
     return (

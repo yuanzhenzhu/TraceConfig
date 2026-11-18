@@ -1,8 +1,9 @@
 "use client";
 
 // (Prueba, 18-11-2026) Propiedades de hueco, con dos cosas separadas en dos pestañas:
+// - Definición por estructura (a la izquierda, por defecto): qué propiedades tiene cada hueco de una estructura.
+//   La comparten todas las flotas que la usan.
 // - Valores por flota: cada configuración (flota + estructura) con cuántos valores tiene rellenos. Se abren y se editan.
-// - Definición por estructura: qué propiedades tiene cada hueco de una estructura. La comparten todas las flotas que la usan.
 // Sustituye al select de estructura con la etiqueta «En uso en N configuraciones».
 
 import Link from "next/link";
@@ -15,16 +16,16 @@ type Pestana = "valores" | "definicion";
 
 export default function PropiedadesHuecoPage() {
   const store = useStore();
-  const [pestana, setPestana] = useState<Pestana>("valores");
+  const [pestana, setPestana] = useState<Pestana>("definicion");
   const [fFlota, setFFlota] = useState("");
   const [fEst, setFEst] = useState("");
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("pestana") === "definicion") setPestana("definicion");
+    if (new URLSearchParams(window.location.search).get("pestana") === "valores") setPestana("valores");
   }, []);
   const cambiarPestana = (p: Pestana) => {
     setPestana(p);
-    window.history.replaceState(null, "", `/configuracion-prueba/propiedades-hueco${p === "definicion" ? "?pestana=definicion" : ""}`);
+    window.history.replaceState(null, "", `/configuracion-prueba/propiedades-hueco${p === "valores" ? "?pestana=valores" : ""}`);
   };
 
   if (!store.listo) return <main className="lm-page"><Loading text="Cargando propiedades de hueco" /></main>;
@@ -45,8 +46,8 @@ export default function PropiedadesHuecoPage() {
       </div>
 
       <div className="lm-tabs" role="tablist">
-        <button role="tab" className="lm-tab" aria-selected={pestana === "valores"} onClick={() => cambiarPestana("valores")}><Icon name="table_rows" /> Valores por flota</button>
         <button role="tab" className="lm-tab" aria-selected={pestana === "definicion"} onClick={() => cambiarPestana("definicion")}><Icon name="list" /> Definición por estructura</button>
+        <button role="tab" className="lm-tab" aria-selected={pestana === "valores"} onClick={() => cambiarPestana("valores")}><Icon name="table_rows" /> Valores por flota</button>
       </div>
 
       {pestana === "valores" ? (
@@ -81,14 +82,14 @@ export default function PropiedadesHuecoPage() {
                       <td>{est.nombre}</td>
                       <td className="num">{nH || "—"}</td>
                       <td>
-                        {nH === 0 ? <span className="muted">La estructura no tiene propiedades de hueco</span>
+                        {nH === 0 ? <span className="muted">Sin propiedades de hueco</span>
                           : rellenos === 0 ? <Tag tone="attention">Sin valores</Tag>
                           : rellenos < total ? <Tag tone="attention" num={rellenos}>{`de ${total} con valor`}</Tag>
                           : <Tag tone="success">Completos ({total})</Tag>}
                       </td>
                       <td className="actions">
                         {nH === 0
-                          ? <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${est.id}`}>Definir propiedades</Link>
+                          ? <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${est.id}`}>Definir propiedades de hueco</Link>
                           : <Link className="lm-btn lm-btn--tonal lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/valores/${c.id}`}>Ver y editar valores</Link>}
                       </td>
                     </tr>
@@ -117,10 +118,10 @@ export default function PropiedadesHuecoPage() {
                           {e.descripcion && <InfoTooltip text={e.descripcion} label={`Descripción de ${e.nombre}`} />}
                         </span>
                       </td>
-                      <td className="num">{nH || <span className="muted">Sin propiedades</span>}</td>
+                      <td className="num">{nH || <span className="muted">Sin propiedades de hueco</span>}</td>
                       <td>{flotas.length ? flotas.join(", ") : <span className="muted">Ninguna</span>}</td>
                       <td className="actions">
-                        <Link className="lm-btn lm-btn--tonal lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${e.id}`}>{nH ? "Editar definición" : "Definir propiedades"}</Link>
+                        <Link className="lm-btn lm-btn--tonal lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${e.id}`}>{nH ? "Editar definición" : "Definir propiedades de hueco"}</Link>
                       </td>
                     </tr>
                   );
