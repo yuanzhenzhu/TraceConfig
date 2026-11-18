@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Breadcrumb, EmptyState, Field, Icon, InfoTooltip, Loading, Tag } from "@/components/ds";
 import { configsCon, huecosConPropiedades, valoresRellenos } from "@/components/configuracion-prueba/props-hueco";
+import { contarHuecos } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 type Pestana = "valores" | "definicion";
@@ -80,7 +81,7 @@ export default function PropiedadesHuecoPage() {
                     <tr key={c.id}>
                       <td className="emph">{flotaDe(c.flotaId)}</td>
                       <td>{est.nombre}</td>
-                      <td className="num">{nH || "—"}</td>
+                      <td className="num">{nH}/{contarHuecos(est.raiz)}</td>
                       <td>
                         {nH === 0 ? <span className="muted">Sin propiedades de hueco</span>
                           : rellenos === 0 ? <Tag tone="attention">Sin valores</Tag>
@@ -88,9 +89,8 @@ export default function PropiedadesHuecoPage() {
                           : <Tag tone="success">Completos ({total})</Tag>}
                       </td>
                       <td className="actions">
-                        {nH === 0
-                          ? <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${est.id}`}>Definir propiedades de hueco</Link>
-                          : <Link className="lm-btn lm-btn--tonal lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/valores/${c.id}`}>Ver y editar valores</Link>}
+                        {/* Sin propiedades de hueco: sin acción (se definen en la pestaña Definición por estructura) */}
+                        {nH > 0 && <Link className="lm-btn lm-btn--tonal lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/valores/${c.id}`}>Ver y editar valores</Link>}
                       </td>
                     </tr>
                   );
