@@ -2,7 +2,8 @@
 
 // (Prueba, 18-11-2026) Asignar estructura a una flota: se entra desde «Asignar estructura» (flota sin estructura)
 // o desde «Añadir configuración» del menú de la flota. Cada configuración es una estructura y su nº de unidades.
-// Al guardar se confirma la estructura (no se podrá cambiar) y se entra en el asistente de la primera.
+// Al guardar se confirma la estructura (no se podrá cambiar). Con una sola configuración se entra en su asistente;
+// con varias se vuelve al listado, donde cada una se continúa por separado.
 // Si no hay estructuras disponibles, se avisa y se ofrece crear una (en Estructuras, volviendo aquí con ella elegida).
 
 import { useParams, useRouter } from "next/navigation";
@@ -13,6 +14,8 @@ import { useStore } from "@/lib/store";
 
 type Fila = { unidades: string; estructuraId: string };
 const filaVacia = (): Fila => ({ unidades: "", estructuraId: "" });
+const ORDINALES = ["Primera", "Segunda", "Tercera", "Cuarta", "Quinta", "Sexta", "Séptima", "Octava", "Novena", "Décima"];
+const ordinal = (i: number) => (ORDINALES[i] ? `${ORDINALES[i]} configuración` : `Configuración ${i + 1}`);
 
 export default function AsignarEstructuraPage() {
   const { flotaId } = useParams<{ flotaId: string }>();
@@ -84,8 +87,9 @@ export default function AsignarEstructuraPage() {
     setConfirmar(false);
     snack(ids.length === 1
       ? `Configuración ${flota.nombre} · ${elegidas[0]!.nombre} guardada como En configuración`
-      : `${ids.length} configuraciones de ${flota.nombre} guardadas como En configuración`);
-    router.push(`/configuracion-prueba/${ids[0]}`);
+      : `${ids.length} configuraciones de ${flota.nombre} guardadas como En configuración. Continúa cada una desde el listado`);
+    // Una sola: se sigue en su asistente. Varias: se vuelve al listado y cada una se continúa desde allí.
+    router.push(ids.length === 1 ? `/configuracion-prueba/${ids[0]}` : "/configuracion-prueba");
   };
 
   return (
@@ -110,9 +114,9 @@ export default function AsignarEstructuraPage() {
             <section key={i} className="lm-surface lm-surface--p16 stack gap-15">
               <div className="row gap-10">
                 <h2 className="lm-title-small grow" style={{ margin: 0 }}>
-                  {i === 0 ? (primera ? "Primera configuración" : "Nueva configuración") : `Configuración ${i + 1}`}
+                  {filas.length === 1 && !primera ? "Nueva configuración" : ordinal(i)}
                 </h2>
-                {i > 0 && <IconButton icon="delete" label={`Quitar la configuración ${i + 1}`} onClick={() => setFilas(filas.filter((_, j) => j !== i))} />}
+                {i > 0 && <IconButton icon="delete" label={`Quitar la ${ordinal(i).toLowerCase()}`} onClick={() => setFilas(filas.filter((_, j) => j !== i))} />}
               </div>
               {i === 0 && !hayDisponibles && (
                 <Banner type="attention" title="No hay estructuras disponibles"
