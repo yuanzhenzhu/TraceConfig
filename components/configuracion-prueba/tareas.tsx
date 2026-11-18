@@ -9,9 +9,12 @@ import { Button, Icon, IconButton } from "../ds";
 
 export type Tarea = {
   titulo: string;
-  /** hecha: check verde · pendiente: círculo · recomendable: sin marca (no es obligatoria) */
-  estado: "hecha" | "pendiente" | "recomendable";
-  accion?: { label: string; onClick: () => void; disabled?: boolean };
+  /** hecha: check verde · pendiente: círculo */
+  estado: "hecha" | "pendiente";
+  /** Textos más pequeños debajo de la tarea (sin acción) */
+  sub?: string[];
+  /** Solo hay dos acciones posibles: Asignar estructura y Continuar */
+  accion?: { label: string; onClick: () => void };
 };
 
 export function TareasPendientes({ tareas, label }: { tareas: Tarea[]; label: string }) {
@@ -43,14 +46,17 @@ export function TareasPendientes({ tareas, label }: { tareas: Tarea[]; label: st
             {/* Línea que une los pasos */}
             <span aria-hidden="true" style={{ position: "absolute", left: 11, top: 12, bottom: 12, borderLeft: "1px solid var(--lm-sys-outline-variant)" }} />
             {tareas.map((t) => (
-              <li key={t.titulo} className="row gap-15" style={{ position: "relative", minHeight: 48, padding: "var(--lm-space-5) 0" }}>
+              <li key={t.titulo} className="row gap-15" style={{ alignItems: "flex-start", position: "relative", minHeight: 48, padding: "var(--lm-space-5) 0" }}>
                 <span style={{ width: 24, display: "inline-flex", justifyContent: "center", background: "var(--lm-sys-surface-container-lowest)", color: t.estado === "hecha" ? "var(--lm-success)" : "var(--lm-sys-outline)" }}>
                   {t.estado === "hecha" ? <Icon name="check_circle" filled label="Hecha" />
-                    : t.estado === "pendiente" ? <Icon name="circle" label="Pendiente" /> : null}
+                    : <Icon name="circle" label="Pendiente" />}
                 </span>
-                <span className="lm-body-large grow">{t.titulo}</span>
+                <span className="stack gap-5 grow">
+                  <span className="lm-body-large">{t.titulo}</span>
+                  {t.sub?.map((x) => <span key={x} className="lm-body-small muted">{x}</span>)}
+                </span>
                 {t.accion && (
-                  <Button variant="text" small disabled={t.accion.disabled} onClick={() => { setOpen(false); t.accion!.onClick(); }}>{t.accion.label}</Button>
+                  <Button variant="text" small onClick={() => { setOpen(false); t.accion!.onClick(); }}>{t.accion.label}</Button>
                 )}
               </li>
             ))}

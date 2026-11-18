@@ -8,7 +8,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, InfoTooltip, Loading, Menu, Tag, useSnackbar,
 } from "@/components/ds";
-import { primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
+import { type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 import { TareasPendientes, type Tarea } from "@/components/configuracion-prueba/tareas";
@@ -73,22 +73,18 @@ export default function ListadoPage() {
 
   // (Prueba) Las configuraciones se crean en Asignar estructura: cada una es una estructura y su nº de unidades.
   // (Prueba) Tareas pendientes (icono info junto a Sin estructura y Sin plantillas)
+  // Solo dos acciones: Asignar estructura (flota sin estructura) y Continuar (configuración sin plantillas, retoma el asistente).
+  const SUB_ESTRUCTURA = ["Propiedades de categoría", "Propiedades de hueco", "Drivers"];
   const tareasFlota = (f: Flota): Tarea[] => [
     { titulo: "Flota", estado: "hecha" },
-    { titulo: "Estructura", estado: "pendiente", accion: { label: "Asignar estructura", onClick: () => nuevaConfig(f.id) } },
-    { titulo: "Propiedades de categoría (recomendable)", estado: "recomendable", accion: { label: "Asignar propiedades", onClick: () => {}, disabled: true } },
-    { titulo: "Plantillas", estado: "pendiente", accion: { label: "Cargar plantillas", onClick: () => {}, disabled: true } },
+    { titulo: "Estructura", estado: "pendiente", sub: SUB_ESTRUCTURA, accion: { label: "Asignar estructura", onClick: () => nuevaConfig(f.id) } },
+    { titulo: "Plantillas", estado: "pendiente" },
   ];
-  const tareasConfig = (c: Configuracion): Tarea[] => {
-    const raiz = store.estructura(c.estructuraId)?.raiz;
-    const tren = primerNivelCargado(c, raiz);
-    return [
-      { titulo: "Flota", estado: "hecha" },
-      { titulo: "Estructura", estado: "hecha" },
-      { titulo: "Propiedades de categoría (recomendable)", estado: "recomendable", accion: { label: "Asignar propiedades", onClick: () => router.push(`/configuracion-prueba/${c.id}?paso=4`) } },
-      { titulo: tren ? "Plantillas (falta finalizar el alta)" : "Plantillas", estado: "pendiente", accion: { label: tren ? "Finalizar" : "Cargar plantillas", onClick: () => router.push(`/configuracion-prueba/${c.id}?paso=${tren ? 8 : 7}`) } },
-    ];
-  };
+  const tareasConfig = (c: Configuracion): Tarea[] => [
+    { titulo: "Flota", estado: "hecha" },
+    { titulo: "Estructura", estado: "hecha", sub: SUB_ESTRUCTURA },
+    { titulo: "Plantillas", estado: "pendiente", accion: { label: "Continuar", onClick: () => router.push(`/configuracion-prueba/${c.id}`) } },
+  ];
 
   const nuevaConfig = (flotaId: string) => router.push(`/configuracion-prueba/asignar/${flotaId}`);
 
