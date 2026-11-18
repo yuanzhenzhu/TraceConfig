@@ -8,9 +8,8 @@
 import { useMemo, useState } from "react";
 import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, Loading, Menu, Tag, useSnackbar } from "@/components/ds";
 import { unidadesDe } from "@/lib/activos";
-import { LINEAS } from "@/lib/model";
 import { useStore } from "@/lib/store";
-import { fechaHora, nombreLinea, useAsignacionLinea, type Asignacion } from "@/components/configuracion-prueba/lineas";
+import { LINEAS, fechaHora, nombreLinea, useAsignacionLinea, type Asignacion } from "@/components/configuracion-prueba/lineas";
 
 const POR_PAGINA = 25;
 type Fila = { clave: string; serie: string; flotaId: string; flota: string; configId: string; estructura: string; hist: Asignacion[] };
@@ -95,7 +94,7 @@ export default function AsignacionLineaPage() {
               <thead>
                 <tr>
                   <th style={{ width: 48 }}><input type="checkbox" style={caja} checked={todasMarcadas} onChange={marcarTodas} aria-label={`Seleccionar las ${lista.length} unidades filtradas`} /></th>
-                  <th>Unidad</th><th>Flota</th><th>Grupo de trenes</th><th>Línea actual</th><th>Desde</th>
+                  <th>Unidad</th><th>Flota</th><th>Línea actual</th><th>Desde</th>
                   <th className="actions"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
@@ -105,7 +104,6 @@ export default function AsignacionLineaPage() {
                     <td><input type="checkbox" style={caja} checked={sel.has(f.clave)} onChange={() => marcar(f.clave)} aria-label={`Seleccionar la unidad ${f.serie}`} /></td>
                     <td className="emph">{f.serie}</td>
                     <td>{f.flota}</td>
-                    <td>{f.estructura}</td>
                     <td><Tag tone="primary">{nombreLinea(actual(f).lineaId)}</Tag></td>
                     <td className="muted">{fechaHora(actual(f).fecha)}</td>
                     <td className="actions">
@@ -149,7 +147,7 @@ export default function AsignacionLineaPage() {
       )}
 
       {verHist && (
-        <Dialog large title={`Historial de líneas de la unidad ${verHist.serie}`} message={`${verHist.flota} · ${verHist.estructura}`} onClose={() => setVerHist(null)}
+        <Dialog large title={`Historial de líneas de la unidad ${verHist.serie}`} message={verHist.flota} onClose={() => setVerHist(null)}
           footer={<Button variant="outlined" onClick={() => setVerHist(null)}>Cerrar</Button>}>
           <table className="lm-table">
             <thead><tr><th>Línea</th><th>Desde</th><th>Hasta</th></tr></thead>

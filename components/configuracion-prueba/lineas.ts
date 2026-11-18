@@ -5,7 +5,19 @@
 // en el navegador, con su historial. Cada asignación lleva fecha y hora; no lleva km.
 
 import { useCallback, useEffect, useState } from "react";
-import { LINEAS } from "@/lib/model";
+import { LINEAS as LINEAS_EXCEL } from "@/lib/model";
+
+/**
+ * (Prueba) Supuesto: el cliente tiene 12 líneas. Las 3 primeras vienen del Excel (hoja de líneas);
+ * de la 4 a la 12 son ficticias y solo se usan en Asignación de línea (el cálculo de medias sigue con las del Excel).
+ */
+export const LINEAS: { id: string; nombre: string }[] = [
+  ...LINEAS_EXCEL,
+  ...Array.from({ length: Math.max(0, 12 - LINEAS_EXCEL.length) }, (_, i) => {
+    const n = LINEAS_EXCEL.length + i + 1;
+    return { id: `linea-prueba-${n}`, nombre: `Línea ${n}` };
+  }),
+];
 
 export type Asignacion = { lineaId: string; fecha: string }; // fecha: ISO
 export type Historial = Record<string, Asignacion[]>; // clave de unidad («configId|1001») → asignaciones, la última es la actual
@@ -14,9 +26,11 @@ const CLAVE = "lm-prueba-asignacion-linea";
 
 /** Línea inicial ficticia de una unidad, según su flota. */
 function inicial(flotaNombre: string, i: number): Asignacion {
-  // Una flota con «Línea N» en el nombre empieza en esa línea; el resto se reparte entre las líneas
+  // Una flota con «Línea N» en el nombre empieza en esa línea
   const n = /línea\s*(\d+)/i.exec(flotaNombre)?.[1];
-  const linea = (n && LINEAS.find((l) => l.nombre === `Línea ${n}`)) || LINEAS[i % LINEAS.length];
+  // Para las demás flotas, una línea según el nombre de la flota; la mitad de sus unidades en la siguiente
+  const h = [...flotaNombre].reduce((t, ch) => t + ch.charCodeAt(0), 0);
+  const linea = (n && LINEAS.find((l) => l.nombre === `Línea ${n}`)) || LINEAS[(h + (i % 2)) % LINEAS.length];
   return { lineaId: linea.id, fecha: "2025-01-07T06:00:00.000Z" };
 }
 
