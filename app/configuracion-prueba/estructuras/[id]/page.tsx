@@ -8,7 +8,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Banner, Breadcrumb, Button, Dialog, EmptyState, Field, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
 import { EditorEstructura } from "@/components/configuracion-prueba/arbol";
-import { MatrizPropsHueco, resumenPropiedades } from "@/components/configuracion-prueba/propiedades";
 import { clonar, contarHuecos, diferencia, nodo, nuevoId, type Estructura } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
@@ -26,13 +25,11 @@ export default function EditarEstructuraPage() {
   const [base, setBase] = useState("");
   const [intentado, setIntentado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
-  const [pestana, setPestana] = useState<"estructura" | "huecos">("estructura");
   const [cfgId, setCfgId] = useState<string | null>(null);
   // (Prueba) ?asignar=<flotaId>: se viene de Asignar estructura; al crearla se vuelve allí con ella elegida.
   const [asignar, setAsignar] = useState<{ flotaId: string; demo: boolean } | null>(null);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    if (q.get("pestana") === "huecos") setPestana("huecos");
     setCfgId(q.get("config"));
     const a = q.get("asignar");
     if (a) setAsignar({ flotaId: a, demo: q.get("demo") === "sin-estructuras" });
@@ -48,7 +45,7 @@ export default function EditarEstructuraPage() {
   if (!borrador) {
     return (
       <main className="lm-page">
-        <EmptyState icon="search_off" title="No se ha encontrado la estructura" action={<Button onClick={() => router.push("/configuracion-prueba/estructuras")}>Volver a Estructura y propiedades de hueco</Button>} />
+        <EmptyState icon="search_off" title="No se ha encontrado la estructura" action={<Button onClick={() => router.push("/configuracion-prueba/estructuras")}>Volver a Estructuras</Button>} />
       </main>
     );
   }
@@ -59,7 +56,6 @@ export default function EditarEstructuraPage() {
   const dif = original ? diferencia(original.raiz, borrador.raiz) : { anadidos: [], eliminados: [] };
   const hayCambiosArbol = dif.anadidos.length + dif.eliminados.length > 0;
   const hayCambiosHuecos = !!original && JSON.stringify(original.propsHueco ?? {}) !== JSON.stringify(borrador.propsHueco ?? {});
-  const huecosConProps = resumenPropiedades(borrador.raiz, { propsCategoria: {}, propsHueco: borrador.propsHueco ?? {} }).nHuecos;
   const errNombre = intentado && !borrador.nombre.trim() ? "Indica el nombre de la estructura" : "";
   const errVacia = intentado && borrador.raiz.hijos.length === 0;
   const nombreRepetido = store.estructuras.some((e) => e.id !== borrador.id && e.nombre.trim().toLowerCase() === borrador.nombre.trim().toLowerCase());
@@ -96,7 +92,7 @@ export default function EditarEstructuraPage() {
             ? [{ label: "Configuración", href: "/configuracion-prueba" }, { label: `Asignar estructura a ${flotaAsignar.nombre}`, href: volverA }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]
             : cfg
             ? [{ label: "Configuración", href: "/configuracion-prueba" }, { label: nombreCfg, href: volverA }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]
-            : [{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Estructura y propiedades de hueco", href: "/configuracion-prueba/estructuras" }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]} />
+            : [{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Estructuras", href: "/configuracion-prueba/estructuras" }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{esNueva ? "Nueva estructura" : `Modificar ${original!.nombre}`}</h1>
             {!esNueva && (enUso ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>)}
@@ -147,21 +143,9 @@ export default function EditarEstructuraPage() {
               )}
             </fieldset>
           )}
-          <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
-            <button role="tab" className="lm-tab" aria-selected={pestana === "estructura"} onClick={() => setPestana("estructura")}><Icon name="table_rows" /> Estructura</button>
-            <button role="tab" className="lm-tab" aria-selected={pestana === "huecos"} onClick={() => setPestana("huecos")}><Icon name="radio_button_checked" /> Propiedades de hueco{huecosConProps ? ` (${huecosConProps})` : ""}</button>
-          </div>
-          {pestana === "estructura" ? (
-            <>
-              {errVacia && <Banner type="error">La estructura está vacía: añade al menos un elemento</Banner>}
-              <EditorEstructura soloExtremos={enUso} raiz={borrador.raiz} onChange={(raiz) => setBorrador({ ...borrador, raiz })} />
-            </>
-          ) : (
-            <>
-              <span className="muted">Elige qué propiedades tiene cada posición de esta estructura (por ejemplo, el lado de una rueda). Las comparten todas las flotas que la usan. Sus valores se dan en cada configuración, en el paso 2 del asistente, y no aparecen en las plantillas.</span>
-              <MatrizPropsHueco raiz={borrador.raiz} valor={borrador.propsHueco ?? {}} onChange={(v) => setBorrador({ ...borrador, propsHueco: v })} />
-            </>
-          )}
+          {/* (Prueba) Las propiedades de hueco se definen en su propio apartado (Configuración › Propiedades de hueco) */}
+          {errVacia && <Banner type="error">La estructura está vacía: añade al menos un elemento</Banner>}
+          <EditorEstructura soloExtremos={enUso} raiz={borrador.raiz} onChange={(raiz) => setBorrador({ ...borrador, raiz })} />
         </section>
       </div>
 

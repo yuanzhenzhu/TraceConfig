@@ -27,8 +27,8 @@ export default function EstructurasPage() {
     <main className="lm-page">
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Estructura y propiedades de hueco" }]} />
-          <h1 className="lm-headline-small" style={{ margin: 0 }}>Estructura y propiedades de hueco</h1>
+          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Estructuras" }]} />
+          <h1 className="lm-headline-small" style={{ margin: 0 }}>Estructuras</h1>
           <span className="muted">Catálogo común del cliente. Un cambio en una estructura afecta a todas las configuraciones que la usan.</span>
         </div>
         <div className="lm-header__actions">
@@ -83,7 +83,7 @@ export default function EstructurasPage() {
             <thead>
               <tr>
                 <th style={{ width: 48 }}><span className="sr-only">Desplegar</span></th>
-                <th>Estructura</th><th>Propiedad de hueco</th>
+                <th>Estructura</th>
                 <th className="num">Configuraciones</th><th className="num">Unidades</th><th>Estado</th>
                 <th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
@@ -106,7 +106,6 @@ export default function EstructurasPage() {
                           <InfoTooltip text={e.descripcion || "Sin descripción"} label={`Descripción de ${e.nombre}`} />
                         </span>
                       </td>
-                      <td>{Object.values(e.propsHueco ?? {}).some((x) => Object.keys(x).length) ? "Sí" : "No"}</td>
                       <td className="num">{usos.length}</td>
                       <td className="num">{unidades || "—"}</td>
                       <td>{usos.length ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>}</td>

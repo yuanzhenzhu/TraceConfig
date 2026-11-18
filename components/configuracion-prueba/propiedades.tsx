@@ -106,7 +106,7 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
   );
 }
 
-/* ---------- Propiedades de hueco: matriz de asignación (Configuración › Estructura y propiedades de hueco) ---------- */
+/* ---------- Propiedades de hueco: matriz de asignación (Configuración › Propiedades de hueco) ---------- */
 /**
  * (Prueba) Se asignan directamente, sin seleccionar antes los huecos: la estructura en filas y una columna por propiedad.
  * Encima, un atajo para asignar o quitar una propiedad en todos los huecos de una categoría.

@@ -111,7 +111,7 @@ export function Paso1({ c, set, intentado, est, flota, soloLectura, anadir }: Pa
             {modo === "nueva" ? (
               <Banner type="info" title="La estructura nueva se crea en Estructuras"
                 actions={<Button variant="outlined" small icon="north_east" onClick={irAEstructuras}>Ir a Estructuras</Button>}>
-                Irás a Configuración › Estructura y propiedades de hueco para crearla: su composición de huecos y, si quieres, sus propiedades de hueco. Al pulsar Crear y volver al asistente, se añadirá al catálogo del cliente y volverás aquí con ella asignada. Lo que has rellenado en este paso se conserva. Una vez creada, ya no podrás elegir una estructura existente para esta configuración.
+                Irás a Configuración › Estructuras para crearla: su composición de huecos. Sus propiedades de hueco se definen después, en Configuración › Propiedades de hueco. Al pulsar Crear y volver al asistente, se añadirá al catálogo del cliente y volverás aquí con ella asignada. Lo que has rellenado en este paso se conserva. Una vez creada, ya no podrás elegir una estructura existente para esta configuración.
               </Banner>
             ) : (
             <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "var(--lm-space-20)", alignItems: "start" }}>
@@ -171,7 +171,7 @@ function VistaEstructura({ est, titulo }: { est: Estructura; titulo: string }) {
         </>
       ) : n === 0 ? (
         <div className="lm-center"><Icon name="radio_button_checked" size="xl" />{est.nombre} no tiene propiedades de hueco
-          <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/estructuras/${est.id}?pestana=huecos`}>Definirlas en Estructuras</Link>
+          <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/propiedades-hueco?estructura=${est.id}`}>Definirlas en Propiedades de hueco</Link>
         </div>
       ) : (
         <>
@@ -199,7 +199,7 @@ export function Paso2({ c, set, est, soloLectura }: PasoProps) {
       {n === 0 ? (
         <EmptyState icon="radio_button_checked" title={`${est!.nombre} no tiene propiedades de hueco`}
           text="No hay valores que dar. Puedes continuar con el paso siguiente"
-          action={<Link className="lm-btn lm-btn--outlined" href={`/configuracion-prueba/estructuras/${est!.id}?pestana=huecos`}>Definirlas en Estructuras</Link>} />
+          action={<Link className="lm-btn lm-btn--outlined" href={`/configuracion-prueba/propiedades-hueco?estructura=${est!.id}`}>Definirlas en Propiedades de hueco</Link>} />
       ) : (
         <>
           <p className="muted" style={{ margin: 0 }}>

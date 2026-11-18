@@ -93,7 +93,7 @@ export default function ListadoPage() {
       <div className="lm-header">
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración" }]} />
-          <h1 className="lm-headline-small" style={{ margin: 0 }}>Flotas y configuraciones</h1>
+          <h1 className="lm-headline-small" style={{ margin: 0 }}>Flotas</h1>
         </div>
         <div className="lm-header__actions">
           <Button icon="add" onClick={() => setDialogFlota(true)}>Añadir flota</Button>
