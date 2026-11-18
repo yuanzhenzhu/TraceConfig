@@ -3,6 +3,7 @@
 // Propiedades de categoría: un único juego para todo el cliente, que se aplica a todas las flotas.
 // Se editan aquí (todas las categorías) o en el paso 4 del asistente (las categorías de su estructura).
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Banner, Breadcrumb, Button, Dialog, Loading, useSnackbar } from "@/components/ds";
 import { EditorPropsCategoria } from "@/components/configuracion-prueba/propiedades";
@@ -12,6 +13,7 @@ import { useStore } from "@/lib/store";
 export default function PropiedadesCategoriaPage() {
   const store = useStore();
   const snack = useSnackbar();
+  const router = useRouter();
   const [borrador, setBorrador] = useState<PropsCategoria | null>(null);
   const [confirmar, setConfirmar] = useState(false);
 
@@ -38,6 +40,10 @@ export default function PropiedadesCategoriaPage() {
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Propiedades de categoría" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Propiedades de categoría</h1>
           <span className="muted">Qué propiedades se registran para cada categoría de activo (por ejemplo, el diámetro de las ruedas) y si guardan histórico. Son únicas para todo el cliente.</span>
+        </div>
+        {/* (Prueba, 18-11-2026) Carga de valores con plantilla, como en Cambio de número de serie */}
+        <div className="lm-header__actions">
+          <Button variant="outlined" icon="file_upload" onClick={() => router.push("/configuracion-prueba/propiedades-categoria/plantilla")}>Cargar valores de propiedades de categoría con plantilla</Button>
         </div>
       </div>
 
