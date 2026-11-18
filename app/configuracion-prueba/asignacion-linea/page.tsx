@@ -20,7 +20,6 @@ export default function AsignacionLineaPage() {
   const snack = useSnackbar();
   const { historial, asignar, restablecer } = useAsignacionLinea();
   const [fFlota, setFFlota] = useState("");
-  const [fGrupo, setFGrupo] = useState("");
   const [fLinea, setFLinea] = useState("");
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [pagina, setPagina] = useState(0);
@@ -34,15 +33,14 @@ export default function AsignacionLineaPage() {
     return series.map((s, i) => ({ clave: `${c.id}|${s}`, serie: s, flotaId: c.flotaId, flota, configId: c.id, estructura, hist: historial(`${c.id}|${s}`, flota, i) }));
   }), [store, historial]);
 
-  const grupos = [...new Map(filas.filter((f) => !fFlota || f.flotaId === fFlota).map((f) => [f.configId, `${f.flota} · ${f.estructura}`])).entries()];
   const actual = (f: Fila) => f.hist[f.hist.length - 1];
-  const lista = filas.filter((f) => (!fFlota || f.flotaId === fFlota) && (!fGrupo || f.configId === fGrupo) && (!fLinea || actual(f).lineaId === fLinea));
+  const lista = filas.filter((f) => (!fFlota || f.flotaId === fFlota) && (!fLinea || actual(f).lineaId === fLinea));
   const visibles = lista.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
   const todasMarcadas = lista.length > 0 && lista.every((f) => sel.has(f.clave));
   const marcar = (clave: string) => setSel((s) => { const n = new Set(s); if (n.has(clave)) n.delete(clave); else n.add(clave); return n; });
   const marcarTodas = () => setSel(todasMarcadas ? new Set() : new Set(lista.map((f) => f.clave)));
   const filtrar = (fn: () => void) => { fn(); setPagina(0); setSel(new Set()); };
-  const hayFiltros = !!(fFlota || fGrupo || fLinea);
+  const hayFiltros = !!(fFlota || fLinea);
   const caja = { width: 18, height: 18, accentColor: "var(--lm-sys-primary)" };
 
   return (
@@ -51,22 +49,16 @@ export default function AsignacionLineaPage() {
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Asignación de línea" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Asignación de línea</h1>
-          <span className="muted">En qué línea circula cada unidad. Marca una o varias (por ejemplo, un grupo de trenes entero) para asignarles una línea nueva desde una fecha.</span>
+          <span className="muted">En qué línea circula cada unidad. Marca una o varias para asignarles una línea nueva desde una fecha.</span>
         </div>
       </div>
 
       <section className="lm-surface lm-surface--p16">
         <div className="lm-filters">
           <Field label="Flota" htmlFor="al-flota">
-            <select id="al-flota" className="lm-select lm-select--dense" value={fFlota} onChange={(e) => filtrar(() => { setFFlota(e.target.value); setFGrupo(""); })}>
+            <select id="al-flota" className="lm-select lm-select--dense" value={fFlota} onChange={(e) => filtrar(() => setFFlota(e.target.value))}>
               <option value="">Todas</option>
               {store.flotas.filter((f) => filas.some((x) => x.flotaId === f.id)).map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-            </select>
-          </Field>
-          <Field label="Grupo de trenes" htmlFor="al-grupo">
-            <select id="al-grupo" className="lm-select lm-select--dense" value={fGrupo} onChange={(e) => filtrar(() => setFGrupo(e.target.value))}>
-              <option value="">Todos</option>
-              {grupos.map(([id, nombre]) => <option key={id} value={id}>{nombre}</option>)}
             </select>
           </Field>
           <Field label="Línea actual" htmlFor="al-linea">
@@ -75,7 +67,7 @@ export default function AsignacionLineaPage() {
               {LINEAS.map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
             </select>
           </Field>
-          {hayFiltros && <Button variant="text" icon="restart_alt" onClick={() => filtrar(() => { setFFlota(""); setFGrupo(""); setFLinea(""); })}>Restablecer</Button>}
+          {hayFiltros && <Button variant="text" icon="restart_alt" onClick={() => filtrar(() => { setFFlota(""); setFLinea(""); })}>Restablecer</Button>}
         </div>
 
         {/* Barra de selección: asignar por grupo */}
@@ -96,7 +88,7 @@ export default function AsignacionLineaPage() {
           <EmptyState icon="train" title="Todavía no hay unidades" text="Las unidades aparecen cuando una configuración tiene cargada la plantilla del Tren" />
         ) : lista.length === 0 ? (
           <EmptyState icon="search_off" title="No hay resultados" text="Ninguna unidad coincide con los filtros"
-            action={<Button variant="outlined" onClick={() => filtrar(() => { setFFlota(""); setFGrupo(""); setFLinea(""); })}>Restablecer filtros</Button>} />
+            action={<Button variant="outlined" onClick={() => filtrar(() => { setFFlota(""); setFLinea(""); })}>Restablecer filtros</Button>} />
         ) : (
           <>
             <table className="lm-table">
