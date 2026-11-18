@@ -8,9 +8,10 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, InfoTooltip, Loading, Menu, Tag, useSnackbar,
 } from "@/components/ds";
-import { type Configuracion, type Flota } from "@/lib/model";
+import { primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
+import { TareasPendientes, type Tarea } from "@/components/configuracion-prueba/tareas";
 
 type Demo = "normal" | "vacio" | "error" | "cargando";
 const POR_PAGINA = 10;
@@ -71,6 +72,24 @@ export default function ListadoPage() {
   const flotasDemo = demo === "vacio" ? [] : visibles;
 
   // (Prueba) Las configuraciones se crean en Asignar estructura: cada una es una estructura y su nº de unidades.
+  // (Prueba) Tareas pendientes (icono info junto a Sin estructura y Sin plantillas)
+  const tareasFlota = (f: Flota): Tarea[] => [
+    { titulo: "Flota", estado: "hecha" },
+    { titulo: "Estructura", estado: "pendiente", accion: { label: "Asignar estructura", onClick: () => nuevaConfig(f.id) } },
+    { titulo: "Propiedades de categoría (recomendable)", estado: "recomendable", accion: { label: "Asignar propiedades", onClick: () => {}, disabled: true } },
+    { titulo: "Plantillas", estado: "pendiente", accion: { label: "Cargar plantillas", onClick: () => {}, disabled: true } },
+  ];
+  const tareasConfig = (c: Configuracion): Tarea[] => {
+    const raiz = store.estructura(c.estructuraId)?.raiz;
+    const tren = primerNivelCargado(c, raiz);
+    return [
+      { titulo: "Flota", estado: "hecha" },
+      { titulo: "Estructura", estado: "hecha" },
+      { titulo: "Propiedades de categoría (recomendable)", estado: "recomendable", accion: { label: "Asignar propiedades", onClick: () => router.push(`/configuracion-prueba/${c.id}?paso=4`) } },
+      { titulo: tren ? "Plantillas (falta finalizar el alta)" : "Plantillas", estado: "pendiente", accion: { label: tren ? "Finalizar" : "Cargar plantillas", onClick: () => router.push(`/configuracion-prueba/${c.id}?paso=${tren ? 8 : 7}`) } },
+    ];
+  };
+
   const nuevaConfig = (flotaId: string) => router.push(`/configuracion-prueba/asignar/${flotaId}`);
 
   return (
@@ -168,7 +187,7 @@ export default function ListadoPage() {
                         <td className="num">{total || "—"}</td>
                         <td>
                           <span className="row gap-5 wrap">
-                            {todas.length === 0 && <Tag tone="attention">Sin estructura</Tag>}
+                            {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">Sin estructura</Tag><TareasPendientes label={`Tareas pendientes de ${f.nombre}`} tareas={tareasFlota(f)} /></span>}
                             {activas > 0 && <Tag tone="success" num={activas}>{activas === 1 ? "Activa" : "Activas"}</Tag>}
                             {enConf > 0 && <Tag tone="attention" num={enConf}>Sin plantillas</Tag>}
                           </span>
@@ -202,7 +221,7 @@ export default function ListadoPage() {
                               <span className="row gap-10">
                                 {c.estado === "activa"
                                   ? <Tag tone="success">Activa</Tag>
-                                  : <Tag tone="attention">Sin plantillas</Tag>}
+                                  : <span className="row gap-5"><Tag tone="attention">Sin plantillas</Tag><TareasPendientes label={`Tareas pendientes de ${etiquetaCfg(store, c)}`} tareas={tareasConfig(c)} /></span>}
                               </span>
                             </td>
                             <td className="actions">
@@ -327,8 +346,6 @@ function DialogNuevaFlota({ existentes, onClose, onCrear }: {
     if (errNombre) return;
     onCrear({ nombre: nombre.trim(), descripcion: descripcion.trim() });
   };
-  const fila = { display: "grid", gridTemplateColumns: "1fr auto", gap: "var(--lm-space-10)", alignItems: "end" } as const;
-
   return (
     <Dialog title="Añadir flota" onClose={onClose}
       footer={<>
@@ -336,18 +353,12 @@ function DialogNuevaFlota({ existentes, onClose, onCrear }: {
         <Button onClick={crear}>Aceptar</Button>
       </>}>
       <div className="stack gap-20">
-        <div style={fila}>
-          <Field label="Nombre de flota" required htmlFor="nf-nombre" error={intentado ? errNombre : ""}>
-            <input id="nf-nombre" className="lm-input" value={nombre} aria-invalid={intentado && !!errNombre} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Metro Línea 4" />
-          </Field>
-          <InfoTooltip label="Ayuda sobre el nombre de flota" text="Nombre con el que se identifica la flota en toda la aplicación. No se puede repetir" />
-        </div>
-        <div style={fila}>
-          <Field label="Descripción" htmlFor="nf-desc">
-            <input id="nf-desc" className="lm-input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Por ejemplo: Flota de metro de la línea 4" />
-          </Field>
-          <InfoTooltip label="Ayuda sobre la descripción" text="Opcional. Se ve en el listado con el icono de información junto al nombre" />
-        </div>
+        <Field label="Nombre de flota" required htmlFor="nf-nombre" error={intentado ? errNombre : ""}>
+          <input id="nf-nombre" className="lm-input" value={nombre} aria-invalid={intentado && !!errNombre} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Metro Línea 4" />
+        </Field>
+        <Field label="Descripción" htmlFor="nf-desc">
+          <input id="nf-desc" className="lm-input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Por ejemplo: Flota de metro de la línea 4" />
+        </Field>
       </div>
     </Dialog>
   );
