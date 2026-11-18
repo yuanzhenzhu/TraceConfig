@@ -12,6 +12,7 @@ import { Paso4 } from "@/components/configuracion-prueba/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/configuracion-prueba/pasos-7-8";
 import { PASOS, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
+import { etiquetaCfg, nombreEstructura } from "@/components/configuracion-prueba/nombre";
 
 export default function AsistentePage() {
   const { id } = useParams<{ id: string }>();
@@ -119,7 +120,7 @@ export default function AsistentePage() {
     if (p === 1 && c.guardada && est?.borradorDe) store.actualizarConfig(c.id, { guardada: true }); // la estructura nueva pasa al catálogo
     if (p === 1 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });
-      snack(`Configuración "${c.nombre}" guardada como En configuración`);
+      snack(`Configuración ${etiquetaCfg(store, c)} guardada como En configuración`);
     }
     if (c.pasosOmitidos.includes(p)) set({ pasosOmitidos: c.pasosOmitidos.filter((x) => x !== p) });
     // Tras validar el paso actual, el siguiente es alcanzable aunque el estado aún no se haya refrescado.
@@ -127,19 +128,19 @@ export default function AsistentePage() {
   };
   const finalizar = () => {
     set({ estado: "activa", pasoActual: 8 });
-    snack(`Configuración "${c.nombre}" finalizada: sus ${c.unidades} unidades ya están activas`);
+    snack(`Configuración ${etiquetaCfg(store, c)} finalizada: sus ${c.unidades} unidades ya están activas`);
     router.push("/configuracion-prueba");
   };
   const guardarAnadir = () => {
     if (!anadir || !listoAnadir) return;
     const n = (cv.unidades ?? 0) - anadir.antes;
     store.actualizarConfig(c.id, { unidades: cv.unidades, plantillas: cv.plantillas, intentosPlantilla: cv.intentosPlantilla });
-    snack(`${n} unidades añadidas a ${store.etiqueta(c)}: ahora tiene ${cv.unidades}`);
+    snack(`${n} unidades añadidas a ${etiquetaCfg(store, c)}: ahora tiene ${cv.unidades}`);
     router.push("/configuracion-prueba");
   };
   const guardarYSalir = () => {
     if (!c.guardada) { setSalir(true); return; }
-    snack(`Configuración "${c.nombre}" guardada`);
+    snack(`Configuración ${etiquetaCfg(store, c)} guardada`);
     router.push("/configuracion-prueba");
   };
 
@@ -147,9 +148,9 @@ export default function AsistentePage() {
     <main className="lm-page" style={{ paddingBottom: 120 }}>
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: flota.nombre, href: "/configuracion-prueba" }, { label: c.nombre || "Nueva configuración" }]} />
+          <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: flota.nombre, href: "/configuracion-prueba" }, { label: c.estructuraId ? nombreEstructura(store, c) : "Nueva configuración" }]} />
           <span className="row gap-15">
-            <h1 className="lm-headline-small" style={{ margin: 0 }}>{c.nombre || "Nueva configuración"}</h1>
+            <h1 className="lm-headline-small" style={{ margin: 0 }}>{c.estructuraId ? etiquetaCfg(store, c) : "Nueva configuración"}</h1>
             {c.guardada && (soloLectura ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>)}
           </span>
         </div>
@@ -161,7 +162,7 @@ export default function AsistentePage() {
         <div className="row gap-10 wrap" style={{ marginBottom: "var(--lm-space-15)" }}>
           <span className="lm-body-small muted">Otras configuraciones de {flota.nombre} en configuración:</span>
           {hermanas.map((x) => (
-            <a key={x.id} className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion-prueba/${x.id}`}>{x.nombre}</a>
+            <a key={x.id} className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion-prueba/${x.id}`}>{nombreEstructura(store, x)}</a>
           ))}
         </div>
       )}
@@ -169,7 +170,7 @@ export default function AsistentePage() {
       {soloLectura && (
         <div style={{ marginBottom: "var(--lm-space-20)" }}>
           {anadir ? (
-            <Banner type="info" title={`Estás añadiendo unidades a ${store.etiqueta(c)}`}>
+            <Banner type="info" title={`Estás añadiendo unidades a ${etiquetaCfg(store, c)}`}>
               Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). La plantilla de unidades es obligatoria. Los cambios se guardan al pulsar Añadir unidades en el resumen: si sales antes, no se guarda nada.
             </Banner>
           ) : (
@@ -251,7 +252,7 @@ export default function AsistentePage() {
 
       {salirAnadir && anadir && (
         <Dialog title="¿Salir sin añadir unidades?" onClose={() => setSalirAnadir(false)}
-          message={`No se guardará ningún cambio: ${store.etiqueta(c)} seguirá con sus ${anadir.antes} unidades y sus plantillas como estaban.`}
+          message={`No se guardará ningún cambio: ${etiquetaCfg(store, c)} seguirá con sus ${anadir.antes} unidades y sus plantillas como estaban.`}
           footer={<>
             <Button variant="outlined" onClick={() => setSalirAnadir(false)}>Seguir añadiendo</Button>
             <Button variant="danger" onClick={() => router.push("/configuracion-prueba")}>Salir sin guardar</Button>

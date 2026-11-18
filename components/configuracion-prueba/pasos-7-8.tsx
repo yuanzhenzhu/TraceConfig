@@ -39,7 +39,7 @@ function descargarPlantilla(c: Configuracion, raiz: Nodo, drivers: DriversConfig
   const csv = "﻿" + [cab, ...filas].map((f) => f.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a");
-  a.href = url; a.download = `plantilla-${c.nombre || "configuracion"}-${categoria}.csv`.toLowerCase().replace(/\s+/g, "-");
+  a.href = url; a.download = `plantilla-${c.nombre || "estructura"}-${categoria}.csv`.toLowerCase().replace(/\s+/g, "-");
   a.click(); URL.revokeObjectURL(url);
 }
 
@@ -240,8 +240,7 @@ export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configur
 
   const bloques: { n: number; titulo: string; contenido: React.ReactNode; aviso?: string }[] = [
     { n: 1, titulo: "Estructura y unidades", contenido: <>
-      <strong>{c.nombre}</strong>{c.descripcion && ` · ${c.descripcion}`}<br />
-      {est.nombre}{est.descripcion && ` · ${est.descripcion}`}<br />
+      <strong>{est.nombre}</strong>{est.descripcion && ` · ${est.descripcion}`}<br />
       {c.unidades} unidades<br />
       {nHuecosProps ? "Con propiedades de hueco asignadas" : "Sin propiedades de hueco asignadas"}
     </> },

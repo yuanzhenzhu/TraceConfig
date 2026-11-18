@@ -12,6 +12,7 @@ import { cuentaDrivers } from "@/components/configuracion-prueba/drivers";
 import { DialogMedia, mismoCalculo, nombreDriver, nombreForma, type FilaMedia } from "@/components/configuracion-prueba/media";
 import { DRIVERS, LINEAS, PERIODO_MEDIA, claveMedia, driversEfectivos, type DriverId, type FormaMedia, type NivelMedia } from "@/lib/model";
 import { useStore } from "@/lib/store";
+import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
 export default function DriversPage() {
   const store = useStore();
@@ -71,7 +72,7 @@ export default function DriversPage() {
           <table className="lm-table">
             <thead>
               <tr>
-                <th>Flota</th><th>Configuración</th><th>Estructura</th><th>Drivers</th>
+                <th>Flota</th><th>Estructura</th><th>Drivers</th>
                 <th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
@@ -85,12 +86,11 @@ export default function DriversPage() {
                 return (
                   <tr key={c.id}>
                     <td className="emph">{f?.nombre}</td>
-                    <td>{c.unica ? <span className="muted">Única</span> : c.nombre}</td>
                     <td>{est.nombre}</td>
                     <td>{tiene.length ? tiene.join(", ") : <span className="muted">Sin drivers</span>}</td>
                     <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                     <td className="actions">
-                      <Menu label={`Acciones de ${store.etiqueta(c)}`} items={[
+                      <Menu label={`Acciones de ${etiquetaCfg(store, c)}`} items={[
                         { label: "Modificar", icon: "edit", onSelect: () => router.push(`/configuracion-prueba/drivers/${c.id}`) },
                       ]} />
                     </td>

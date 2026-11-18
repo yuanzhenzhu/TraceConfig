@@ -11,6 +11,7 @@ import { EditorEstructura } from "@/components/configuracion-prueba/arbol";
 import { MatrizPropsHueco, resumenPropiedades } from "@/components/configuracion-prueba/propiedades";
 import { clonar, contarHuecos, diferencia, nodo, nuevoId, type Estructura } from "@/lib/model";
 import { useStore } from "@/lib/store";
+import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
 export default function EditarEstructuraPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +62,7 @@ export default function EditarEstructuraPage() {
 
   const cfg = cfgId ? store.configs.find((x) => x.id === cfgId) : undefined;
   const volverA = cfg ? `/configuracion-prueba/${cfg.id}?paso=1` : "/configuracion-prueba/estructuras";
-  const nombreCfg = cfg ? store.etiqueta(cfg) || "la configuración" : "";
+  const nombreCfg = cfg ? etiquetaCfg(store, cfg) || "la configuración" : "";
 
   const guardar = () => {
     setIntentado(true);
@@ -104,7 +105,7 @@ export default function EditarEstructuraPage() {
         )}
         {enUso && (
           <Banner type="attention" title={`Esta estructura la usan ${usos.length} configuraciones (${unidades} unidades)`}>
-            Los cambios se aplicarán a todas: {usos.map((c) => store.etiqueta(c)).join(", ")}. Solo se puede modificar por los extremos.
+            Los cambios se aplicarán a todas: {usos.map((c) => etiquetaCfg(store, c)).join(", ")}. Solo se puede modificar por los extremos.
           </Banner>
         )}
 
@@ -175,13 +176,13 @@ export default function EditarEstructuraPage() {
             {dif.eliminados.length > 0 && <Tag tone="error" icon="remove">{dif.eliminados.length} {dif.eliminados.length === 1 ? "hueco eliminado" : "huecos eliminados"} por unidad</Tag>}
           </div>
           <table className="lm-table">
-            <thead><tr><th>Flota</th><th>Configuración</th><th>Estado</th><th className="num">Unidades afectadas</th></tr></thead>
+            <thead><tr><th>Flota</th><th>Estado</th><th className="num">Unidades afectadas</th></tr></thead>
             <tbody>
               {usos.map((c) => {
                 const f = store.flotas.find((x) => x.id === c.flotaId);
                 return (
                   <tr key={c.id}>
-                    <td className="emph">{f?.nombre}</td><td>{c.nombre}</td>
+                    <td className="emph">{f?.nombre}</td>
                     <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
                     <td className="num">{c.unidades}</td>
                   </tr>

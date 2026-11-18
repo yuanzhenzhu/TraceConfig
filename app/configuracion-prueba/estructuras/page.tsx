@@ -8,6 +8,7 @@ import { Fragment, useState } from "react";
 import { Breadcrumb, Button, Dialog, EmptyState, IconButton, InfoTooltip, Loading, Menu, SearchInput, Tag, useSnackbar } from "@/components/ds";
 import { unidadesTerminadas } from "@/lib/model";
 import { useStore } from "@/lib/store";
+import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
 export default function EstructurasPage() {
   const store = useStore();
@@ -88,7 +89,7 @@ export default function EstructurasPage() {
                         <tr key={c.id} className="is-child">
                           <td />
                           <td colSpan={2} style={{ paddingLeft: "var(--lm-space-30)" }}>
-                            <Link href={`/configuracion-prueba/${c.id}`}>{store.etiqueta(c)}</Link>
+                            <Link href={`/configuracion-prueba/${c.id}`}>{etiquetaCfg(store, c)}</Link>
                           </td>
                           <td />
                           <td className="num">{c.unidades}</td>

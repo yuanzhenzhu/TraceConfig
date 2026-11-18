@@ -9,6 +9,7 @@ import { Banner, Breadcrumb, Button, EmptyState, Loading, Tag, useSnackbar } fro
 import { EditorDrivers } from "@/components/configuracion-prueba/drivers";
 import { driversIniciales, type DriversConfig } from "@/lib/model";
 import { useStore } from "@/lib/store";
+import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
 export default function EditarDriversPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,7 +36,7 @@ export default function EditarDriversPage() {
   }
 
   const flota = store.flotas.find((f) => f.id === c.flotaId);
-  const nombre = store.etiqueta(c);
+  const nombre = etiquetaCfg(store, c);
   const original = c.drivers ? JSON.stringify([c.drivers.drivers, c.drivers.heredables]) : "";
   const cambiado = JSON.stringify([borrador.drivers, borrador.heredables]) !== original;
   const otras = store.usosDe(est.id).filter((x) => x.id !== c.id);
@@ -62,7 +63,7 @@ export default function EditarDriversPage() {
       <div className="stack gap-20">
         <Banner type="info" title="Solo afecta a esta configuración">
           {otras.length
-            ? `${est.nombre} también la usan ${otras.map((x) => store.etiqueta(x)).join(", ")}, con sus propios drivers: no cambian.`
+            ? `${est.nombre} también la usan ${otras.map((x) => etiquetaCfg(store, x)).join(", ")}, con sus propios drivers: no cambian.`
             : `Ninguna otra configuración usa ${est.nombre}.`}
           {c.estado === "activa" && " Al ser una configuración activa, las plantillas nuevas pedirán los valores iniciales de los drivers que añadas."}
         </Banner>

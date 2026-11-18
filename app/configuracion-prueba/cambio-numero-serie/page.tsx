@@ -10,6 +10,7 @@ import { useMemo, useRef, useState } from "react";
 import { Banner, Breadcrumb, Button, EmptyState, Field, Icon, Spinner, useSnackbar } from "@/components/ds";
 import { descargarCsv, generarActivos, unidadesDe, type Activo } from "@/lib/activos";
 import { useStore } from "@/lib/store";
+import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
 type Cambio = { a: Activo; nuevo: string };
 
@@ -25,7 +26,7 @@ export default function CambioNumeroSeriePage() {
   const ubicacion = (a: Activo) => {
     if (a.donde === "almacen") return store.almacenes.find((x) => x.id === a.almacenId)?.nombre ?? "Almacén";
     const c = store.configs.find((x) => x.id === a.configId);
-    return `${c ? store.etiqueta(c) : ""} · Unidad ${a.unidad} › ${a.hueco}`;
+    return `${c ? etiquetaCfg(store, c) : ""} · Unidad ${a.unidad} › ${a.hueco}`;
   };
   const aplicar = (lista: Cambio[]) => setCambiados((m) => ({ ...m, ...Object.fromEntries(lista.map((x) => [x.a.id, x.nuevo])) }));
 
@@ -119,7 +120,7 @@ function ConPlantilla({ activos, serie, ubicacion, onAplicar }: {
                 <select id="cns-unidad" className="lm-select" value={unidad} disabled={!flota} onChange={(e) => cambiarAlcance(() => { setUnidad(e.target.value); setCat(""); })}>
                   <option value="">Todas las unidades</option>
                   {unidadesFlota.map(({ c, series }) => (
-                    <optgroup key={c.id} label={store.etiqueta(c)}>
+                    <optgroup key={c.id} label={etiquetaCfg(store, c)}>
                       {series.map((s) => <option key={s} value={`${c.id}|${s}`}>Unidad {s}</option>)}
                     </optgroup>
                   ))}

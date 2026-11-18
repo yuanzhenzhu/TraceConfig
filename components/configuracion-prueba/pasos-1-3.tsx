@@ -42,27 +42,23 @@ export function Paso1({ c, set, intentado, est, flota, soloLectura, anadir }: Pa
   const huecos = est ? contarHuecos(est.raiz) : 0;
   const router = useRouter();
   const fijada = !!c.estructuraNueva && !!est; // estructura nueva creada en Estructuras desde el asistente
-  const elegir = (e: Estructura) => set({ estructuraId: e.id });
+  // (Prueba) La configuración no tiene nombre propio: se guarda el de la estructura para que Configuración (la original) la muestre.
+  const elegir = (e: Estructura) => set({ estructuraId: e.id, nombre: e.nombre, descripcion: "" });
+  // Una flota no puede tener dos configuraciones con la misma estructura (la configuración es flota + estructura).
+  const usadaEnFlota = (id: string) => store.configs.some((x) => x.id !== c.id && x.guardada && x.flotaId === c.flotaId && x.estructuraId === id);
   // Pestaña Crear una estructura nueva: informa y lleva a Estructuras; al crearla se vuelve aquí con ella asignada.
   const [modo, setModo] = useState<"existente" | "nueva">("existente");
   const irAEstructuras = () => router.push(`/configuracion-prueba/estructuras/nueva?config=${c.id}`);
 
-  const errNombre = intentado && !c.unica && !c.nombre.trim() ? "Indica el nombre de la configuración" : "";
   const errEstructura = intentado && !est ? "Selecciona o crea una estructura" : "";
 
   return (
     <div className="stack gap-30">
       <section className="lm-surface lm-surface--p24 stack gap-20">
         <h2 className="lm-title-medium" style={{ margin: 0 }}>Datos de la configuración</h2>
-        <p className="muted" style={{ margin: 0 }}>Una configuración es una parte de la flota que comparte la misma estructura.</p>
+        <p className="muted" style={{ margin: 0 }}>Una configuración es una flota con una estructura: se identifica por las dos. Cada estructura solo puede tener una configuración en la flota.</p>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "var(--lm-space-30)", alignItems: "start" }}>
-          {c.unica ? (
-            <div className="stack gap-5"><span className="lm-field__label">Nombre</span><span>{flota.nombre} <span className="muted lm-body-small">· la flota tiene una sola estructura</span></span></div>
-          ) : (
-            <Field label="Nombre" required htmlFor="c-nombre" error={errNombre}>
-              <input id="c-nombre" className="lm-input" value={c.nombre} readOnly={soloLectura} aria-invalid={!!errNombre} placeholder="Por ejemplo: Serie C" onChange={(e) => set({ nombre: e.target.value })} />
-            </Field>
-          )}
+          <div className="stack gap-5"><span className="lm-field__label">Flota</span><span>{flota.nombre}</span></div>
           <Field label="Número de unidades" required htmlFor="u-num" error={errUnidades}
             support={anadir
               ? (unidadesOk && nUnidades > anadir.antes ? `Se añadirán ${nUnidades - anadir.antes} unidades a las ${anadir.antes} actuales` : `Ahora tiene ${anadir.antes} unidades. Indica el nuevo total`)
@@ -123,13 +119,14 @@ export function Paso1({ c, set, intentado, est, flota, soloLectura, anadir }: Pa
                 {store.estructuras.map((e) => {
                   const sel = c.estructuraId === e.id;
                   const usos = store.usosDe(e.id).length;
+                  const yaEnFlota = usadaEnFlota(e.id);
                   return (
-                    <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
-                      <input type="radio" name="estructura" checked={sel} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
+                    <label key={e.id} className="lm-card lm-radio" style={{ alignItems: "flex-start", opacity: yaEnFlota ? "var(--lm-state-disabled-content)" : undefined, borderColor: sel ? "var(--lm-sys-primary)" : undefined, background: sel ? "color-mix(in srgb, var(--lm-sys-primary) 8%, var(--lm-sys-surface-container-lowest))" : undefined }}>
+                      <input type="radio" name="estructura" checked={sel} disabled={yaEnFlota} onChange={() => elegir(e)} aria-label={`${e.nombre}: ${e.descripcion}`} />
                       <span className="lm-radio__text gap-5">
                         <span className="lm-title-small">{e.nombre}</span>
                         <span className="lm-radio__support">{e.descripcion}</span>
-                        <span className="lm-body-small muted">{contarHuecos(e.raiz)} huecos por unidad · {usos ? `usada en ${usos} configuraciones` : "sin usar"}</span>
+                        <span className="lm-body-small muted">{yaEnFlota ? `${flota.nombre} ya tiene una configuración con esta estructura` : `${contarHuecos(e.raiz)} huecos por unidad · ${usos ? `usada en ${usos} configuraciones` : "sin usar"}`}</span>
                       </span>
                     </label>
                   );
@@ -187,7 +184,7 @@ function VistaEstructura({ est, titulo }: { est: Estructura; titulo: string }) {
 }
 
 export function paso1Valido(c: Configuracion, est: Estructura | undefined) {
-  if ((!c.unica && !c.nombre.trim()) || !c.unidades || !est || est.raiz.hijos.length === 0) return false;
+  if (!c.unidades || !est || est.raiz.hijos.length === 0) return false;
   return true;
 }
 
