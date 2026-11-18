@@ -1,11 +1,13 @@
 "use client";
 
 // HU-39 y HU-43: catálogo de estructuras del cliente.
+// (Prueba, 18-11-2026) Arriba, panel plegable «Flotas sin estructura (N)» si hay flotas creadas sin estructura
+// (Figma Main-Trace 1142:56049 plegado, 1129:13262 desplegado), con la acción Asignar estructura en cada una.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
-import { Breadcrumb, Button, Dialog, EmptyState, IconButton, InfoTooltip, Loading, Menu, SearchInput, Tag, useSnackbar } from "@/components/ds";
+import { Breadcrumb, Button, Dialog, EmptyState, Icon, IconButton, InfoTooltip, Loading, Menu, SearchInput, Tag, useSnackbar } from "@/components/ds";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
@@ -16,6 +18,8 @@ export default function EstructurasPage() {
   const [busca, setBusca] = useState("");
   const [abiertas, setAbiertas] = useState<Record<string, boolean>>({});
   const [aEliminar, setAEliminar] = useState<string | null>(null);
+  const [verSinEstructura, setVerSinEstructura] = useState(false);
+  const sinEstructura = store.flotas.filter((f) => !store.configs.some((c) => c.flotaId === f.id && c.guardada));
 
   const lista = store.estructuras.filter((e) => e.nombre.toLowerCase().includes(busca.toLowerCase()));
 
@@ -31,6 +35,41 @@ export default function EstructurasPage() {
           <Button icon="add" onClick={() => router.push("/configuracion-prueba/estructuras/nueva")}>Nueva estructura</Button>
         </div>
       </div>
+
+      {store.listo && sinEstructura.length > 0 && (
+        <section className="lm-surface lm-surface--p16" style={{ marginBottom: "var(--lm-space-20)" }}>
+          <button type="button" className="row gap-10" aria-expanded={verSinEstructura} aria-controls="flotas-sin-estructura"
+            onClick={() => setVerSinEstructura((v) => !v)}
+            style={{ width: "100%", background: "transparent", border: 0, padding: "var(--lm-space-5) 0", cursor: "pointer", color: "inherit", textAlign: "left" }}>
+            <span className="lm-title-small grow">Flotas sin estructura ({sinEstructura.length})</span>
+            <Icon name={verSinEstructura ? "expand_less" : "expand_more"} />
+          </button>
+          {verSinEstructura && (
+            <table id="flotas-sin-estructura" className="lm-table" style={{ marginTop: "var(--lm-space-15)" }}>
+              <thead>
+                <tr><th>Flota</th><th className="num">Unidades</th><th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
+              </thead>
+              <tbody>
+                {sinEstructura.map((f) => (
+                  <tr key={f.id}>
+                    <td>
+                      <span className="row gap-5">
+                        <span className="emph">{f.nombre}</span>
+                        {f.descripcion && <InfoTooltip text={f.descripcion} label={`Descripción de ${f.nombre}`} />}
+                      </span>
+                    </td>
+                    <td className="num">—</td>
+                    <td><Tag tone="attention">Sin estructura</Tag></td>
+                    <td className="actions">
+                      <Button variant="tonal" small onClick={() => router.push(`/configuracion-prueba/asignar/${f.id}`)}>Asignar estructura</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
 
       <section className="lm-surface lm-surface--p16">
         <div className="lm-filters"><div style={{ width: 320 }}><SearchInput label="Buscar estructura" placeholder="Buscar estructura" value={busca} onChange={setBusca} /></div></div>
