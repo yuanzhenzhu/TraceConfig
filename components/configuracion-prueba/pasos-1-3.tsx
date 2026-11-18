@@ -171,7 +171,7 @@ function VistaEstructura({ est, titulo }: { est: Estructura; titulo: string }) {
         </>
       ) : n === 0 ? (
         <div className="lm-center"><Icon name="radio_button_checked" size="xl" />{est.nombre} no tiene propiedades de hueco
-          <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/propiedades-hueco?estructura=${est.id}`}>Definirlas en Propiedades de hueco</Link>
+          <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${est.id}`}>Definirlas en Propiedades de hueco</Link>
         </div>
       ) : (
         <>
@@ -199,7 +199,7 @@ export function Paso2({ c, set, est, soloLectura }: PasoProps) {
       {n === 0 ? (
         <EmptyState icon="radio_button_checked" title={`${est!.nombre} no tiene propiedades de hueco`}
           text="No hay valores que dar. Puedes continuar con el paso siguiente"
-          action={<Link className="lm-btn lm-btn--outlined" href={`/configuracion-prueba/propiedades-hueco?estructura=${est!.id}`}>Definirlas en Propiedades de hueco</Link>} />
+          action={<Link className="lm-btn lm-btn--outlined" href={`/configuracion-prueba/propiedades-hueco/estructura/${est!.id}`}>Definirlas en Propiedades de hueco</Link>} />
       ) : (
         <>
           <p className="muted" style={{ margin: 0 }}>

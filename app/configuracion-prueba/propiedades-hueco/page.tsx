@@ -1,98 +1,134 @@
 "use client";
 
-// (Prueba, 18-11-2026) Propiedades de hueco: apartado propio del menú, separado de Estructuras.
-// Se elige una estructura y se marca qué propiedades tiene cada posición (hueco). Las comparten todas las flotas
-// que usan esa estructura; sus valores se dan en cada configuración (paso Propiedades de hueco del asistente).
+// (Prueba, 18-11-2026) Propiedades de hueco, con dos cosas separadas en dos pestañas:
+// - Valores por flota: cada configuración (flota + estructura) con cuántos valores tiene rellenos. Se abren y se editan.
+// - Definición por estructura: qué propiedades tiene cada hueco de una estructura. La comparten todas las flotas que la usan.
+// Sustituye al select de estructura con la etiqueta «En uso en N configuraciones».
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Banner, Breadcrumb, Button, EmptyState, Field, Loading, Tag, useSnackbar } from "@/components/ds";
-import { MatrizPropsHueco, resumenPropiedades } from "@/components/configuracion-prueba/propiedades";
-import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
-import type { PropsHueco } from "@/lib/model";
+import { Breadcrumb, EmptyState, Field, Icon, InfoTooltip, Loading, Tag } from "@/components/ds";
+import { configsCon, huecosConPropiedades, valoresRellenos } from "@/components/configuracion-prueba/props-hueco";
 import { useStore } from "@/lib/store";
+
+type Pestana = "valores" | "definicion";
 
 export default function PropiedadesHuecoPage() {
   const store = useStore();
-  const router = useRouter();
-  const snack = useSnackbar();
-  const [estId, setEstId] = useState("");
-  const [borrador, setBorrador] = useState<PropsHueco | null>(null);
+  const [pestana, setPestana] = useState<Pestana>("valores");
+  const [fFlota, setFFlota] = useState("");
+  const [fEst, setFEst] = useState("");
 
-  // ?estructura=<id>: se viene del asistente o de otra pantalla con una estructura concreta
   useEffect(() => {
-    if (!store.listo || estId) return;
-    const q = new URLSearchParams(window.location.search).get("estructura");
-    setEstId(q && store.estructura(q) ? q : store.estructuras[0]?.id ?? "");
-  }, [store.listo, store, estId]);
-
-  const est = store.estructura(estId);
-  useEffect(() => { setBorrador(est ? structuredClone(est.propsHueco ?? {}) : null); }, [est?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!store.listo) return <main className="lm-page"><Loading text="Cargando estructuras" /></main>;
-
-  const usos = est ? store.usosDe(est.id) : [];
-  const hayCambios = !!est && !!borrador && JSON.stringify(est.propsHueco ?? {}) !== JSON.stringify(borrador);
-  const nHuecos = est && borrador ? resumenPropiedades(est.raiz, { propsCategoria: {}, propsHueco: borrador }).nHuecos : 0;
-  const guardar = () => {
-    if (!est || !borrador) return;
-    store.guardarEstructura({ ...est, propsHueco: borrador });
-    snack(usos.length ? `Propiedades de hueco de ${est.nombre} guardadas en ${usos.length} configuraciones` : `Propiedades de hueco de ${est.nombre} guardadas`);
+    if (new URLSearchParams(window.location.search).get("pestana") === "definicion") setPestana("definicion");
+  }, []);
+  const cambiarPestana = (p: Pestana) => {
+    setPestana(p);
+    window.history.replaceState(null, "", `/configuracion-prueba/propiedades-hueco${p === "definicion" ? "?pestana=definicion" : ""}`);
   };
-  const cambiarEstructura = (id: string) => {
-    setEstId(id);
-    window.history.replaceState(null, "", `/configuracion-prueba/propiedades-hueco?estructura=${id}`);
-  };
+
+  if (!store.listo) return <main className="lm-page"><Loading text="Cargando propiedades de hueco" /></main>;
+
+  const flotaDe = (id: string) => store.flotas.find((f) => f.id === id)?.nombre ?? "";
+  const configs = store.configs.filter((c) => c.guardada && c.estructuraId)
+    .filter((c) => (!fFlota || c.flotaId === fFlota) && (!fEst || c.estructuraId === fEst))
+    .sort((a, b) => flotaDe(a.flotaId).localeCompare(flotaDe(b.flotaId), "es") || (store.estructura(a.estructuraId)?.nombre ?? "").localeCompare(store.estructura(b.estructuraId)?.nombre ?? "", "es"));
 
   return (
-    <main className="lm-page" style={{ paddingBottom: 120 }}>
+    <main className="lm-page">
       <div className="lm-header">
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Propiedades de hueco" }]} />
           <h1 className="lm-headline-small" style={{ margin: 0 }}>Propiedades de hueco</h1>
-          <span className="muted">Qué propiedades tiene cada posición de una estructura (por ejemplo, el lado de una rueda). Sus valores se dan en cada configuración.</span>
+          <span className="muted">Cada estructura define qué propiedades tiene cada hueco (por ejemplo, el lado de una rueda). Sus valores son de cada flota.</span>
         </div>
       </div>
 
-      {store.estructuras.length === 0 ? (
+      <div className="lm-tabs" role="tablist">
+        <button role="tab" className="lm-tab" aria-selected={pestana === "valores"} onClick={() => cambiarPestana("valores")}><Icon name="table_rows" /> Valores por flota</button>
+        <button role="tab" className="lm-tab" aria-selected={pestana === "definicion"} onClick={() => cambiarPestana("definicion")}><Icon name="list" /> Definición por estructura</button>
+      </div>
+
+      {pestana === "valores" ? (
         <section className="lm-surface lm-surface--p16">
-          <EmptyState icon="table_rows" title="Todavía no hay estructuras" text="Crea una estructura para poder definir sus propiedades de hueco"
-            action={<Button variant="outlined" icon="add" onClick={() => router.push("/configuracion-prueba/estructuras/nueva")}>Nueva estructura</Button>} />
+          <div className="lm-filters">
+            <Field label="Flota" htmlFor="ph-flota">
+              <select id="ph-flota" className="lm-select lm-select--dense" value={fFlota} onChange={(e) => setFFlota(e.target.value)}>
+                <option value="">Todas</option>
+                {store.flotas.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+              </select>
+            </Field>
+            <Field label="Estructura" htmlFor="ph-est">
+              <select id="ph-est" className="lm-select lm-select--dense" value={fEst} onChange={(e) => setFEst(e.target.value)}>
+                <option value="">Todas</option>
+                {store.estructuras.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </select>
+            </Field>
+          </div>
+          {configs.length === 0 ? (
+            <EmptyState icon="search_off" title="No hay configuraciones" text={fFlota || fEst ? "Ninguna flota con estructura coincide con los filtros" : "Asigna una estructura a una flota para dar valores a sus propiedades de hueco"} />
+          ) : (
+            <table className="lm-table">
+              <thead><tr><th>Flota</th><th>Estructura</th><th className="num">Huecos con propiedades</th><th>Valores</th><th className="actions"><span className="sr-only">Acciones</span></th></tr></thead>
+              <tbody>
+                {configs.map((c) => {
+                  const est = store.estructura(c.estructuraId)!;
+                  const nH = huecosConPropiedades(est);
+                  const { total, rellenos } = valoresRellenos(est, c.valoresHueco);
+                  return (
+                    <tr key={c.id}>
+                      <td className="emph">{flotaDe(c.flotaId)}</td>
+                      <td>{est.nombre}</td>
+                      <td className="num">{nH || "—"}</td>
+                      <td>
+                        {nH === 0 ? <span className="muted">La estructura no tiene propiedades de hueco</span>
+                          : rellenos === 0 ? <Tag tone="attention">Sin valores</Tag>
+                          : rellenos < total ? <Tag tone="attention" num={rellenos}>{`de ${total} con valor`}</Tag>
+                          : <Tag tone="success">Completos ({total})</Tag>}
+                      </td>
+                      <td className="actions">
+                        {nH === 0
+                          ? <Link className="lm-btn lm-btn--text lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${est.id}`}>Definir propiedades</Link>
+                          : <Link className="lm-btn lm-btn--tonal lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/valores/${c.id}`}>Ver y editar valores</Link>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </section>
       ) : (
-        <div className="stack gap-20">
-          <section className="lm-surface lm-surface--p16">
-            <div className="lm-filters">
-              <Field label="Estructura" htmlFor="ph-est" style={{ width: 320 }}>
-                <select id="ph-est" className="lm-select lm-select--dense" value={estId} onChange={(e) => cambiarEstructura(e.target.value)}>
-                  {store.estructuras.map((e) => <option key={e.id} value={e.id}>{e.nombre} · {e.descripcion}</option>)}
-                </select>
-              </Field>
-              {est && (usos.length ? <Tag tone="primary">En uso en {usos.length} {usos.length === 1 ? "configuración" : "configuraciones"}</Tag> : <Tag tone="neutral">Sin usar</Tag>)}
-            </div>
-          </section>
-
-          {est && borrador && (
-            <section className="lm-surface lm-surface--p24 stack gap-20">
-              {usos.length > 0 && (
-                <Banner type="attention" title={`${est.nombre} la usan ${usos.length} ${usos.length === 1 ? "configuración" : "configuraciones"}`}>
-                  Los cambios se aplicarán a todas: {usos.map((c) => etiquetaCfg(store, c)).join(", ")}.
-                </Banner>
-              )}
-              <MatrizPropsHueco raiz={est.raiz} valor={borrador} onChange={setBorrador} />
-            </section>
+        <section className="lm-surface lm-surface--p16">
+          {store.estructuras.length === 0 ? (
+            <EmptyState icon="table_rows" title="Todavía no hay estructuras" text="Crea una estructura en Estructuras para definir sus propiedades de hueco" />
+          ) : (
+            <table className="lm-table">
+              <thead><tr><th>Estructura</th><th className="num">Huecos con propiedades</th><th>Flotas que la usan</th><th className="actions"><span className="sr-only">Acciones</span></th></tr></thead>
+              <tbody>
+                {store.estructuras.map((e) => {
+                  const nH = huecosConPropiedades(e);
+                  const flotas = [...new Set(configsCon(store.configs, e.id).map((c) => flotaDe(c.flotaId)))];
+                  return (
+                    <tr key={e.id}>
+                      <td>
+                        <span className="row gap-5">
+                          <span className="emph">{e.nombre}</span>
+                          {e.descripcion && <InfoTooltip text={e.descripcion} label={`Descripción de ${e.nombre}`} />}
+                        </span>
+                      </td>
+                      <td className="num">{nH || <span className="muted">Sin propiedades</span>}</td>
+                      <td>{flotas.length ? flotas.join(", ") : <span className="muted">Ninguna</span>}</td>
+                      <td className="actions">
+                        <Link className="lm-btn lm-btn--tonal lm-btn--small" href={`/configuracion-prueba/propiedades-hueco/estructura/${e.id}`}>{nH ? "Editar definición" : "Definir propiedades"}</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
-        </div>
-      )}
-
-      {est && (
-        <footer className="lm-footer-bar">
-          <div className="row gap-10" style={{ maxWidth: 1360, margin: "0 auto", padding: "var(--lm-space-15) var(--lm-space-30)" }}>
-            <span className="grow lm-body-small muted">{nHuecos ? `${nHuecos} huecos con propiedades` : "Sin propiedades de hueco"}{hayCambios && " · Cambios sin guardar"}</span>
-            <Button variant="outlined" disabled={!hayCambios} onClick={() => setBorrador(structuredClone(est.propsHueco ?? {}))}>Descartar cambios</Button>
-            <Button disabled={!hayCambios} onClick={guardar}>Guardar cambios</Button>
-          </div>
-        </footer>
+        </section>
       )}
     </main>
   );
