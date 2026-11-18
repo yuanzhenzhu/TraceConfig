@@ -10,9 +10,22 @@ import { Banner, Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, use
 import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/configuracion-prueba/pasos-1-3";
 import { Paso4 } from "@/components/configuracion-prueba/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/configuracion-prueba/pasos-7-8";
-import { PASOS, categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
+import { categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg, nombreEstructura } from "@/components/configuracion-prueba/nombre";
+
+// (Prueba, 18-11-2026) La estructura y las unidades se eligen antes, en Asignar estructura. El asistente empieza en
+// Propiedades de categoría. Al consultar o añadir unidades sigue apareciendo el paso Estructura y unidades.
+const PASOS_ASISTENTE = [
+  { n: 4, titulo: "Propiedades de categoría" },
+  { n: 2, titulo: "Propiedades de hueco" },
+  { n: 3, titulo: "Drivers" },
+  { n: 7, titulo: "Números de serie" },
+  { n: 8, titulo: "Resumen" },
+];
+const PASO_UNIDADES = { n: 1, titulo: "Estructura y unidades" };
+/** Orden de un paso en el asistente (los números de paso ya no van en orden). */
+const orden = (n: number) => [1, ...PASOS_ASISTENTE.map((x) => x.n)].indexOf(n);
 
 export default function AsistentePage() {
   const { id } = useParams<{ id: string }>();
@@ -41,8 +54,12 @@ export default function AsistentePage() {
       // Las unidades nuevas obligan a cargar de nuevo la plantilla de unidades (primer nivel).
       setBorr({ unidades: c.unidades, plantillas: { ...c.plantillas, [est.raiz.categoria]: "pendiente" }, intentosPlantilla: { ...c.intentosPlantilla } });
     }
+    if (!c.estructuraId && c.estado !== "activa") { router.replace(`/configuracion-prueba/asignar/${c.flotaId}`); return; }
     const n = q >= 1 && q <= 8 ? q : c.pasoActual;
-    setPaso(n === 5 ? 4 : n === 6 ? 3 : n); // los antiguos pasos 5 (Propiedades de hueco) y 6 (SMS) ya no existen
+    const m = n === 5 ? 4 : n === 6 ? 3 : n; // los antiguos pasos 5 (Propiedades de hueco) y 6 (SMS) ya no existen
+    const conUnidades = qs.get("modo") === "anadir" || c.estado === "activa";
+    setPaso(m === 1 && !conUnidades ? 4 : m); // sin el paso 1, se empieza en Propiedades de categoría
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c, paso]);
 
   if (!store.listo || (c && paso === null)) return <main className="lm-page"><Loading text="Cargando configuración" /></main>;
@@ -71,7 +88,7 @@ export default function AsistentePage() {
   const listoAnadir = !!anadir && unidadesOk && primerNivelCargado(cv, raiz);
   const hayCambiosAnadir = !!anadir && (cv.unidades !== c.unidades || JSON.stringify(cv.plantillas) !== JSON.stringify({ ...c.plantillas, [raiz?.categoria ?? ""]: "pendiente" }));
   const qsModo = anadir ? "&modo=anadir" : "";
-  const visibles = PASOS;
+  const visibles = anadir || soloLectura ? [PASO_UNIDADES, ...PASOS_ASISTENTE] : PASOS_ASISTENTE;
   const idx = visibles.findIndex((x) => x.n === p);
   const actual = visibles[idx] ?? visibles[0];
   const siguiente = visibles[idx + 1];
@@ -93,7 +110,7 @@ export default function AsistentePage() {
       window.scrollTo({ top: 0 });
       return;
     }
-    const cambios: Partial<Configuracion> = { pasoActual: n, pasoMax: Math.max(c.pasoMax, n) };
+    const cambios: Partial<Configuracion> = { pasoActual: n, pasoMax: orden(n) > orden(c.pasoMax) ? n : c.pasoMax };
     if (n === 7 && raiz && !Object.keys(c.plantillas).length) cambios.plantillas = plantillasIniciales(raiz);
     set(cambios);
     setPaso(n);
@@ -189,7 +206,7 @@ export default function AsistentePage() {
                 const omit = c.pasosOmitidos.includes(x.n);
                 const hecho = !omit && x.n !== p && (anadir
                   ? (x.n === 1 ? unidadesOk : x.n === 7 ? primerNivelCargado(cv, raiz) : x.n !== 8)
-                  : soloLectura || (x.n < c.pasoMax && valido(x.n)));
+                  : soloLectura || (orden(x.n) < orden(c.pasoMax) && valido(x.n)));
                 const cls = x.n === p ? "is-current" : omit ? "is-skipped" : hecho ? "is-done" : "";
                 return (
                   <li key={x.n} className="row gap-10" style={{ flex: i < visibles.length - 1 ? 1 : undefined }}>

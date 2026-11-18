@@ -28,10 +28,14 @@ export default function EditarEstructuraPage() {
   const [confirmar, setConfirmar] = useState(false);
   const [pestana, setPestana] = useState<"estructura" | "huecos">("estructura");
   const [cfgId, setCfgId] = useState<string | null>(null);
+  // (Prueba) ?asignar=<flotaId>: se viene de Asignar estructura; al crearla se vuelve allí con ella elegida.
+  const [asignar, setAsignar] = useState<{ flotaId: string; demo: boolean } | null>(null);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get("pestana") === "huecos") setPestana("huecos");
     setCfgId(q.get("config"));
+    const a = q.get("asignar");
+    if (a) setAsignar({ flotaId: a, demo: q.get("demo") === "sin-estructuras" });
   }, []);
 
   useEffect(() => {
@@ -61,7 +65,9 @@ export default function EditarEstructuraPage() {
   const nombreRepetido = store.estructuras.some((e) => e.id !== borrador.id && e.nombre.trim().toLowerCase() === borrador.nombre.trim().toLowerCase());
 
   const cfg = cfgId ? store.configs.find((x) => x.id === cfgId) : undefined;
-  const volverA = cfg ? `/configuracion-prueba/${cfg.id}?paso=1` : "/configuracion-prueba/estructuras";
+  const flotaAsignar = asignar ? store.flotas.find((f) => f.id === asignar.flotaId) : undefined;
+  const volverAsignar = flotaAsignar ? `/configuracion-prueba/asignar/${flotaAsignar.id}${asignar!.demo ? "?demo=sin-estructuras" : ""}` : "";
+  const volverA = cfg ? `/configuracion-prueba/${cfg.id}?paso=1` : volverAsignar || "/configuracion-prueba/estructuras";
   const nombreCfg = cfg ? etiquetaCfg(store, cfg) || "la configuración" : "";
 
   const guardar = () => {
@@ -73,6 +79,7 @@ export default function EditarEstructuraPage() {
       ? `Estructura "${borrador.nombre}" modificada en ${usos.length} configuraciones`
       : `Estructura "${borrador.nombre}" guardada`);
     if (cfg && esNueva) store.actualizarConfig(cfg.id, { estructuraId: borrador.id, estructuraNueva: true });
+    if (flotaAsignar && esNueva) { router.push(`${volverAsignar}${volverAsignar.includes("?") ? "&" : "?"}estructura=${borrador.id}`); return; }
     router.push(volverA);
   };
 
@@ -85,7 +92,9 @@ export default function EditarEstructuraPage() {
     <main className="lm-page" style={{ paddingBottom: 120 }}>
       <div className="lm-header">
         <div className="lm-header__titles">
-          <Breadcrumb items={cfg
+          <Breadcrumb items={flotaAsignar
+            ? [{ label: "Configuración", href: "/configuracion-prueba" }, { label: `Asignar estructura a ${flotaAsignar.nombre}`, href: volverA }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]
+            : cfg
             ? [{ label: "Configuración", href: "/configuracion-prueba" }, { label: nombreCfg, href: volverA }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]
             : [{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Estructura y propiedades de hueco", href: "/configuracion-prueba/estructuras" }, { label: esNueva ? "Nueva estructura" : borrador.nombre }]} />
           <span className="row gap-15">
@@ -96,6 +105,11 @@ export default function EditarEstructuraPage() {
       </div>
 
       <div className="stack gap-20">
+        {flotaAsignar && esNueva && (
+          <Banner type="info" title={`Estás creando una estructura para ${flotaAsignar.nombre}`}>
+            Al crearla, se añadirá al catálogo del cliente y volverás a Asignar estructura con ella elegida. Si cancelas, volverás sin estructura.
+          </Banner>
+        )}
         {cfg && (
           <Banner type="info" title={esNueva ? `Estás creando la estructura de ${nombreCfg}` : `Vienes del asistente de ${nombreCfg}`}>
             {esNueva
@@ -158,8 +172,8 @@ export default function EditarEstructuraPage() {
             {hayCambiosArbol && ` · ${dif.anadidos.length} añadidos · ${dif.eliminados.length} eliminados`}
             {hayCambiosHuecos && " · Propiedades de hueco modificadas"}
           </span>
-          <Button variant="outlined" onClick={() => router.push(volverA)}>{cfg ? "Cancelar y volver al asistente" : "Cancelar"}</Button>
-          <Button onClick={guardar}>{esNueva ? (cfg ? "Crear y volver al asistente" : "Crear estructura") : "Guardar cambios"}</Button>
+          <Button variant="outlined" onClick={() => router.push(volverA)}>{cfg ? "Cancelar y volver al asistente" : flotaAsignar ? "Cancelar y volver" : "Cancelar"}</Button>
+          <Button onClick={guardar}>{esNueva ? (cfg ? "Crear y volver al asistente" : flotaAsignar ? "Crear y volver" : "Crear estructura") : "Guardar cambios"}</Button>
         </div>
       </footer>
 

@@ -70,10 +70,8 @@ export default function ListadoPage() {
   const hayFiltros = !!(fFlota || fEstructura || fEstado);
   const flotasDemo = demo === "vacio" ? [] : visibles;
 
-  const nuevaConfig = (flotaId: string) => {
-    const id = store.iniciarConfig(flotaId);
-    router.push(`/configuracion-prueba/${id}`);
-  };
+  // (Prueba) Las configuraciones se crean en Asignar estructura: cada una es una estructura y su nº de unidades.
+  const nuevaConfig = (flotaId: string) => router.push(`/configuracion-prueba/asignar/${flotaId}`);
 
   return (
     <main className="lm-page">
@@ -106,7 +104,7 @@ export default function ListadoPage() {
               <option value="">Todos</option>
               <option value="en-configuracion">En configuración</option>
               <option value="activa">Activa</option>
-              <option value="sin">Sin configurar</option>
+              <option value="sin">Sin estructura</option>
             </select>
           </Field>
           {hayFiltros && (
@@ -170,14 +168,14 @@ export default function ListadoPage() {
                         <td className="num">{total || "—"}</td>
                         <td>
                           <span className="row gap-5 wrap">
-                            {todas.length === 0 && <Tag tone="neutral">Sin configurar</Tag>}
+                            {todas.length === 0 && <Tag tone="neutral">Sin estructura</Tag>}
                             {activas > 0 && <Tag tone="success" num={activas}>{activas === 1 ? "Activa" : "Activas"}</Tag>}
                             {enConf > 0 && <Tag tone="attention" num={enConf}>En configuración</Tag>}
                           </span>
                         </td>
                         <td className="actions">
                           <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
-                            {todas.length === 0 && <Button variant="tonal" small onClick={() => nuevaConfig(f.id)}>Iniciar configuración</Button>}
+                            {todas.length === 0 && <Button variant="tonal" small onClick={() => nuevaConfig(f.id)}>Asignar estructura</Button>}
                             <Menu label={`Acciones de ${f.nombre}`} items={[
                               { label: "Añadir configuración", icon: "add", onSelect: () => nuevaConfig(f.id) },
                               { label: "Modificar nombre y descripción", icon: "edit", onSelect: () => setEditando(f) },
@@ -251,11 +249,10 @@ export default function ListadoPage() {
           existentes={store.flotas.map((f) => f.nombre.trim().toLowerCase())}
           onClose={() => setDialogFlota(false)}
           onCrear={({ nombre, descripcion }) => {
-            // Se crea la flota y se sigue con su primera configuración: elegir estructura y unidades.
+            // Se crea la flota y queda en el listado Sin estructura, con la acción Asignar estructura.
             const f = store.crearFlota({ nombre, descripcion });
             setDialogFlota(false);
             snack(`Flota ${f.nombre} creada`);
-            nuevaConfig(f.id);
           }}
         />
       )}
@@ -316,8 +313,8 @@ function DialogNombre({ titulo, nombre: ini, descripcion: iniDesc, ocupados, onC
 }
 
 /**
- * (Prueba) Nueva flota: nombre y descripción. Al crearla se sigue con su primera configuración
- * (estructura y unidades). Las demás se añaden desde el listado, una por estructura.
+ * (Prueba) Añadir flota: nombre y descripción. La flota queda Sin estructura en el listado
+ * y desde allí se le asigna (Asignar estructura).
  */
 function DialogNuevaFlota({ existentes, onClose, onCrear }: {
   existentes: string[]; onClose: () => void;
@@ -333,20 +330,27 @@ function DialogNuevaFlota({ existentes, onClose, onCrear }: {
     if (errNombre) return;
     onCrear({ nombre: nombre.trim(), descripcion: descripcion.trim() });
   };
+  const fila = { display: "grid", gridTemplateColumns: "1fr auto", gap: "var(--lm-space-10)", alignItems: "end" } as const;
 
   return (
-    <Dialog title="Nueva flota" message="Indica los datos de la flota. Después elegirás la estructura y el número de unidades de su primera configuración." onClose={onClose}
+    <Dialog title="Añadir flota" onClose={onClose}
       footer={<>
         <Button variant="outlined" onClick={onClose}>Cancelar</Button>
-        <Button onClick={crear}>Crear y configurar</Button>
+        <Button onClick={crear}>Aceptar</Button>
       </>}>
       <div className="stack gap-20">
-        <Field label="Nombre" required htmlFor="nf-nombre" error={intentado ? errNombre : ""}>
-          <input id="nf-nombre" className="lm-input" value={nombre} aria-invalid={intentado && !!errNombre} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Metro Línea 4" />
-        </Field>
-        <Field label="Descripción" htmlFor="nf-desc">
-          <input id="nf-desc" className="lm-input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
-        </Field>
+        <div style={fila}>
+          <Field label="Nombre de flota" required htmlFor="nf-nombre" error={intentado ? errNombre : ""}>
+            <input id="nf-nombre" className="lm-input" value={nombre} aria-invalid={intentado && !!errNombre} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Metro Línea 4" />
+          </Field>
+          <InfoTooltip label="Ayuda sobre el nombre de flota" text="Nombre con el que se identifica la flota en toda la aplicación. No se puede repetir" />
+        </div>
+        <div style={fila}>
+          <Field label="Descripción" htmlFor="nf-desc">
+            <input id="nf-desc" className="lm-input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Por ejemplo: Flota de metro de la línea 4" />
+          </Field>
+          <InfoTooltip label="Ayuda sobre la descripción" text="Opcional. Se ve en el listado con el icono de información junto al nombre" />
+        </div>
       </div>
     </Dialog>
   );
