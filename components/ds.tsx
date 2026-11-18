@@ -257,6 +257,7 @@ export const MODULOS = [
 export function Navbar() {
   const path = usePathname();
   const enConfig = path === "/configuracion" || path.startsWith("/configuracion/");
+  const enPrueba = path === "/configuracion-prueba" || path.startsWith("/configuracion-prueba/");
   return (
     <header className="lm-navbar">
       <Link href="/consulta" className="lm-navbar__brand">
@@ -270,7 +271,11 @@ export function Navbar() {
         ))}
       </nav>
       <span className="lm-navbar__spacer" />
-      <IconButton icon="notifications" label="Notificaciones" />
+      {/* Prueba de Configuración: copia para probar alternativas (app/configuracion-prueba) */}
+      <Link href="/configuracion-prueba" className="lm-icon-btn" aria-label="Configuración (prueba)" title="Configuración (prueba)"
+        aria-current={enPrueba ? "page" : undefined}>
+        <Icon name="notifications" filled={enPrueba} />
+      </Link>
       <Link href="/configuracion" className="lm-icon-btn" aria-label="Configuración" title="Configuración"
         aria-current={enConfig ? "page" : undefined}>
         <Icon name="settings" filled={enConfig} />
