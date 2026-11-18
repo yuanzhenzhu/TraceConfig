@@ -6,7 +6,6 @@
 
 import { useRef, useState } from "react";
 import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag, useSnackbar } from "../ds";
-import { iconoCategoria } from "./arbol";
 import {
   DRIVERS, PROPS_CATEGORIA, categoriasDe, driversEfectivos, primerNivelCargado, recorrer,
   type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo, type DriversConfig, type PropsCategoria,
@@ -92,7 +91,6 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
               <tr key={x.categoria}>
                 <td>
                   <span className="row gap-10">
-                    <Icon name={iconoCategoria(x.categoria)} size="m" />
                     <span className="emph">{x.categoria}</span>
                     {obligatoria(x.categoria) && <Tag tone="info">Obligatoria</Tag>}
                   </span>

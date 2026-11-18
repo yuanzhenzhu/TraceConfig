@@ -9,11 +9,7 @@ import {
   type Nodo,
 } from "@/lib/model";
 
-const ICONO: Record<string, string> = {
-  Tren: "train", Coche: "crop_16_9", "Motor Coche": "settings", Puerta: "crop_portrait", "Motor Puerta": "settings",
-  "Tarjeta Electrónica": "speaker_phone", Bogie: "hexagon", "Motor Bogie": "settings", Eje: "remove", Rueda: "circle",
-};
-export const iconoCategoria = (c: string) => ICONO[c] ?? "pentagon";
+// (Prueba, 18-11-2026) Sin iconos de categoría en árboles, tablas y botones.
 
 /* ---------- Fila de árbol genérica ---------- */
 export function ArbolFilas({
@@ -54,7 +50,6 @@ export function ArbolFilas({
 export function Etiqueta({ n }: { n: Nodo }) {
   return (
     <span className="row gap-10 grow">
-      <Icon name={iconoCategoria(n.categoria)} size="m" />
       <span className={n.hijos.length ? "lm-body-medium-emphasized" : ""} style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{n.nombre}</span>
       {n.nombre !== n.categoria && !n.nombre.startsWith(n.categoria + " ") && <Tag tone="neutral">{n.categoria}</Tag>}
       {n.hijos.length > 0 && <span className="lm-body-small muted">{contarHuecos(n) - 1} huecos dentro</span>}
@@ -139,7 +134,6 @@ export function EditorEstructura({
                 onClick={() => anadir(seleccionado.id, c)}
                 className="lm-palette-item row gap-10"
                 title={`Añadir ${c} en ${seleccionado.nombre}`}>
-                <Icon name={iconoCategoria(c)} size="m" />
                 <span className="grow">{c}</span>
                 <Icon name="add" size="m" />
               </button>

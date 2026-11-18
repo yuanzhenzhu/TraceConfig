@@ -7,8 +7,8 @@
 // - Tener: la categoría cuenta la vida de sus activos con ese driver.
 // - Heredable: su valor viene de la categoría padre (no se registra aparte). La raíz (la unidad) no tiene padre, así que nunca hereda.
 
-import { Banner, Button, Icon, Tag } from "../ds";
-import { ArbolFilas, iconoCategoria } from "./arbol";
+import { Banner, Button, Tag } from "../ds";
+import { ArbolFilas } from "./arbol";
 import { DRIVERS, driversIniciales, recorrer, type DriverId, type Drivers, type DriversConfig, type Nodo } from "@/lib/model";
 
 export const cuentaDrivers = (m: Drivers, drv: DriverId) => Object.values(m).filter((x) => x[drv]).length;
@@ -111,7 +111,6 @@ export function EditorDrivers({ raiz, valor, onChange, soloLectura }: {
           return (
             <>
               <span className="row gap-10 grow">
-                <Icon name={iconoCategoria(cat)} size="m" />
                 <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{cat}</span>
                 {n.id === arbol.id ? <Tag tone="neutral">Unidad</Tag> : <span className="lm-body-small muted">{nHuecos} {nHuecos === 1 ? "hueco" : "huecos"}</span>}
               </span>

@@ -8,8 +8,8 @@
 // - Propiedades de hueco: dependen de los huecos de la estructura.
 
 import { useMemo, useState } from "react";
-import { Button, ButtonToggle, EmptyState, Field, Icon, SearchInput, Tag } from "../ds";
-import { ArbolFilas, iconoCategoria } from "./arbol";
+import { Button, ButtonToggle, EmptyState, Field, SearchInput, Tag } from "../ds";
+import { ArbolFilas } from "./arbol";
 import { PROPS_CATEGORIA, PROPS_HUECO, categoriasDe, recorrer, rutaDe, type Nodo, type PropiedadesConfig, type PropsHueco } from "@/lib/model";
 
 export function resumenPropiedades(raiz: Nodo, p: PropiedadesConfig) {
@@ -60,7 +60,6 @@ export function EditorPropsCategoria({ raiz, categorias, valor, onChange, soloLe
             return (
               <button key={x.categoria} role="option" aria-selected={sel === x.categoria} onClick={() => elegir(x.categoria)}
                 className="lm-palette-item row gap-10" style={{ cursor: "pointer", background: sel === x.categoria ? "var(--lm-sys-secondary-container)" : undefined }}>
-                <Icon name={iconoCategoria(x.categoria)} size="m" />
                 <span className="grow">{x.categoria}</span>
                 {n > 0 ? <Tag tone="primary" num={n}>{n === 1 ? "propiedad" : "propiedades"}</Tag> : <span className="lm-body-small muted">Sin propiedades</span>}
               </button>
@@ -168,7 +167,6 @@ export function MatrizPropsHueco({ raiz, valor, onChange, soloLectura }: {
           <ArbolFilas raiz={raiz} abiertosIni={3} filtro={soloConProps ? (n) => Object.keys(valor[n.id] ?? {}).length > 0 : undefined} render={(n) => (
             <>
               <span className="row gap-10 grow" style={{ whiteSpace: "nowrap", minWidth: 0 }}>
-                <Icon name={iconoCategoria(n.categoria)} size="m" />
                 <span style={{ fontWeight: n.hijos.length ? 500 : 400 }}>{n.nombre}</span>
               </span>
               {PROPS_HUECO.map((p) => (
