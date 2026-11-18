@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 import { Breadcrumb, Button, Dialog, EmptyState, IconButton, InfoTooltip, Loading, Menu, SearchInput, Tag, useSnackbar } from "@/components/ds";
-import { unidadesTerminadas } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
@@ -84,7 +83,6 @@ export default function EstructurasPage() {
                     </tr>
                     {abierta && usos.map((c) => {
                       const f = store.flotas.find((x) => x.id === c.flotaId);
-                      const incompletas = (c.unidades ?? 0) - unidadesTerminadas(c, e.raiz);
                       return (
                         <tr key={c.id} className="is-child">
                           <td />
@@ -96,7 +94,6 @@ export default function EstructurasPage() {
                           <td colSpan={2}>
                             <span className="row gap-10">
                               {c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>}
-                              {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                             </span>
                           </td>
                         </tr>

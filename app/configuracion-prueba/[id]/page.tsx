@@ -20,7 +20,7 @@ const PASOS_ASISTENTE = [
   { n: 4, titulo: "Propiedades de categoría" },
   { n: 2, titulo: "Propiedades de hueco" },
   { n: 3, titulo: "Drivers" },
-  { n: 7, titulo: "Números de serie" },
+  { n: 7, titulo: "Plantillas" },
   { n: 8, titulo: "Resumen" },
 ];
 const PASO_UNIDADES = { n: 1, titulo: "Estructura y unidades" };
@@ -93,7 +93,6 @@ export default function AsistentePage() {
   const actual = visibles[idx] ?? visibles[0];
   const siguiente = visibles[idx + 1];
   const anterior = visibles[idx - 1];
-  const hermanas = c.guardada ? store.configs.filter((x) => x.flotaId === c.flotaId && x.id !== c.id && x.guardada && x.estado !== "activa") : [];
 
   const v1 = paso1Valido(c, est);
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
@@ -174,15 +173,6 @@ export default function AsistentePage() {
         <div className="lm-header__actions">
         </div>
       </div>
-
-      {!soloLectura && hermanas.length > 0 && (
-        <div className="row gap-10 wrap" style={{ marginBottom: "var(--lm-space-15)" }}>
-          <span className="lm-body-small muted">Otras configuraciones de {flota.nombre} sin plantillas:</span>
-          {hermanas.map((x) => (
-            <a key={x.id} className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion-prueba/${x.id}`}>{nombreEstructura(store, x)}</a>
-          ))}
-        </div>
-      )}
 
       {soloLectura && (
         <div style={{ marginBottom: "var(--lm-space-20)" }}>

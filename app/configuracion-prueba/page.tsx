@@ -8,7 +8,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Banner, Breadcrumb, Button, Dialog, EmptyState, Field, IconButton, InfoTooltip, Loading, Menu, Tag, useSnackbar,
 } from "@/components/ds";
-import { unidadesTerminadas, type Configuracion, type Flota } from "@/lib/model";
+import { type Configuracion, type Flota } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
 
@@ -185,8 +185,6 @@ export default function ListadoPage() {
                       </tr>
                       {abierta && cs.map((c) => {
                         const est = store.estructura(c.estructuraId);
-                        const term = unidadesTerminadas(c, est?.raiz);
-                        const incompletas = (c.unidades ?? 0) - term;
                         return (
                           <tr key={c.id} className="is-child">
                             <td />
@@ -205,7 +203,6 @@ export default function ListadoPage() {
                                 {c.estado === "activa"
                                   ? <Tag tone="success">Activa</Tag>
                                   : <Tag tone="attention">Sin plantillas</Tag>}
-                                {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                               </span>
                             </td>
                             <td className="actions">

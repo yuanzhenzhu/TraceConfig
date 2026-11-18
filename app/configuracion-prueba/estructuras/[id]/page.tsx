@@ -206,7 +206,7 @@ export default function EditarEstructuraPage() {
           </table>
           {dif.anadidos.length > 0 && (
             <Banner type="info">
-              Las {unidades} unidades quedarán <strong>incompletas</strong> hasta que se carguen los datos de los activos nuevos ({[...new Set(dif.anadidos.map((n) => n.categoria))].join(", ")}). Los huecos nuevos heredan los drivers de su padre.
+              Los huecos nuevos quedarán sin datos hasta que se cargue su plantilla ({[...new Set(dif.anadidos.map((n) => n.categoria))].join(", ")}). Heredan los drivers de su padre.
             </Banner>
           )}
         </Dialog>
