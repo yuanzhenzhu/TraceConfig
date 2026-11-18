@@ -95,7 +95,7 @@ export default function EstructurasPage() {
                           <td className="num">{c.unidades}</td>
                           <td colSpan={2}>
                             <span className="row gap-10">
-                              {c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}
+                              {c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>}
                               {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                             </span>
                           </td>

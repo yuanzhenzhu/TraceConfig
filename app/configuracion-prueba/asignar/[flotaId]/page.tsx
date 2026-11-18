@@ -86,8 +86,8 @@ export default function AsignarEstructuraPage() {
     });
     setConfirmar(false);
     snack(ids.length === 1
-      ? `Configuración ${flota.nombre} · ${elegidas[0]!.nombre} guardada como En configuración`
-      : `${ids.length} configuraciones de ${flota.nombre} guardadas como En configuración. Continúa cada una desde el listado`);
+      ? `Configuración ${flota.nombre} · ${elegidas[0]!.nombre} guardada con el estado Sin plantillas`
+      : `${ids.length} configuraciones de ${flota.nombre} guardadas con el estado Sin plantillas. Continúa cada una desde el listado`);
     // Una sola: se sigue en su asistente. Varias: se vuelve al listado y cada una se continúa desde allí.
     router.push(ids.length === 1 ? `/configuracion-prueba/${ids[0]}` : "/configuracion-prueba");
   };

@@ -137,7 +137,7 @@ export default function AsistentePage() {
     if (p === 1 && c.guardada && est?.borradorDe) store.actualizarConfig(c.id, { guardada: true }); // la estructura nueva pasa al catálogo
     if (p === 1 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });
-      snack(`Configuración ${etiquetaCfg(store, c)} guardada como En configuración`);
+      snack(`Configuración ${etiquetaCfg(store, c)} guardada con el estado Sin plantillas`);
     }
     if (c.pasosOmitidos.includes(p)) set({ pasosOmitidos: c.pasosOmitidos.filter((x) => x !== p) });
     // Tras validar el paso actual, el siguiente es alcanzable aunque el estado aún no se haya refrescado.
@@ -168,7 +168,7 @@ export default function AsistentePage() {
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: flota.nombre, href: "/configuracion-prueba" }, { label: c.estructuraId ? nombreEstructura(store, c) : "Nueva configuración" }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{c.estructuraId ? etiquetaCfg(store, c) : "Nueva configuración"}</h1>
-            {c.guardada && (soloLectura ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>)}
+            {c.guardada && (soloLectura ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>)}
           </span>
         </div>
         <div className="lm-header__actions">
@@ -177,7 +177,7 @@ export default function AsistentePage() {
 
       {!soloLectura && hermanas.length > 0 && (
         <div className="row gap-10 wrap" style={{ marginBottom: "var(--lm-space-15)" }}>
-          <span className="lm-body-small muted">Otras configuraciones de {flota.nombre} en configuración:</span>
+          <span className="lm-body-small muted">Otras configuraciones de {flota.nombre} sin plantillas:</span>
           {hermanas.map((x) => (
             <a key={x.id} className="lm-btn lm-btn--outlined lm-btn--small" href={`/configuracion-prueba/${x.id}`}>{nombreEstructura(store, x)}</a>
           ))}

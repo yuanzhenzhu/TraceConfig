@@ -39,7 +39,7 @@ export default function ListadoPage() {
   const configs = store.configs.filter((c) => c.guardada);
   const deFlota = (f: Flota) => configs.filter((c) => c.flotaId === f.id);
 
-  // Flotas con algo En configuración salen desplegadas por defecto.
+  // Flotas con alguna configuración Sin plantillas salen desplegadas por defecto.
   useEffect(() => {
     if (!store.listo) return;
     const ini: Record<string, boolean> = {};
@@ -102,9 +102,9 @@ export default function ListadoPage() {
           <Field label="Estado" htmlFor="f-estado">
             <select id="f-estado" className="lm-select lm-select--dense" value={fEstado} onChange={(e) => { setFEstado(e.target.value); setPagina(0); }}>
               <option value="">Todos</option>
-              <option value="en-configuracion">En configuración</option>
-              <option value="activa">Activa</option>
               <option value="sin">Sin estructura</option>
+              <option value="en-configuracion">Sin plantillas</option>
+              <option value="activa">Activa</option>
             </select>
           </Field>
           {hayFiltros && (
@@ -168,9 +168,9 @@ export default function ListadoPage() {
                         <td className="num">{total || "—"}</td>
                         <td>
                           <span className="row gap-5 wrap">
-                            {todas.length === 0 && <Tag tone="neutral">Sin estructura</Tag>}
+                            {todas.length === 0 && <Tag tone="attention">Sin estructura</Tag>}
                             {activas > 0 && <Tag tone="success" num={activas}>{activas === 1 ? "Activa" : "Activas"}</Tag>}
-                            {enConf > 0 && <Tag tone="attention" num={enConf}>En configuración</Tag>}
+                            {enConf > 0 && <Tag tone="attention" num={enConf}>Sin plantillas</Tag>}
                           </span>
                         </td>
                         <td className="actions">
@@ -204,7 +204,7 @@ export default function ListadoPage() {
                               <span className="row gap-10">
                                 {c.estado === "activa"
                                   ? <Tag tone="success">Activa</Tag>
-                                  : <Tag tone="attention">En configuración</Tag>}
+                                  : <Tag tone="attention">Sin plantillas</Tag>}
                                 {c.estado === "activa" && incompletas > 0 && <Tag tone="warning" icon="warning">{incompletas} unidades incompletas</Tag>}
                               </span>
                             </td>

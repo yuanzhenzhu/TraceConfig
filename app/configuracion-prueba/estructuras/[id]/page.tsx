@@ -197,7 +197,7 @@ export default function EditarEstructuraPage() {
                 return (
                   <tr key={c.id}>
                     <td className="emph">{f?.nombre}</td>
-                    <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
+                    <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>}</td>
                     <td className="num">{c.unidades}</td>
                   </tr>
                 );

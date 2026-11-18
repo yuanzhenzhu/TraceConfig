@@ -88,7 +88,7 @@ export default function DriversPage() {
                     <td className="emph">{f?.nombre}</td>
                     <td>{est.nombre}</td>
                     <td>{tiene.length ? tiene.join(", ") : <span className="muted">Sin drivers</span>}</td>
-                    <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">En configuración</Tag>}</td>
+                    <td>{c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>}</td>
                     <td className="actions">
                       <Menu label={`Acciones de ${etiquetaCfg(store, c)}`} items={[
                         { label: "Modificar", icon: "edit", onSelect: () => router.push(`/configuracion-prueba/drivers/${c.id}`) },
