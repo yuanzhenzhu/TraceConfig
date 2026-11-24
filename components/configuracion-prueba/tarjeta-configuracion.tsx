@@ -47,8 +47,24 @@ export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones,
       style={conBorde ? { padding: "var(--lm-space-15)", border: "1px solid var(--lm-sys-outline-variant)", borderRadius: "var(--lm-corner-30)" } : undefined}>
       <h2 className="lm-title-small" style={{ margin: 0 }}>{titulo}</h2>
       {aviso}
+      {/* (24-11-2026) En consulta (estructura ya confirmada) se muestran los datos como texto, sin campos que parezcan editables */}
+      {soloLectura && (
+        <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
+          <span className="stack gap-5" style={{ width: 300 }}>
+            <span className="lm-label-medium muted">Nº de unidades</span>
+            <span className="lm-body-large">{unidades ?? "—"}</span>
+          </span>
+          <span className="stack gap-5" style={{ width: 300 }}>
+            <span className="lm-label-medium muted">Estructura</span>
+            <span className="row gap-5 lm-body-large">
+              {elegida?.nombre ?? "—"}
+              {elegida && <InfoTooltip label={`Descripción de ${elegida.nombre}`} text={`${elegida.descripcion || "Sin descripción"}. Ya está confirmada y no se puede cambiar`} />}
+            </span>
+          </span>
+        </div>
+      )}
       {/* Sin estructuras disponibles solo se muestra el aviso */}
-      {hay && <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
+      {hay && !soloLectura && <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
         <Field label="Nº de unidades" required htmlFor="cfg-unid" error={errUnidades} style={{ width: 300 }}
           support={minUnidades !== undefined ? `Ahora tiene ${minUnidades} unidades. Indica el nuevo total` : undefined}>
           <input id="cfg-unid" className="lm-input" inputMode="numeric" value={texto} placeholder="Por ejemplo: 12" readOnly={soloLectura}

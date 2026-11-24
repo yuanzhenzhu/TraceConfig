@@ -156,6 +156,13 @@ export default function AsistentePage() {
     router.push("/configuracion-prueba");
   };
 
+  const stepper = (plano: boolean) => (
+    <StepperPrueba plano={plano} actual={p} onIr={irA} bloqueado={(n) => !alcanzable(n)}
+      hecho={(n) => !c.pasosOmitidos.includes(n) && (anadir
+        ? (n === 1 ? unidadesOk : n === 7 ? todasCargadas(cv, raiz) : true)
+        : soloLectura || (orden(n) < orden(c.pasoMax) && valido(n)))} />
+  );
+
   return (
     <main className="lm-page">
       <div className="lm-header">
@@ -187,16 +194,15 @@ export default function AsistentePage() {
 
       {/* (Prueba, 24-11-2026) Sin barra inferior: se navega con el stepper, los cambios se guardan solos
           y la acción final (Finalizar configuración o Añadir unidades) está al final de Plantillas. */}
-      <StepperPrueba actual={p} onIr={irA} bloqueado={(n) => !alcanzable(n)}
-        hecho={(n) => !c.pasosOmitidos.includes(n) && (anadir
-          ? (n === 1 ? unidadesOk : n === 7 ? todasCargadas(cv, raiz) : true)
-          : soloLectura || (orden(n) < orden(c.pasoMax) && valido(n)))} />
-
-      {p === 1 && (
-        <TarjetaConfiguracion key={`${c.id}-${anadir ? "anadir" : "alta"}`} titulo={`Configuración ${numCfg}`}
-          unidades={cv.unidades} estructuraId={c.estructuraId ?? ""} opciones={[]} estructuraFija
-          soloLectura={!anadir} minUnidades={anadir?.antes} onGuardar={guardarPaso1} />
-      )}
+      {/* Paso 1: igual que al crear la configuración (stepper y tarjeta en una misma superficie). En el resto, el stepper va aparte. */}
+      {p === 1 ? (
+        <section className="lm-surface lm-surface--p24 stack gap-20">
+          {stepper(true)}
+          <TarjetaConfiguracion conBorde key={`${c.id}-${anadir ? "anadir" : "alta"}`} titulo={`Configuración ${numCfg}`}
+            unidades={cv.unidades} estructuraId={c.estructuraId ?? ""} opciones={[]} estructuraFija
+            soloLectura={!anadir} minUnidades={anadir?.antes} onGuardar={guardarPaso1} />
+        </section>
+      ) : stepper(false)}
       {p === 2 && est && <Paso2 {...props} />}
       {p === 3 && est && <Paso3 {...props} />}
       {p === 4 && est && <Paso4 {...props} />}
