@@ -40,7 +40,7 @@ export default function ListadoPage() {
   const configs = store.configs.filter((c) => c.guardada);
   const deFlota = (f: Flota) => configs.filter((c) => c.flotaId === f.id);
 
-  // Flotas con alguna configuración Sin plantillas salen desplegadas por defecto.
+  // Flotas con alguna configuración en 2/3 salen desplegadas por defecto.
   useEffect(() => {
     if (!store.listo) return;
     const ini: Record<string, boolean> = {};
@@ -72,7 +72,8 @@ export default function ListadoPage() {
   const flotasDemo = demo === "vacio" ? [] : visibles;
 
   // (Prueba) Las configuraciones se crean en Asignar estructura: cada una es una estructura y su nº de unidades.
-  // (Prueba) Tareas pendientes (icono info junto a Sin estructura y Sin plantillas)
+  // (Prueba, 24-11-2026) Columna Configuración: 1/3 (flota creada, sin estructura), 2/3 (estructura y unidades asignadas, faltan plantillas) y En uso (plantillas cargadas).
+  // Tareas pendientes: icono info junto a 1/3 y 2/3
   // Solo dos acciones: Asignar estructura (flota sin estructura) y Continuar (configuración sin plantillas, retoma el asistente).
   const SUB_ESTRUCTURA = ["Propiedades de categoría", "Propiedades de hueco", "Drivers"];
   const tareasFlota = (f: Flota): Tarea[] => [
@@ -114,12 +115,12 @@ export default function ListadoPage() {
               {store.estructuras.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
             </select>
           </Field>
-          <Field label="Estado" htmlFor="f-estado">
+          <Field label="Configuración" htmlFor="f-estado">
             <select id="f-estado" className="lm-select lm-select--dense" value={fEstado} onChange={(e) => { setFEstado(e.target.value); setPagina(0); }}>
               <option value="">Todos</option>
-              <option value="sin">Sin estructura</option>
-              <option value="en-configuracion">Sin plantillas</option>
-              <option value="activa">Activa</option>
+              <option value="sin">1/3</option>
+              <option value="en-configuracion">2/3</option>
+              <option value="activa">En uso</option>
             </select>
           </Field>
           {hayFiltros && (
@@ -152,7 +153,7 @@ export default function ListadoPage() {
                   <th>Flota</th>
                   <th>Estructura</th>
                   <th className="num">Unidades</th>
-                  <th>Estado</th>
+                  <th>Configuración</th>
                   <th className="actions"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
@@ -183,9 +184,9 @@ export default function ListadoPage() {
                         <td className="num">{total || "—"}</td>
                         <td>
                           <span className="row gap-5 wrap">
-                            {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">Sin estructura</Tag><TareasPendientes label={`Tareas pendientes de ${f.nombre}`} tareas={tareasFlota(f)} /></span>}
-                            {activas > 0 && <Tag tone="success" num={activas}>{activas === 1 ? "Activa" : "Activas"}</Tag>}
-                            {enConf > 0 && <Tag tone="attention" num={enConf}>Sin plantillas</Tag>}
+                            {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">1/3</Tag><TareasPendientes label={`Tareas pendientes de ${f.nombre}`} tareas={tareasFlota(f)} /></span>}
+                            {activas > 0 && <Tag tone="success" num={activas > 1 ? activas : undefined}>En uso</Tag>}
+                            {enConf > 0 && <Tag tone="attention" num={enConf > 1 ? enConf : undefined}>2/3</Tag>}
                           </span>
                         </td>
                         <td className="actions">
@@ -216,8 +217,8 @@ export default function ListadoPage() {
                             <td>
                               <span className="row gap-10">
                                 {c.estado === "activa"
-                                  ? <Tag tone="success">Activa</Tag>
-                                  : <span className="row gap-5"><Tag tone="attention">Sin plantillas</Tag><TareasPendientes label={`Tareas pendientes de ${etiquetaCfg(store, c)}`} tareas={tareasConfig(c)} /></span>}
+                                  ? <Tag tone="success">En uso</Tag>
+                                  : <span className="row gap-5"><Tag tone="attention">2/3</Tag><TareasPendientes label={`Tareas pendientes de ${etiquetaCfg(store, c)}`} tareas={tareasConfig(c)} /></span>}
                               </span>
                             </td>
                             <td className="actions">
@@ -261,7 +262,7 @@ export default function ListadoPage() {
           existentes={store.flotas.map((f) => f.nombre.trim().toLowerCase())}
           onClose={() => setDialogFlota(false)}
           onCrear={({ nombre, descripcion }) => {
-            // Se crea la flota y queda en el listado Sin estructura, con la acción Asignar estructura.
+            // Se crea la flota y queda en el listado en 1/3, con la acción Asignar estructura.
             const f = store.crearFlota({ nombre, descripcion });
             setDialogFlota(false);
             snack(`Flota ${f.nombre} creada`);
@@ -325,7 +326,7 @@ function DialogNombre({ titulo, nombre: ini, descripcion: iniDesc, ocupados, onC
 }
 
 /**
- * (Prueba) Añadir flota: nombre y descripción. La flota queda Sin estructura en el listado
+ * (Prueba) Añadir flota: nombre y descripción. La flota queda en 1/3 en el listado
  * y desde allí se le asigna (Asignar estructura).
  */
 function DialogNuevaFlota({ existentes, onClose, onCrear }: {

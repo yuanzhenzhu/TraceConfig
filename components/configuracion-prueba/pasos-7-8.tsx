@@ -2,7 +2,8 @@
 
 // Pasos 7 (Plantillas) y 8 (Resumen y finalizar).
 // (Prueba, 18-11-2026) Plantillas sin niveles ni candados: cualquier plantilla se puede cargar en cualquier orden y
-// se pueden dejar huecos sin datos. Solo la del Tren (primer nivel) es obligatoria. Sin contadores de unidades terminadas.
+// Sin contadores de unidades terminadas.
+// (Prueba, 24-11-2026) Todas las plantillas son obligatorias, en el alta y al añadir unidades.
 
 import { useRef, useState } from "react";
 import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag, useSnackbar } from "../ds";
@@ -12,6 +13,7 @@ import {
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import { resumenPropiedades } from "./propiedades";
+import { todasCargadas } from "./plantillas";
 import type { PasoProps } from "./pasos-1-3";
 
 const ESTADO: Record<EstadoPlantilla, { tone: "neutral" | "success" | "error"; txt: string }> = {
@@ -53,32 +55,30 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
   const [subiendo, setSubiendo] = useState<string | null>(null);
   const [errores, setErrores] = useState<string | null>(null);
 
-  const obligatoria = (cat: string) => cat === raiz.categoria;
+  const pendientes = cats.filter((x) => c.plantillas[x.categoria] !== "cargada").length;
 
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Plantillas</h2>
       <p className="muted" style={{ margin: 0 }}>
         {anadir
-          ? `Descarga la plantilla de unidades (${raiz.categoria}) con las ${c.unidades} unidades, rellena los datos de las nuevas y súbela. Si ya tienes los datos de sus activos, puedes subir también el resto de plantillas.`
+          ? `Descarga la plantilla de cada categoría con las ${c.unidades} unidades, rellena los datos de las nuevas y súbelas. Todas son obligatorias para añadir las unidades.`
           : soloLectura
           ? "Estado de las plantillas de cada categoría. Puedes descargar las plantillas, pero no subirlas."
-          : `Descarga la plantilla de cada categoría, rellénala y súbela, en el orden que quieras. Solo es obligatoria la de ${raiz.categoria}; el resto puedes cargarlas después o dejar huecos sin datos.`}
+          : `Descarga la plantilla de cada categoría, rellénala y súbela, en el orden que quieras. Todas son obligatorias para finalizar.`}
       </p>
-      {anadir ? (primerNivelCargado(c, raiz) ? (
-        <Banner type="success" title="Plantilla de unidades cargada">Ya puedes guardar: ve al resumen y pulsa Añadir unidades.</Banner>
+      {anadir ? (todasCargadas(c, raiz) ? (
+        <Banner type="success" title="Plantillas cargadas">Ya puedes guardar: ve al resumen y pulsa Añadir unidades.</Banner>
       ) : (
-        <Banner type="attention" title={`Carga de nuevo la plantilla de unidades (${raiz.categoria})`}>
-          Es obligatoria para añadir las unidades. Si no la cargas y sales, no se guarda ningún cambio.
+        <Banner type="attention" title={`Faltan ${pendientes} de ${cats.length} plantillas`}>
+          Todas son obligatorias para añadir las unidades. Si no las cargas y sales, no se guarda ningún cambio.
         </Banner>
-      )) : c.estado === "activa" ? null : !primerNivelCargado(c, raiz) ? (
-        <Banner type="attention" title={`Falta la plantilla de ${raiz.categoria}`}>
-          Es la única obligatoria para finalizar.
+      )) : c.estado === "activa" ? null : !todasCargadas(c, raiz) ? (
+        <Banner type="attention" title={`Faltan ${pendientes} de ${cats.length} plantillas`}>
+          Todas son obligatorias para finalizar.
         </Banner>
       ) : (
-        <Banner type="success" title={`Plantilla de ${raiz.categoria} cargada: ya puedes finalizar`}>
-          Las plantillas que queden pendientes se podrán cargar después.
-        </Banner>
+        <Banner type="success" title="Plantillas cargadas: ya puedes finalizar" />
       )}
       <table className="lm-table">
         <thead>
@@ -92,17 +92,15 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
                 <td>
                   <span className="row gap-10">
                     <span className="emph">{x.categoria}</span>
-                    {obligatoria(x.categoria) && <Tag tone="info">Obligatoria</Tag>}
                   </span>
                 </td>
                 <td className="num">{x.huecos}</td>
                 <td className="num">
                   {anadir && (c.unidades ?? 0) > anadir.antes ? (
-                    // Añadir unidades: registros que ya había + los de las unidades nuevas (rojo si la plantilla es obligatoria)
+                    // Añadir unidades: registros que ya había + los de las unidades nuevas (todos obligatorios)
                     <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                       {(x.huecos * anadir.antes).toLocaleString("es-ES")}
-                      <strong style={{ color: obligatoria(x.categoria) ? "var(--lm-sys-error)" : "var(--lm-on-warning-container)" }}
-                        aria-label={`${x.huecos * ((c.unidades ?? 0) - anadir.antes)} registros nuevos, ${obligatoria(x.categoria) ? "obligatorios" : "opcionales"}`}>
+                      <strong aria-label={`${x.huecos * ((c.unidades ?? 0) - anadir.antes)} registros nuevos`}>
                         + {(x.huecos * ((c.unidades ?? 0) - anadir.antes)).toLocaleString("es-ES")}
                       </strong>
                     </span>
@@ -133,8 +131,6 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
       {anadir && (c.unidades ?? 0) > anadir.antes && (
         <span className="row gap-20 lm-body-small muted">
           <span>Registros: actuales <strong>+ nuevos</strong> por las {(c.unidades ?? 0) - anadir.antes} unidades añadidas</span>
-          <span className="row gap-5"><strong style={{ color: "var(--lm-sys-error)" }}>+ N</strong> obligatorio</span>
-          <span className="row gap-5"><strong style={{ color: "var(--lm-on-warning-container)" }}>+ N</strong> opcional</span>
         </span>
       )}
 
@@ -243,7 +239,7 @@ export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configur
     { n: 3, titulo: "Drivers", contenido: <>
       {conDrivers.length ? `Tiene ${lista(conDrivers)}` : "Sin drivers"}
     </> },
-    { n: 7, titulo: "Plantillas", contenido: <>{primerNivelCargado(c, raiz) ? `Plantilla de ${raiz.categoria} cargada` : `Falta la plantilla de ${raiz.categoria} (obligatoria)`}<br />{cats.length - pendientes.length} de {cats.length} plantillas cargadas</> },
+    { n: 7, titulo: "Plantillas", contenido: <>{cats.length - pendientes.length} de {cats.length} plantillas cargadas<br />{pendientes.length ? `Faltan ${pendientes.map((p) => p.categoria).join(", ")}` : "Todas cargadas"}</> },
   ];
 
   return (
@@ -253,27 +249,26 @@ export function Paso8({ c, flota, est, irA, soloLectura, anadir }: { c: Configur
           <Banner type="attention" title="Todavía no has añadido unidades" actions={<Button variant="outlined" small onClick={() => irA(1)}>Ir a Estructura y unidades</Button>}>
             Indica un número de unidades mayor que las {anadir.antes} actuales.
           </Banner>
-        ) : !primerNivelCargado(c, est.raiz) ? (
-          <Banner type="attention" title="Falta cargar la plantilla de unidades" actions={<Button variant="outlined" small onClick={() => irA(7)}>Ir a Plantillas</Button>}>
-            Es obligatoria para añadir las {(c.unidades ?? 0) - anadir.antes} unidades nuevas.
+        ) : !todasCargadas(c, est.raiz) ? (
+          <Banner type="attention" title="Faltan plantillas por cargar" actions={<Button variant="outlined" small onClick={() => irA(7)}>Ir a Plantillas</Button>}>
+            Todas son obligatorias para añadir las {(c.unidades ?? 0) - anadir.antes} unidades nuevas. Faltan: {pendientes.map((p) => p.categoria).join(", ")}.
           </Banner>
         ) : (
           <Banner type="info" title={`Todo listo para añadir ${(c.unidades ?? 0) - anadir.antes} unidades`}>
-            La configuración pasará de {anadir.antes} a {c.unidades} unidades.{pendientes.length > 0 && ` Plantillas pendientes (opcionales): ${pendientes.map((p) => p.categoria).join(", ")}.`}
+            La configuración pasará de {anadir.antes} a {c.unidades} unidades.
           </Banner>
         )
       ) : soloLectura ? (
-        <Banner type="success" title="Configuración activa">
-          Sus unidades están operativas.{pendientes.length > 0 && ` Plantillas pendientes de cargar (opcionales): ${pendientes.map((p) => p.categoria).join(", ")}.`}
+        <Banner type="success" title="Configuración en uso">
+          Sus unidades están operativas.
         </Banner>
-      ) : primerNivelCargado(c, raiz) ? (
+      ) : todasCargadas(c, raiz) ? (
         <Banner type="info" title="Todo listo para finalizar">
-          Al finalizar, la configuración pasará a Activa y sus {c.unidades} unidades quedarán disponibles para operar.
-          {pendientes.length > 0 && " Las plantillas pendientes se podrán cargar después."}
+          Al finalizar, la configuración pasará a En uso y sus {c.unidades} unidades quedarán disponibles para operar.
         </Banner>
       ) : (
         <Banner type="attention" title="Todavía no puedes finalizar" actions={<Button variant="outlined" small onClick={() => irA(7)}>Ir a Plantillas</Button>}>
-          Falta cargar la plantilla de {raiz.categoria}, la única obligatoria.
+          Todas las plantillas son obligatorias. Faltan: {pendientes.map((p) => p.categoria).join(", ")}.
         </Banner>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--lm-space-20)" }}>

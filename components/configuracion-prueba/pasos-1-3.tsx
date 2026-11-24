@@ -72,7 +72,7 @@ export function Paso1({ c, set, intentado, est, flota, soloLectura, anadir }: Pa
           <span className="lm-body-small muted">{nUnidades} unidades × {huecos} huecos por unidad = {(nUnidades * huecos).toLocaleString("es-ES")} huecos en total</span>
         )}
         {!c.guardada && (
-          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Al continuar, la configuración se guardará con el estado Sin plantillas y podrás retomarla cuando quieras.</span>
+          <span className="lm-body-small muted row gap-5"><Icon name="info" size="m" />Al continuar, la configuración se guardará en 2/3 y podrás retomarla cuando quieras.</span>
         )}
       </section>
 

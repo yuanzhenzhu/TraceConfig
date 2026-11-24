@@ -54,7 +54,7 @@ export default function EditarDriversPage() {
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: "Drivers", href: "/configuracion-prueba/drivers" }, { label: nombre }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>Drivers de {nombre}</h1>
-            {c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>}
+            {c.estado === "activa" ? <Tag tone="success">En uso</Tag> : <Tag tone="attention">2/3</Tag>}
           </span>
           <span className="muted">{flota?.nombre} · {est.nombre} · {c.unidades} unidades</span>
         </div>

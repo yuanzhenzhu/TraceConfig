@@ -47,7 +47,7 @@ export default function EstructurasPage() {
           {verSinEstructura && (
             <table id="flotas-sin-estructura" className="lm-table" style={{ marginTop: "var(--lm-space-15)" }}>
               <thead>
-                <tr><th>Flota</th><th className="num">Unidades</th><th>Estado</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
+                <tr><th>Flota</th><th className="num">Unidades</th><th>Configuración</th><th className="actions"><span className="sr-only">Acciones</span></th></tr>
               </thead>
               <tbody>
                 {sinEstructura.map((f) => (
@@ -59,7 +59,7 @@ export default function EstructurasPage() {
                       </span>
                     </td>
                     <td className="num">—</td>
-                    <td><Tag tone="attention">Sin estructura</Tag></td>
+                    <td><Tag tone="attention">1/3</Tag></td>
                     <td className="actions">
                       <Button variant="tonal" small onClick={() => router.push(`/configuracion-prueba/asignar/${f.id}`)}>Asignar estructura</Button>
                     </td>
@@ -131,7 +131,7 @@ export default function EstructurasPage() {
                           <td className="num">{c.unidades}</td>
                           <td colSpan={2}>
                             <span className="row gap-10">
-                              {c.estado === "activa" ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>}
+                              {c.estado === "activa" ? <Tag tone="success">En uso</Tag> : <Tag tone="attention">2/3</Tag>}
                             </span>
                           </td>
                         </tr>

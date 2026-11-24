@@ -1,7 +1,7 @@
 "use client";
 
 // (Prueba, 18-11-2026) Panel «Tareas pendientes»: se abre con el icono de información junto a los estados
-// Sin estructura (flota) y Sin plantillas (configuración). Figma Main-Trace 1169:21396.
+// 1/3 (flota sin estructura) y 2/3 (configuración sin todas las plantillas). Figma Main-Trace 1169:21396.
 // Se basa en el patrón `configuration-detail-card` (popover) de Compositions: panel sobre la tabla, con tokens del sistema.
 
 import { useEffect, useRef, useState } from "react";

@@ -10,7 +10,8 @@ import { Banner, Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, use
 import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/configuracion-prueba/pasos-1-3";
 import { Paso4 } from "@/components/configuracion-prueba/pasos-4-6";
 import { Paso7, Paso8 } from "@/components/configuracion-prueba/pasos-7-8";
-import { categoriasDe, driversIniciales, plantillasIniciales, primerNivelCargado, type Configuracion, type Flota } from "@/lib/model";
+import { categoriasDe, driversIniciales, plantillasIniciales, type Configuracion, type Flota } from "@/lib/model";
+import { todasCargadas } from "@/components/configuracion-prueba/plantillas";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg, nombreEstructura } from "@/components/configuracion-prueba/nombre";
 
@@ -51,8 +52,8 @@ export default function AsistentePage() {
     const q = Number(qs.get("paso"));
     if (qs.get("modo") === "anadir" && c.estado === "activa" && est) {
       setModoAnadir(true);
-      // Las unidades nuevas obligan a cargar de nuevo la plantilla de unidades (primer nivel).
-      setBorr({ unidades: c.unidades, plantillas: { ...c.plantillas, [est.raiz.categoria]: "pendiente" }, intentosPlantilla: { ...c.intentosPlantilla } });
+      // (Prueba, 24-11-2026) Las unidades nuevas obligan a cargar de nuevo todas las plantillas.
+      setBorr({ unidades: c.unidades, plantillas: plantillasIniciales(est.raiz), intentosPlantilla: { ...c.intentosPlantilla } });
     }
     if (!c.estructuraId && c.estado !== "activa") { router.replace(`/configuracion-prueba/asignar/${c.flotaId}`); return; }
     const n = q >= 1 && q <= 8 ? q : c.pasoActual;
@@ -85,8 +86,8 @@ export default function AsistentePage() {
   const soloLectura = c.estado === "activa"; // Consultar: el asistente entero, sin poder modificar nada
   const props: PasoProps = { c: cv, set, intentado, est, flota, setFlota, soloLectura, anadir };
   const unidadesOk = !anadir || (cv.unidades ?? 0) > anadir.antes;
-  const listoAnadir = !!anadir && unidadesOk && primerNivelCargado(cv, raiz);
-  const hayCambiosAnadir = !!anadir && (cv.unidades !== c.unidades || JSON.stringify(cv.plantillas) !== JSON.stringify({ ...c.plantillas, [raiz?.categoria ?? ""]: "pendiente" }));
+  const listoAnadir = !!anadir && unidadesOk && todasCargadas(cv, raiz);
+  const hayCambiosAnadir = !!anadir && (cv.unidades !== c.unidades || JSON.stringify(cv.plantillas) !== JSON.stringify(raiz ? plantillasIniciales(raiz) : {}));
   const qsModo = anadir ? "&modo=anadir" : "";
   const visibles = anadir || soloLectura ? [PASO_UNIDADES, ...PASOS_ASISTENTE] : PASOS_ASISTENTE;
   const idx = visibles.findIndex((x) => x.n === p);
@@ -98,7 +99,7 @@ export default function AsistentePage() {
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
   const estructuraFijada = c.pasoMax > 1;
   const alcanzable = (n: number) => soloLectura || n === 1 || (v1 && c.guardada && estructuraFijada);
-  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? primerNivelCargado(c, raiz) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? todasCargadas(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
@@ -136,7 +137,7 @@ export default function AsistentePage() {
     if (p === 1 && c.guardada && est?.borradorDe) store.actualizarConfig(c.id, { guardada: true }); // la estructura nueva pasa al catálogo
     if (p === 1 && !c.guardada) {
       store.actualizarConfig(c.id, { guardada: true });
-      snack(`Configuración ${etiquetaCfg(store, c)} guardada con el estado Sin plantillas`);
+      snack(`Configuración ${etiquetaCfg(store, c)} guardada en 2/3`);
     }
     if (c.pasosOmitidos.includes(p)) set({ pasosOmitidos: c.pasosOmitidos.filter((x) => x !== p) });
     // Tras validar el paso actual, el siguiente es alcanzable aunque el estado aún no se haya refrescado.
@@ -144,7 +145,7 @@ export default function AsistentePage() {
   };
   const finalizar = () => {
     set({ estado: "activa", pasoActual: 8 });
-    snack(`Configuración ${etiquetaCfg(store, c)} finalizada: sus ${c.unidades} unidades ya están activas`);
+    snack(`Configuración ${etiquetaCfg(store, c)} finalizada: sus ${c.unidades} unidades ya están en uso`);
     router.push("/configuracion-prueba");
   };
   const guardarAnadir = () => {
@@ -167,7 +168,7 @@ export default function AsistentePage() {
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: flota.nombre, href: "/configuracion-prueba" }, { label: c.estructuraId ? nombreEstructura(store, c) : "Nueva configuración" }]} />
           <span className="row gap-15">
             <h1 className="lm-headline-small" style={{ margin: 0 }}>{c.estructuraId ? etiquetaCfg(store, c) : "Nueva configuración"}</h1>
-            {c.guardada && (soloLectura ? <Tag tone="success">Activa</Tag> : <Tag tone="attention">Sin plantillas</Tag>)}
+            {c.guardada && (soloLectura ? <Tag tone="success">En uso</Tag> : <Tag tone="attention">2/3</Tag>)}
           </span>
         </div>
         <div className="lm-header__actions">
@@ -178,10 +179,10 @@ export default function AsistentePage() {
         <div style={{ marginBottom: "var(--lm-space-20)" }}>
           {anadir ? (
             <Banner type="info" title={`Estás añadiendo unidades a ${etiquetaCfg(store, c)}`}>
-              Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). La plantilla de unidades es obligatoria. Los cambios se guardan al pulsar Añadir unidades en el resumen: si sales antes, no se guarda nada.
+              Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). Todas las plantillas son obligatorias. Los cambios se guardan al pulsar Añadir unidades en el resumen: si sales antes, no se guarda nada.
             </Banner>
           ) : (
-            <Banner type="info" title="Estás consultando una configuración activa">
+            <Banner type="info" title="Estás consultando una configuración en uso">
               Puedes recorrer todos sus pasos y ver sus datos, pero no modificar nada.
             </Banner>
           )}
@@ -195,7 +196,7 @@ export default function AsistentePage() {
               {visibles.map((x, i) => {
                 const omit = c.pasosOmitidos.includes(x.n);
                 const hecho = !omit && x.n !== p && (anadir
-                  ? (x.n === 1 ? unidadesOk : x.n === 7 ? primerNivelCargado(cv, raiz) : x.n !== 8)
+                  ? (x.n === 1 ? unidadesOk : x.n === 7 ? todasCargadas(cv, raiz) : x.n !== 8)
                   : soloLectura || (orden(x.n) < orden(c.pasoMax) && valido(x.n)));
                 const cls = x.n === p ? "is-current" : omit ? "is-skipped" : hecho ? "is-done" : "";
                 return (
@@ -241,7 +242,7 @@ export default function AsistentePage() {
                 : soloLectura
                 ? siguiente && <Button onClick={() => irA(siguiente.n)}>Siguiente</Button>
                 : p === 8
-                  ? <Button icon="check" disabled={!primerNivelCargado(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
+                  ? <Button icon="check" disabled={!todasCargadas(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
                   : <Button onClick={() => avanzar()}>Siguiente</Button>}
             </div>
           </footer>
