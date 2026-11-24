@@ -6,15 +6,15 @@
 import { useRef, useState } from "react";
 import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag } from "../ds";
 import { PROPS_CATEGORIA, PROPS_HUECO } from "@/lib/model";
-import { ORIGEN, porcentaje, type HuecoPendiente } from "./recepcion";
+import { porcentaje, type HuecoPendiente } from "./recepcion";
 
 const nombreProp = (id: string) => PROPS_CATEGORIA.find((p) => p.id === id)?.nombre ?? PROPS_HUECO.find((p) => p.id === id)?.nombre ?? id;
 
 /** CSV (separador ;) con una fila por hueco vacío: unidad, hueco, nº de serie, km y propiedades. */
 export function descargarPlantillaRecepcion(nombre: string, hs: HuecoPendiente[]) {
   const props = [...new Set(hs.flatMap((h) => [...h.propsCategoria, ...h.propsHueco]))];
-  const cab = ["Unidad", "Hueco", "Categoría", "Origen", "Nº de serie", "Km", ...props.map(nombreProp)];
-  const csv = "﻿" + [cab, ...hs.map((h) => [h.unidad, h.hueco, h.categoria, ORIGEN[h.origen], "", "", ...props.map(() => "")])]
+  const cab = ["Unidad", "Hueco", "Categoría", "Nº de serie", "Km", ...props.map(nombreProp)];
+  const csv = "﻿" + [cab, ...hs.map((h) => [h.unidad, h.hueco, h.categoria, "", "", ...props.map(() => "")])]
     .map((f) => f.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a");

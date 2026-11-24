@@ -4,7 +4,7 @@
 // - Vista por unidad: Flota, Unidad, Estructura y % de rellenado. Al pinchar una unidad se ven las categorías con
 //   huecos vacíos en ella, y en cada una se descarga la plantilla y se sube.
 // - Vista por categoría: Categoría, Flota y % de rellenado, con descargar y subir directamente en la fila.
-// Los huecos vacíos salen de una estructura modificada o de un montaje o desmontaje (ficticios, ver recepcion.ts).
+// Los huecos vacíos salen solo de una estructura modificada (ficticios, ver recepcion.ts); los de montajes o desmontajes no aparecen.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -119,7 +119,7 @@ export default function RecepcionUnidadPage() {
       </section>
 
       <footer className="row gap-10 wrap" style={{ marginTop: "var(--lm-space-40)", color: "var(--lm-sys-on-surface-variant)" }}>
-        <span className="lm-label-medium">PROTOTIPO · Huecos vacíos de ejemplo: una categoría nueva (Sensor) en Metro Línea 1 y huecos vaciados por desmontajes en Tranvía Norte.</span>
+        <span className="lm-label-medium">PROTOTIPO · Huecos vacíos de ejemplo por estructura modificada: una categoría nueva (Sensor) en Metro Línea 1 y otra (Cámara) en Tranvía Norte.</span>
         <span className="grow" />
         <Button variant="text" icon="restart_alt" onClick={() => { restablecer(); snack("Recepción restablecida"); }}>Restablecer recepción</Button>
       </footer>

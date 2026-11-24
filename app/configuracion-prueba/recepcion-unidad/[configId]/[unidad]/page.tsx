@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { Breadcrumb, Button, EmptyState, IconButton, Loading, Tag, useSnackbar } from "@/components/ds";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg } from "@/components/configuracion-prueba/nombre";
-import { ORIGEN, huecosPendientes, porUnidad, recibirTodos, useRecepcion } from "@/components/configuracion-prueba/recepcion";
+import { huecosPendientes, porUnidad, recibirTodos, useRecepcion } from "@/components/configuracion-prueba/recepcion";
 import { DialogSubirRecepcion, Rellenado, descargarPlantillaRecepcion } from "@/components/configuracion-prueba/recepcion-plantilla";
 
 export default function RecepcionUnidadDetallePage() {
@@ -26,7 +26,7 @@ export default function RecepcionUnidadDetallePage() {
   // Una fila por categoría con huecos vacíos en esta unidad (también las ya recibidas en esta prueba)
   const categorias = [...new Set(deUnidad.map((h) => h.categoria))].map((categoria) => {
     const todos = deUnidad.filter((h) => h.categoria === categoria);
-    return { categoria, todos, vacios: todos.filter((h) => !recibidos[h.id]), origen: todos[0].origen };
+    return { categoria, todos, vacios: todos.filter((h) => !recibidos[h.id]) };
   });
 
   if (!store.listo) return <main className="lm-page"><Loading text="Cargando unidad" /></main>;
@@ -55,12 +55,11 @@ export default function RecepcionUnidadDetallePage() {
 
       <section className="lm-surface lm-surface--p16">
         <table className="lm-table">
-          <thead><tr><th>Categoría</th><th>Origen</th><th className="num">Huecos vacíos</th><th>Estado</th><th className="actions">Acciones</th></tr></thead>
+          <thead><tr><th>Categoría</th><th className="num">Huecos vacíos</th><th>Estado</th><th className="actions">Acciones</th></tr></thead>
           <tbody>
             {categorias.map((x) => (
               <tr key={x.categoria}>
                 <td className="emph">{x.categoria}</td>
-                <td>{ORIGEN[x.origen]}</td>
                 <td className="num">{x.vacios.length}</td>
                 <td>{x.vacios.length ? <Tag tone="attention">Pendiente</Tag> : <Tag tone="success">Recibida</Tag>}</td>
                 <td className="actions">
