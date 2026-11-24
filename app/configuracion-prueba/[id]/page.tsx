@@ -38,6 +38,13 @@ export default function AsistentePage() {
   // Borrador al añadir unidades: no se guarda nada hasta pulsar Añadir unidades en el resumen.
   const [borr, setBorr] = useState<Pick<Configuracion, "unidades" | "plantillas" | "intentosPlantilla"> | null>(null);
   const [salirAnadir, setSalirAnadir] = useState(false);
+  // (Prueba, 24-11-2026) Pasos 2, 3 y 4 con Cancelar y Guardar: al entrar se guarda una copia para poder descartar los cambios.
+  const [copia, setCopia] = useState<{ paso: number; drivers: Configuracion["drivers"]; valoresHueco: Configuracion["valoresHueco"]; propsCategoria: typeof store.propsCategoria } | null>(null);
+  useEffect(() => {
+    if (!c || paso === null || ![2, 3, 4].includes(paso) || copia?.paso === paso) return;
+    setCopia({ paso, drivers: structuredClone(c.drivers), valoresHueco: structuredClone(c.valoresHueco), propsCategoria: structuredClone(store.propsCategoria) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paso, c?.id]);
 
   useEffect(() => {
     if (!c || paso !== null) return;
@@ -107,7 +114,7 @@ export default function AsistentePage() {
     window.scrollTo({ top: 0 });
   };
 
-  // Paso 1 (Guardar): la estructura ya está confirmada; solo cambian las unidades.
+  // Paso 1: tras crear la configuración (y confirmar la estructura) queda en solo consulta. Al añadir unidades sí se cambia el nº de unidades.
   const guardarPaso1 = (unidades: number) => {
     if (anadir) {
       set({ unidades });
@@ -122,6 +129,23 @@ export default function AsistentePage() {
   const finalizar = () => {
     set({ estado: "activa", pasoActual: 7 });
     snack(`Configuración ${etiquetaCfg(store, c)} finalizada: sus ${c.unidades} unidades ya están en uso`);
+    router.push("/configuracion-prueba");
+  };
+  // Orden de los pasos con Cancelar y Guardar: Drivers (3) → Añadir valor a propiedades de hueco (2) → Propiedades categoría (4) → Plantillas (7)
+  const SIGUIENTE: Record<number, number> = { 3: 2, 2: 4, 4: 7 };
+  const GUARDADO: Record<number, string> = { 3: "Drivers guardados", 2: "Valores de propiedades de hueco guardados", 4: "Propiedades de categoría guardadas" };
+  const guardarPaso = () => {
+    snack(GUARDADO[p]);
+    setCopia(null);
+    irA(SIGUIENTE[p]);
+  };
+  const cancelarPaso = () => {
+    if (copia) {
+      store.actualizarConfig(c.id, { drivers: copia.drivers, valoresHueco: copia.valoresHueco });
+      store.guardarPropsCategoria(copia.propsCategoria);
+    }
+    setCopia(null);
+    snack("Cambios descartados");
     router.push("/configuracion-prueba");
   };
   const guardarAnadir = () => {
@@ -171,11 +195,17 @@ export default function AsistentePage() {
       {p === 1 && (
         <TarjetaConfiguracion key={`${c.id}-${anadir ? "anadir" : "alta"}`} titulo={`Configuración ${numCfg}`}
           unidades={cv.unidades} estructuraId={c.estructuraId ?? ""} opciones={[]} estructuraFija
-          soloLectura={soloLectura && !anadir} minUnidades={anadir?.antes} onGuardar={guardarPaso1} />
+          soloLectura={!anadir} minUnidades={anadir?.antes} onGuardar={guardarPaso1} />
       )}
       {p === 2 && est && <Paso2 {...props} />}
       {p === 3 && est && <Paso3 {...props} />}
       {p === 4 && est && <Paso4 {...props} />}
+      {[2, 3, 4].includes(p) && est && !soloLectura && (
+        <div className="row gap-10" style={{ justifyContent: "flex-end", marginTop: "var(--lm-space-20)" }}>
+          <Button variant="outlined" onClick={cancelarPaso}>Cancelar</Button>
+          <Button onClick={guardarPaso}>Guardar</Button>
+        </div>
+      )}
       {p === 7 && est && <Paso7 {...props} />}
 
       {p === 7 && !(soloLectura && !anadir) && (
