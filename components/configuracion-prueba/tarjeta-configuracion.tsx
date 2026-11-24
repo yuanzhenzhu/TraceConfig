@@ -47,20 +47,21 @@ export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones,
       style={conBorde ? { padding: "var(--lm-space-15)", border: "1px solid var(--lm-sys-outline-variant)", borderRadius: "var(--lm-corner-30)" } : undefined}>
       <h2 className="lm-title-small" style={{ margin: 0 }}>{titulo}</h2>
       {aviso}
-      {/* (24-11-2026) En consulta (estructura ya confirmada) se muestran los datos como texto, sin campos que parezcan editables */}
+      {/* (24-11-2026) Ya confirmada: los mismos campos, no editables (sin borde de foco ni cursor de escritura)
+          pero con el valor bien legible (on-surface al 100%, no al 38% del estado Disabled). */}
       {soloLectura && (
         <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
-          <span className="stack gap-5" style={{ width: 300 }}>
-            <span className="lm-label-medium muted">Nº de unidades</span>
-            <span className="lm-body-large">{unidades ?? "—"}</span>
-          </span>
-          <span className="stack gap-5" style={{ width: 300 }}>
-            <span className="lm-label-medium muted">Estructura</span>
-            <span className="row gap-5 lm-body-large">
-              {elegida?.nombre ?? "—"}
-              {elegida && <InfoTooltip label={`Descripción de ${elegida.nombre}`} text={`${elegida.descripcion || "Sin descripción"}. Ya está confirmada y no se puede cambiar`} />}
+          <Field label="Nº de unidades" htmlFor="cfg-unid-ro" style={{ width: 300 }}>
+            <input id="cfg-unid-ro" className="lm-input" value={unidades ?? ""} readOnly aria-readonly="true" tabIndex={-1} style={NO_EDITABLE} />
+          </Field>
+          <Field label="Estructura" htmlFor="cfg-est-ro" style={{ width: 300 }}>
+            <input id="cfg-est-ro" className="lm-input" value={elegida?.nombre ?? ""} readOnly aria-readonly="true" tabIndex={-1} style={NO_EDITABLE} />
+          </Field>
+          {elegida && (
+            <span style={{ marginTop: "var(--lm-space-30)" }}>
+              <InfoTooltip label={`Descripción de ${elegida.nombre}`} text={`${elegida.descripcion || "Sin descripción"}. Ya está confirmada y no se puede cambiar`} />
             </span>
-          </span>
+          )}
         </div>
       )}
       {/* Sin estructuras disponibles solo se muestra el aviso */}
@@ -88,3 +89,12 @@ export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones,
     </section>
   );
 }
+
+/** Campo no editable pero legible: contenedor como Disabled (on-surface al 12 %), contenido on-surface al 100 %. */
+const NO_EDITABLE: React.CSSProperties = {
+  color: "var(--lm-sys-on-surface)",
+  borderColor: "color-mix(in srgb, var(--lm-sys-on-surface) 12%, transparent)",
+  background: "var(--lm-sys-surface-container-low)",
+  cursor: "default",
+  pointerEvents: "none",
+};
