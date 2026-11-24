@@ -253,6 +253,8 @@ textarea.lm-input { height: auto; min-height: var(--lm-space-90); padding: var(-
 .lm-step.is-current .lm-step__dot { background: var(--lm-sys-primary); color: var(--lm-sys-on-primary); }
 .lm-step.is-done .lm-step__dot { background: var(--lm-sys-primary-container); color: var(--lm-sys-on-primary-container); }
 .lm-step.is-skipped .lm-step__dot { background: var(--lm-attention-container-variant); color: var(--lm-on-attention-container); }
+.lm-step.is-locked { color: var(--lm-sys-on-surface); }
+.lm-step.is-locked .lm-step__dot { background: var(--lm-sys-on-surface); color: var(--lm-sys-surface); }
 .lm-stepper__line { flex: 1; min-width: var(--lm-space-10); height: 1px; background: var(--lm-sys-outline-variant); }
 .lm-stepper li { min-width: 0; }
 

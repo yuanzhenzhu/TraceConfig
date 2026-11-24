@@ -68,7 +68,7 @@ export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps)
           : `Descarga la plantilla de cada categoría, rellénala y súbela, en el orden que quieras. Todas son obligatorias para finalizar.`}
       </p>
       {anadir ? (todasCargadas(c, raiz) ? (
-        <Banner type="success" title="Plantillas cargadas">Ya puedes guardar: ve al resumen y pulsa Añadir unidades.</Banner>
+        <Banner type="success" title="Plantillas cargadas">Ya puedes pulsar Añadir unidades.</Banner>
       ) : (
         <Banner type="attention" title={`Faltan ${pendientes} de ${cats.length} plantillas`}>
           Todas son obligatorias para añadir las unidades. Si no las cargas y sales, no se guarda ningún cambio.

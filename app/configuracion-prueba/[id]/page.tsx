@@ -9,24 +9,18 @@ import { useEffect, useState } from "react";
 import { Banner, Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
 import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/configuracion-prueba/pasos-1-3";
 import { Paso4 } from "@/components/configuracion-prueba/pasos-4-6";
-import { Paso7, Paso8 } from "@/components/configuracion-prueba/pasos-7-8";
+import { Paso7 } from "@/components/configuracion-prueba/pasos-7-8";
+import { PASOS_PRUEBA, StepperPrueba } from "@/components/configuracion-prueba/stepper";
 import { categoriasDe, driversIniciales, plantillasIniciales, type Configuracion, type Flota } from "@/lib/model";
 import { todasCargadas } from "@/components/configuracion-prueba/plantillas";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg, nombreEstructura } from "@/components/configuracion-prueba/nombre";
 
-// (Prueba, 18-11-2026) La estructura y las unidades se eligen antes, en Asignar estructura. El asistente empieza en
-// Propiedades de categoría. Al consultar o añadir unidades sigue apareciendo el paso Estructura y unidades.
-const PASOS_ASISTENTE = [
-  { n: 4, titulo: "Propiedades de categoría" },
-  { n: 2, titulo: "Propiedades de hueco" },
-  { n: 3, titulo: "Drivers" },
-  { n: 7, titulo: "Plantillas" },
-  { n: 8, titulo: "Resumen" },
-];
-const PASO_UNIDADES = { n: 1, titulo: "Estructura y unidades" };
-/** Orden de un paso en el asistente (los números de paso ya no van en orden). */
-const orden = (n: number) => [1, ...PASOS_ASISTENTE.map((x) => x.n)].indexOf(n);
+// (Prueba, 24-11-2026) Pasos: Estructura y unidades, Drivers, Propiedades hueco, Propiedades categoría (estos tres opcionales)
+// y Plantillas. El paso 1 de una configuración nueva está en Asignar estructura (una configuración cada vez).
+// Sin Resumen: se finaliza (o se añaden las unidades) en Plantillas.
+/** Orden de un paso en el asistente (los números de paso no van en orden). */
+const orden = (n: number) => PASOS_PRUEBA.map((x) => x.n).indexOf(n);
 
 export default function AsistentePage() {
   const { id } = useParams<{ id: string }>();
@@ -57,9 +51,7 @@ export default function AsistentePage() {
     }
     if (!c.estructuraId && c.estado !== "activa") { router.replace(`/configuracion-prueba/asignar/${c.flotaId}`); return; }
     const n = q >= 1 && q <= 8 ? q : c.pasoActual;
-    const m = n === 5 ? 4 : n === 6 ? 3 : n; // los antiguos pasos 5 (Propiedades de hueco) y 6 (SMS) ya no existen
-    const conUnidades = qs.get("modo") === "anadir" || c.estado === "activa";
-    setPaso(m === 1 && !conUnidades ? 4 : m); // sin el paso 1, se empieza en Propiedades de categoría
+    setPaso(n === 5 ? 4 : n === 6 ? 3 : n === 8 ? 7 : n); // los antiguos pasos 5, 6 y 8 (Resumen) ya no existen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c, paso]);
 
@@ -89,7 +81,7 @@ export default function AsistentePage() {
   const listoAnadir = !!anadir && unidadesOk && todasCargadas(cv, raiz);
   const hayCambiosAnadir = !!anadir && (cv.unidades !== c.unidades || JSON.stringify(cv.plantillas) !== JSON.stringify(raiz ? plantillasIniciales(raiz) : {}));
   const qsModo = anadir ? "&modo=anadir" : "";
-  const visibles = anadir || soloLectura ? [PASO_UNIDADES, ...PASOS_ASISTENTE] : PASOS_ASISTENTE;
+  const visibles = PASOS_PRUEBA;
   const idx = visibles.findIndex((x) => x.n === p);
   const actual = visibles[idx] ?? visibles[0];
   const siguiente = visibles[idx + 1];
@@ -99,7 +91,7 @@ export default function AsistentePage() {
   // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
   const estructuraFijada = c.pasoMax > 1;
   const alcanzable = (n: number) => soloLectura || n === 1 || (v1 && c.guardada && estructuraFijada);
-  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 || n === 8 ? todasCargadas(c, raiz) : true);
+  const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 ? todasCargadas(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
@@ -144,7 +136,7 @@ export default function AsistentePage() {
     if (siguiente) irA(siguiente.n, true);
   };
   const finalizar = () => {
-    set({ estado: "activa", pasoActual: 8 });
+    set({ estado: "activa", pasoActual: 7 });
     snack(`Configuración ${etiquetaCfg(store, c)} finalizada: sus ${c.unidades} unidades ya están en uso`);
     router.push("/configuracion-prueba");
   };
@@ -179,7 +171,7 @@ export default function AsistentePage() {
         <div style={{ marginBottom: "var(--lm-space-20)" }}>
           {anadir ? (
             <Banner type="info" title={`Estás añadiendo unidades a ${etiquetaCfg(store, c)}`}>
-              Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). Todas las plantillas son obligatorias. Los cambios se guardan al pulsar Añadir unidades en el resumen: si sales antes, no se guarda nada.
+              Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). Todas las plantillas son obligatorias. Los cambios se guardan al pulsar Añadir unidades en Plantillas: si sales antes, no se guarda nada.
             </Banner>
           ) : (
             <Banner type="info" title="Estás consultando una configuración en uso">
@@ -191,36 +183,17 @@ export default function AsistentePage() {
 
       {(
         <>
-          <nav aria-label="Pasos de la configuración" className="lm-surface" style={{ marginBottom: "var(--lm-space-20)" }}>
-            <ol className="lm-stepper" style={{ listStyle: "none", margin: 0 }}>
-              {visibles.map((x, i) => {
-                const omit = c.pasosOmitidos.includes(x.n);
-                const hecho = !omit && x.n !== p && (anadir
-                  ? (x.n === 1 ? unidadesOk : x.n === 7 ? todasCargadas(cv, raiz) : x.n !== 8)
-                  : soloLectura || (orden(x.n) < orden(c.pasoMax) && valido(x.n)));
-                const cls = x.n === p ? "is-current" : omit ? "is-skipped" : hecho ? "is-done" : "";
-                return (
-                  <li key={x.n} className="row gap-10" style={{ flex: i < visibles.length - 1 ? 1 : undefined }}>
-                    <button className={`lm-step ${cls}`} disabled={!alcanzable(x.n)} aria-current={x.n === p ? "step" : undefined} onClick={() => irA(x.n)}>
-                      <span className="lm-step__dot">{hecho ? <Icon name="check" /> : omit ? <Icon name="remove" /> : i + 1}</span>
-                      <span className="lm-step__label">
-                        <span>{x.titulo}</span>
-                      </span>
-                    </button>
-                    {i < visibles.length - 1 && <span className="lm-stepper__line" />}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
+          <StepperPrueba actual={p} onIr={irA} bloqueado={(n) => !alcanzable(n)}
+            hecho={(n) => !c.pasosOmitidos.includes(n) && (anadir
+              ? (n === 1 ? unidadesOk : n === 7 ? todasCargadas(cv, raiz) : true)
+              : soloLectura || (orden(n) < orden(c.pasoMax) && valido(n)))} />
 
           {p === 1 && <Paso1 {...props} />}
           {p === 2 && est && <Paso2 {...props} />}
           {p === 3 && est && <Paso3 {...props} />}
           {p === 4 && est && <Paso4 {...props} />}
           {p === 7 && est && <Paso7 {...props} />}
-          {p === 8 && est && <Paso8 c={cv} flota={flota} est={est} irA={irA} soloLectura={soloLectura} anadir={anadir} />}
-
+          
           <footer className="lm-footer-bar">
             <div className="row gap-10" style={{ maxWidth: 1360, margin: "0 auto", padding: "var(--lm-space-15) var(--lm-space-30)" }}>
               {anadir
@@ -236,12 +209,12 @@ export default function AsistentePage() {
               </span>
               {anterior && <Button variant="outlined" onClick={() => irA(anterior.n)}>Anterior</Button>}
               {anadir
-                ? p === 8
+                ? p === 7
                   ? <Button icon="check" disabled={!listoAnadir} onClick={guardarAnadir}>Añadir {(cv.unidades ?? 0) - anadir.antes > 0 ? (cv.unidades ?? 0) - anadir.antes : ""} unidades</Button>
                   : <Button onClick={() => { if (p === 1 && !unidadesOk) { setIntentado(true); return; } irA(siguiente!.n); }}>Siguiente</Button>
                 : soloLectura
                 ? siguiente && <Button onClick={() => irA(siguiente.n)}>Siguiente</Button>
-                : p === 8
+                : p === 7
                   ? <Button icon="check" disabled={!todasCargadas(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
                   : <Button onClick={() => avanzar()}>Siguiente</Button>}
             </div>
