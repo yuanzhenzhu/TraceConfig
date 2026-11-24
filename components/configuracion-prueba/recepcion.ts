@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { unidadesDe } from "@/lib/activos";
-import { recorrer, rutaDe, type Configuracion, type Estructura, type Nodo, type PropsCategoria } from "@/lib/model";
+import { contarHuecos, recorrer, rutaDe, type Configuracion, type Estructura, type Nodo, type PropsCategoria } from "@/lib/model";
 
 export type Origen = "estructura" | "movimiento";
 export type HuecoPendiente = {
@@ -76,3 +76,51 @@ export function useRecepcion() {
 }
 
 export const ORIGEN: Record<Origen, string> = { estructura: "Estructura modificada", movimiento: "Montaje o desmontaje" };
+
+// (Prueba, 24-11-2026) Vistas de Recepción en unidad: por unidad y por categoría, con el porcentaje de rellenado.
+
+const huecosDeCategoria = (raiz: Nodo, categoria: string) => { let n = 0; recorrer(raiz, (x) => { if (x.categoria === categoria) n++; }); return n; };
+
+export type FilaUnidad = { configId: string; flotaId: string; estructuraId: string; unidad: string; total: number; pendientes: HuecoPendiente[] };
+export type FilaCategoria = { categoria: string; flotaId: string; total: number; pendientes: HuecoPendiente[] };
+
+/** Unidades con algún hueco vacío (o ya recibido en esta prueba): total de huecos de la unidad y los que siguen vacíos. */
+export function porUnidad(huecos: HuecoPendiente[], recibidos: Record<string, Recibido>, configs: Configuracion[], estructuras: Estructura[]): FilaUnidad[] {
+  const m = new Map<string, FilaUnidad>();
+  huecos.forEach((h) => {
+    const k = `${h.configId}|${h.unidad}`;
+    if (!m.has(k)) {
+      const c = configs.find((x) => x.id === h.configId)!;
+      const raiz = estructuras.find((e) => e.id === c.estructuraId)!.raiz;
+      // Total = huecos de la estructura + los de categorías nuevas que aún no están en ella (Sensor)
+      const nuevos = huecos.filter((x) => x.configId === h.configId && x.unidad === h.unidad && x.origen === "estructura").length;
+      m.set(k, { configId: h.configId, flotaId: h.flotaId, estructuraId: c.estructuraId!, unidad: h.unidad, total: contarHuecos(raiz) + nuevos, pendientes: [] });
+    }
+    if (!recibidos[h.id]) m.get(k)!.pendientes.push(h);
+  });
+  return [...m.values()];
+}
+
+/** Categorías con algún hueco vacío, por flota: total de huecos de esa categoría en las unidades de la flota y los vacíos. */
+export function porCategoria(huecos: HuecoPendiente[], recibidos: Record<string, Recibido>, configs: Configuracion[], estructuras: Estructura[]): FilaCategoria[] {
+  const m = new Map<string, FilaCategoria>();
+  huecos.forEach((h) => {
+    const k = `${h.categoria}|${h.flotaId}`;
+    if (!m.has(k)) {
+      const deFlota = configs.filter((c) => c.flotaId === h.flotaId && c.estado === "activa");
+      const enEstructura = deFlota.reduce((s, c) => s + huecosDeCategoria(estructuras.find((e) => e.id === c.estructuraId)!.raiz, h.categoria) * (c.unidades ?? 0), 0);
+      const nuevos = huecos.filter((x) => x.flotaId === h.flotaId && x.categoria === h.categoria && x.origen === "estructura").length;
+      m.set(k, { categoria: h.categoria, flotaId: h.flotaId, total: enEstructura + nuevos, pendientes: [] });
+    }
+    if (!recibidos[h.id]) m.get(k)!.pendientes.push(h);
+  });
+  return [...m.values()];
+}
+
+export const porcentaje = (total: number, vacios: number) => (total ? Math.floor(((total - vacios) / total) * 100) : 100);
+
+/** Simula la carga de una plantilla: todos los huecos indicados quedan recibidos. */
+export function recibirTodos(hs: HuecoPendiente[]): Record<string, Recibido> {
+  const ahora = new Date().toISOString();
+  return Object.fromEntries(hs.map((h, i) => [h.id, { serie: `${h.categoria.slice(0, 2).toUpperCase()}-${h.unidad}-${String(900 + i)}`, km: String(120000 + i * 350), props: {}, fecha: ahora }]));
+}
