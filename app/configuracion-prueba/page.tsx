@@ -73,18 +73,13 @@ export default function ListadoPage() {
 
   // (Prueba) Las configuraciones se crean en Asignar estructura: cada una es una estructura y su nº de unidades.
   // (Prueba, 24-11-2026) Columna Configuración: 1/3 (flota creada, sin estructura), 2/3 (estructura y unidades asignadas, faltan plantillas) y En uso (plantillas cargadas).
-  // Tareas pendientes: icono info junto a 1/3 y 2/3
-  // Solo dos acciones: Asignar estructura (flota sin estructura) y Continuar (configuración sin plantillas, retoma el asistente).
-  const SUB_ESTRUCTURA = ["Propiedades de categoría", "Propiedades de hueco", "Drivers"];
-  const tareasFlota = (f: Flota): Tarea[] => [
+  // Panel Progreso (N/3): icono info junto a 1/3 y 2/3, con una sola acción, Continuar:
+  // en 1/3 lleva a Asignar estructura y en 2/3 retoma el asistente.
+  const SUB_ESTRUCTURA = { etiqueta: "Opcionales", texto: "Drivers, propiedades de hueco, propiedades de categoría" };
+  const tareas = (n: 1 | 2): Tarea[] => [
     { titulo: "Flota", estado: "hecha" },
-    { titulo: "Estructura", estado: "pendiente", sub: SUB_ESTRUCTURA, accion: { label: "Asignar estructura", onClick: () => nuevaConfig(f.id) } },
+    { titulo: "Estructuras y unidades", estado: n === 2 ? "hecha" : "pendiente", sub: SUB_ESTRUCTURA },
     { titulo: "Plantillas", estado: "pendiente" },
-  ];
-  const tareasConfig = (c: Configuracion): Tarea[] => [
-    { titulo: "Flota", estado: "hecha" },
-    { titulo: "Estructura", estado: "hecha", sub: SUB_ESTRUCTURA },
-    { titulo: "Plantillas", estado: "pendiente", accion: { label: "Continuar", onClick: () => router.push(`/configuracion-prueba/${c.id}`) } },
   ];
 
   const nuevaConfig = (flotaId: string) => router.push(`/configuracion-prueba/asignar/${flotaId}`);
@@ -184,7 +179,7 @@ export default function ListadoPage() {
                         <td className="num">{total || "—"}</td>
                         <td>
                           <span className="row gap-5 wrap">
-                            {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">1/3</Tag><TareasPendientes label={`Tareas pendientes de ${f.nombre}`} tareas={tareasFlota(f)} /></span>}
+                            {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">1/3</Tag><TareasPendientes titulo="Progreso (1/3)" label={`Progreso de ${f.nombre}`} tareas={tareas(1)} accion={{ label: "Continuar", onClick: () => nuevaConfig(f.id) }} /></span>}
                             {activas > 0 && <Tag tone="success" num={activas > 1 ? activas : undefined}>En uso</Tag>}
                             {enConf > 0 && <Tag tone="attention" num={enConf > 1 ? enConf : undefined}>2/3</Tag>}
                           </span>
@@ -218,7 +213,7 @@ export default function ListadoPage() {
                               <span className="row gap-10">
                                 {c.estado === "activa"
                                   ? <Tag tone="success">En uso</Tag>
-                                  : <span className="row gap-5"><Tag tone="attention">2/3</Tag><TareasPendientes label={`Tareas pendientes de ${etiquetaCfg(store, c)}`} tareas={tareasConfig(c)} /></span>}
+                                  : <span className="row gap-5"><Tag tone="attention">2/3</Tag><TareasPendientes titulo="Progreso (2/3)" label={`Progreso de ${etiquetaCfg(store, c)}`} tareas={tareas(2)} accion={{ label: "Continuar", onClick: () => router.push(`/configuracion-prueba/${c.id}`) }} /></span>}
                               </span>
                             </td>
                             <td className="actions">
