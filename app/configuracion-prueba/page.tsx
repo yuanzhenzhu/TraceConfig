@@ -180,8 +180,13 @@ export default function ListadoPage() {
                         <td>
                           <span className="row gap-5 wrap">
                             {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">1/3</Tag><TareasPendientes titulo="Progreso (1/3)" label={`Progreso de ${f.nombre}`} tareas={tareas(1)} accion={{ label: "Continuar", onClick: () => nuevaConfig(f.id) }} /></span>}
-                            {activas > 0 && <Tag tone="success" num={activas > 1 ? activas : undefined}>En uso</Tag>}
-                            {enConf > 0 && <Tag tone="attention" num={enConf > 1 ? enConf : undefined}>2/3</Tag>}
+                            {/* (Prueba, 24-11-2026) Resumen de la flota: con alguna configuración sin terminar, «N avisos» en amarillo
+                                (con una sola configuración, su 2/3); si todas están en uso, «En uso» en verde. */}
+                            {todas.length > 0 && (enConf === 0
+                              ? <Tag tone="success">En uso</Tag>
+                              : todas.length === 1
+                              ? <Tag tone="attention">2/3</Tag>
+                              : <Tag tone="attention">{enConf} {enConf === 1 ? "aviso" : "avisos"}</Tag>)}
                           </span>
                         </td>
                         <td className="actions">
