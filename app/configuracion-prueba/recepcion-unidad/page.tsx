@@ -7,13 +7,14 @@
 // Los huecos vacíos salen de una estructura modificada o de un montaje o desmontaje (ficticios, ver recepcion.ts).
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb, Button, EmptyState, Field, IconButton, Loading, useSnackbar } from "@/components/ds";
 import { useStore } from "@/lib/store";
 import { porCategoria, porUnidad, porcentaje, recibirTodos, huecosPendientes, useRecepcion, type FilaCategoria } from "@/components/configuracion-prueba/recepcion";
 import { DialogSubirRecepcion, Rellenado, descargarPlantillaRecepcion } from "@/components/configuracion-prueba/recepcion-plantilla";
 
 type Vista = "unidad" | "categoria";
+const CLAVE_VISTA = "lm-prueba-recepcion-vista";
 
 export default function RecepcionUnidadPage() {
   const store = useStore();
@@ -22,6 +23,20 @@ export default function RecepcionUnidadPage() {
   const { recibidos, recibir, restablecer } = useRecepcion();
   const [vista, setVista] = useState<Vista>("unidad");
   const [fFlota, setFFlota] = useState("");
+  // (24-11-2026) La pestaña y el filtro se mantienen al entrar en una unidad y volver (en esta pestaña del navegador)
+  const [leido, setLeido] = useState(false);
+  useEffect(() => {
+    try {
+      const g = JSON.parse(sessionStorage.getItem(CLAVE_VISTA) ?? "{}");
+      if (g.vista === "unidad" || g.vista === "categoria") setVista(g.vista);
+      if (typeof g.flota === "string") setFFlota(g.flota);
+    } catch { /* sin almacenamiento */ }
+    setLeido(true);
+  }, []);
+  useEffect(() => {
+    if (!leido) return;
+    try { sessionStorage.setItem(CLAVE_VISTA, JSON.stringify({ vista, flota: fFlota })); } catch { /* solo en esta vista */ }
+  }, [vista, fFlota, leido]);
   const [subiendo, setSubiendo] = useState<FilaCategoria | null>(null);
 
   const huecos = useMemo(() => huecosPendientes(store.configs, store.estructuras, store.propsCategoria), [store.configs, store.estructuras, store.propsCategoria]);
