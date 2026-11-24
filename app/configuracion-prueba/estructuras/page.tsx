@@ -84,7 +84,7 @@ export default function EstructurasPage() {
               <tr>
                 <th style={{ width: 48 }}><span className="sr-only">Desplegar</span></th>
                 <th>Estructura</th>
-                <th className="num">Configuraciones</th><th className="num">Unidades</th><th>Estado</th>
+                <th className="num">Configuraciones</th><th className="num">Unidades</th>
                 <th className="actions"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
@@ -108,7 +108,6 @@ export default function EstructurasPage() {
                       </td>
                       <td className="num">{usos.length}</td>
                       <td className="num">{unidades || "—"}</td>
-                      <td>{usos.length ? <Tag tone="primary">En uso</Tag> : <Tag tone="neutral">Sin usar</Tag>}</td>
                       <td className="actions">
                         <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                           <Menu label={`Acciones de ${e.nombre}`} items={[
@@ -127,13 +126,8 @@ export default function EstructurasPage() {
                           <td colSpan={2} style={{ paddingLeft: "var(--lm-space-30)" }}>
                             <Link href={`/configuracion-prueba/${c.id}`}>{etiquetaCfg(store, c)}</Link>
                           </td>
-                          <td />
                           <td className="num">{c.unidades}</td>
-                          <td colSpan={2}>
-                            <span className="row gap-10">
-                              {c.estado === "activa" ? <Tag tone="success">En uso</Tag> : <Tag tone="attention">2/3</Tag>}
-                            </span>
-                          </td>
+                          <td />
                         </tr>
                       );
                     })}
