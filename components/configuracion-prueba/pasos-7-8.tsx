@@ -4,11 +4,12 @@
 // (Prueba, 18-11-2026) Plantillas sin niveles ni candados: cualquier plantilla se puede cargar en cualquier orden y
 // Sin contadores de unidades terminadas.
 // (Prueba, 24-11-2026) Todas las plantillas son obligatorias, en el alta y al añadir unidades.
+// Dos formas de cargarlas (pestañas): por categoría o por unidad (Excel con una pestaña por categoría).
 
 import { useRef, useState } from "react";
 import { Banner, Button, Dialog, Icon, IconButton, Spinner, Tag, useSnackbar } from "../ds";
 import {
-  DRIVERS, PROPS_CATEGORIA, categoriasDe, driversEfectivos, primerNivelCargado, recorrer,
+  DRIVERS, PROPS_CATEGORIA, categoriasDe, contarHuecos, driversEfectivos, primerNivelCargado, recorrer, rutaDe,
   type Configuracion, type EstadoPlantilla, type Estructura, type Flota, type Nodo, type DriversConfig, type PropsCategoria,
 } from "@/lib/model";
 import { useStore } from "@/lib/store";
@@ -46,116 +47,198 @@ function descargarPlantilla(c: Configuracion, raiz: Nodo, drivers: DriversConfig
   a.click(); URL.revokeObjectURL(url);
 }
 
+/** Nombre de una hoja de Excel: máximo 31 caracteres y sin \ / ? * [ ] : */
+const nombreHoja = (s: string) => s.replace(/[\\/?*[\]:]/g, " ").slice(0, 31);
+
+/**
+ * (Prueba, 24-11-2026) Plantilla por unidad: un Excel con una pestaña por categoría y, en cada pestaña,
+ * una fila por hueco de esa categoría en la unidad (km obligatorio, otros drivers y propiedades de categoría).
+ */
+async function descargarPlantillaUnidad(c: Configuracion, raiz: Nodo, drivers: DriversConfig | null, propsCategoria: PropsCategoria, unidad: number) {
+  const ExcelJS = (await import("exceljs")).default;
+  const wb = new ExcelJS.Workbook();
+  const ef = driversEfectivos(drivers, raiz);
+  categoriasDe(raiz).forEach(({ categoria }) => {
+    const huecos: Nodo[] = [];
+    recorrer(raiz, (n) => { if (n.categoria === categoria) huecos.push(n); });
+    const otros = DRIVERS.filter((d) => d.id !== "km" && huecos.some((h) => ef.drivers[h.id]?.[d.id])).map((d) => d.nombre);
+    const props = (propsCategoria[categoria] ?? []).map((p) => PROPS_CATEGORIA.find((x) => x.id === p.propId)?.nombre ?? p.propId);
+    const ws = wb.addWorksheet(nombreHoja(categoria));
+    const esRaiz = categoria === raiz.categoria;
+    ws.addRow(esRaiz ? ["Nº de serie de la unidad", "Km", "Fecha", ...otros, ...props] : ["Hueco", "Nº de serie del activo", "Km", ...otros, ...props]);
+    ws.getRow(1).font = { bold: true };
+    if (esRaiz) ws.addRow([""]);
+    else huecos.forEach((h) => ws.addRow([rutaDe(raiz, h.id).join(" › ")]));
+    ws.columns.forEach((col) => { col.width = 28; });
+  });
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = `plantilla-${c.nombre || "estructura"}-unidad-${unidad}.xlsx`.toLowerCase().replace(/\s+/g, "-");
+  a.click(); URL.revokeObjectURL(url);
+}
+
+type Forma = "categoria" | "unidad";
+
 export function Paso7({ c, set, est, soloLectura: consulta, anadir }: PasoProps) {
   const soloLectura = consulta && !anadir; // al añadir unidades sí se suben plantillas
   const snack = useSnackbar();
   const store = useStore();
   const raiz = est!.raiz;
   const cats = categoriasDe(raiz);
-  const [subiendo, setSubiendo] = useState<string | null>(null);
-  const [errores, setErrores] = useState<string | null>(null);
+  const activosPorUnidad = contarHuecos(raiz);
+  const desde = anadir?.antes ?? 0;
+  // Por unidad: en el alta todas las unidades; al añadir unidades, solo las nuevas
+  const unidades = Array.from({ length: Math.max(0, (c.unidades ?? 0) - desde) }, (_, i) => desde + i + 1);
+  const pu = c.plantillasUnidad ?? {};
+  const [forma, setForma] = useState<Forma>(() => (Object.keys(pu).length && !Object.values(c.plantillas).some((x) => x === "cargada") ? "unidad" : "categoria"));
+  const [subiendo, setSubiendo] = useState<{ forma: Forma; clave: string } | null>(null);
+  const [errores, setErrores] = useState<{ forma: Forma; clave: string } | null>(null);
 
-  const pendientes = cats.filter((x) => c.plantillas[x.categoria] !== "cargada").length;
+  const pendCats = cats.filter((x) => c.plantillas[x.categoria] !== "cargada").length;
+  const pendUnid = unidades.filter((u) => pu[String(u)] !== "cargada").length;
+  const completo = todasCargadas(c, raiz, desde);
+  const etiqueta = (f: Forma, clave: string) => (f === "categoria" ? clave : `la unidad ${clave}`);
 
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
       <h2 className="lm-title-medium" style={{ margin: 0 }}>Plantillas</h2>
       <p className="muted" style={{ margin: 0 }}>
-        {anadir
-          ? `Descarga la plantilla de cada categoría con las ${c.unidades} unidades, rellena los datos de las nuevas y súbelas. Todas son obligatorias para añadir las unidades.`
-          : soloLectura
-          ? "Estado de las plantillas de cada categoría. Puedes descargar las plantillas, pero no subirlas."
-          : `Descarga la plantilla de cada categoría, rellénala y súbela, en el orden que quieras. Todas son obligatorias para finalizar.`}
+        {soloLectura
+          ? "Estado de las plantillas. Puedes descargarlas, pero no subirlas."
+          : `Carga los datos de ${anadir ? "las unidades nuevas" : "las unidades"} de una de estas dos formas: una plantilla por categoría (con todas las unidades) o una plantilla por unidad (un Excel con una pestaña por categoría). Hay que cargarlas todas para ${anadir ? "añadir las unidades" : "finalizar"}.`}
       </p>
-      {anadir ? (todasCargadas(c, raiz) ? (
-        <Banner type="success" title="Plantillas cargadas">Ya puedes pulsar Añadir unidades.</Banner>
+      {!soloLectura && (completo ? (
+        <Banner type="success" title={anadir ? "Plantillas cargadas: ya puedes añadir las unidades" : "Plantillas cargadas: ya puedes finalizar"} />
       ) : (
-        <Banner type="attention" title={`Faltan ${pendientes} de ${cats.length} plantillas`}>
-          Todas son obligatorias para añadir las unidades. Si no las cargas y sales, no se guarda ningún cambio.
+        <Banner type="attention" title={forma === "categoria" ? `Faltan ${pendCats} de ${cats.length} plantillas por categoría` : `Faltan ${pendUnid} de ${unidades.length} plantillas por unidad`}>
+          {anadir ? "Si no las cargas y sales, no se guarda ningún cambio." : "Todas son obligatorias para finalizar."}
         </Banner>
-      )) : c.estado === "activa" ? null : !todasCargadas(c, raiz) ? (
-        <Banner type="attention" title={`Faltan ${pendientes} de ${cats.length} plantillas`}>
-          Todas son obligatorias para finalizar.
-        </Banner>
+      ))}
+
+      <div className="lm-tabs" role="tablist" style={{ marginBottom: 0 }}>
+        <button role="tab" className="lm-tab" aria-selected={forma === "categoria"} onClick={() => setForma("categoria")}>Por categoría</button>
+        <button role="tab" className="lm-tab" aria-selected={forma === "unidad"} onClick={() => setForma("unidad")}>Por unidad</button>
+      </div>
+
+      {forma === "categoria" ? (
+        <>
+          <table className="lm-table">
+            <thead>
+              <tr><th>Categoría</th><th className="num">Huecos por unidad</th><th className="num">Registros</th><th>Estado</th><th className="actions">Acciones</th></tr>
+            </thead>
+            <tbody>
+              {cats.map((x) => {
+                const e = c.plantillas[x.categoria] ?? "pendiente";
+                return (
+                  <tr key={x.categoria}>
+                    <td><span className="emph">{x.categoria}</span></td>
+                    <td className="num">{x.huecos}</td>
+                    <td className="num">
+                      {anadir && (c.unidades ?? 0) > anadir.antes ? (
+                        // Añadir unidades: registros que ya había + los de las unidades nuevas
+                        <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
+                          {(x.huecos * anadir.antes).toLocaleString("es-ES")}
+                          <strong aria-label={`${x.huecos * ((c.unidades ?? 0) - anadir.antes)} registros nuevos`}>
+                            + {(x.huecos * ((c.unidades ?? 0) - anadir.antes)).toLocaleString("es-ES")}
+                          </strong>
+                        </span>
+                      ) : (x.huecos * (c.unidades ?? 0)).toLocaleString("es-ES")}
+                    </td>
+                    <td>
+                      <span className="row gap-10">
+                        <Tag tone={ESTADO[e].tone}>{ESTADO[e].txt}</Tag>
+                        {e === "errores" && !soloLectura && <Button variant="text" small onClick={() => setErrores({ forma: "categoria", clave: x.categoria })}>Ver errores</Button>}
+                      </span>
+                    </td>
+                    <td className="actions">
+                      <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
+                        <IconButton icon="file_download" label={`Descargar plantilla de ${x.categoria}`}
+                          onClick={() => { descargarPlantilla(c, raiz, c.drivers, store.propsCategoria, x.categoria); snack(`Plantilla de ${x.categoria} descargada`); }} />
+                        {!soloLectura && (
+                          <Button variant={e === "cargada" ? "text" : "outlined"} small icon="file_upload" onClick={() => setSubiendo({ forma: "categoria", clave: x.categoria })}>
+                            {e === "cargada" ? "Reemplazar" : "Subir"}
+                          </Button>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {anadir && (c.unidades ?? 0) > anadir.antes && (
+            <span className="lm-body-small muted">Registros: actuales <strong>+ nuevos</strong> por las {(c.unidades ?? 0) - anadir.antes} unidades añadidas</span>
+          )}
+        </>
+      ) : unidades.length === 0 ? (
+        <span className="muted">Indica primero el número de unidades en el paso Estructura y unidades.</span>
       ) : (
-        <Banner type="success" title="Plantillas cargadas: ya puedes finalizar" />
-      )}
-      <table className="lm-table">
-        <thead>
-          <tr><th>Categoría</th><th className="num">Huecos por unidad</th><th className="num">Registros</th><th>Estado</th><th className="actions">Acciones</th></tr>
-        </thead>
-        <tbody>
-          {cats.map((x) => {
-            const est = c.plantillas[x.categoria] ?? "pendiente";
-            return (
-              <tr key={x.categoria}>
-                <td>
-                  <span className="row gap-10">
-                    <span className="emph">{x.categoria}</span>
-                  </span>
-                </td>
-                <td className="num">{x.huecos}</td>
-                <td className="num">
-                  {anadir && (c.unidades ?? 0) > anadir.antes ? (
-                    // Añadir unidades: registros que ya había + los de las unidades nuevas (todos obligatorios)
-                    <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
-                      {(x.huecos * anadir.antes).toLocaleString("es-ES")}
-                      <strong aria-label={`${x.huecos * ((c.unidades ?? 0) - anadir.antes)} registros nuevos`}>
-                        + {(x.huecos * ((c.unidades ?? 0) - anadir.antes)).toLocaleString("es-ES")}
-                      </strong>
-                    </span>
-                  ) : (x.huecos * (c.unidades ?? 0)).toLocaleString("es-ES")}
-                </td>
-                <td>
-                  <span className="row gap-10">
-                    <Tag tone={ESTADO[est].tone}>{ESTADO[est].txt}</Tag>
-                    {est === "errores" && !soloLectura && <Button variant="text" small onClick={() => setErrores(x.categoria)}>Ver errores</Button>}
-                  </span>
-                </td>
-                <td className="actions">
-                  <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
-                    <IconButton icon="file_download" label={`Descargar plantilla de ${x.categoria}`}
-                      onClick={() => { descargarPlantilla(c, raiz, c.drivers, store.propsCategoria, x.categoria); snack(`Plantilla de ${x.categoria} descargada`); }} />
-                    {!soloLectura && (
-                      <Button variant={est === "cargada" ? "text" : "outlined"} small icon="file_upload" onClick={() => setSubiendo(x.categoria)}>
-                        {est === "cargada" ? "Reemplazar" : "Subir"}
-                      </Button>
-                    )}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {anadir && (c.unidades ?? 0) > anadir.antes && (
-        <span className="row gap-20 lm-body-small muted">
-          <span>Registros: actuales <strong>+ nuevos</strong> por las {(c.unidades ?? 0) - anadir.antes} unidades añadidas</span>
-        </span>
+        <>
+          <table className="lm-table">
+            <thead>
+              <tr><th>Unidad</th><th className="num">Activos por rellenar</th><th>Estado</th><th className="actions">Acciones</th></tr>
+            </thead>
+            <tbody>
+              {unidades.map((u) => {
+                const clave = String(u);
+                const e = pu[clave] ?? "pendiente";
+                return (
+                  <tr key={u}>
+                    <td><span className="emph">Unidad {u}</span>{anadir && <span className="muted"> · nueva</span>}</td>
+                    <td className="num">{e === "cargada" ? 0 : activosPorUnidad}</td>
+                    <td>
+                      <span className="row gap-10">
+                        <Tag tone={ESTADO[e].tone}>{ESTADO[e].txt}</Tag>
+                        {e === "errores" && !soloLectura && <Button variant="text" small onClick={() => setErrores({ forma: "unidad", clave })}>Ver errores</Button>}
+                      </span>
+                    </td>
+                    <td className="actions">
+                      <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
+                        <IconButton icon="file_download" label={`Descargar plantilla de la unidad ${u}`}
+                          onClick={() => { void descargarPlantillaUnidad(c, raiz, c.drivers, store.propsCategoria, u).then(() => snack(`Plantilla de la unidad ${u} descargada`)); }} />
+                        {!soloLectura && (
+                          <Button variant={e === "cargada" ? "text" : "outlined"} small icon="file_upload" onClick={() => setSubiendo({ forma: "unidad", clave })}>
+                            {e === "cargada" ? "Reemplazar" : "Subir"}
+                          </Button>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <span className="lm-body-small muted">Cada plantilla es un Excel con una pestaña por categoría ({cats.length}) y una fila por hueco: {activosPorUnidad} activos por unidad.</span>
+        </>
       )}
 
       {subiendo && (
-        <DialogSubida categoria={subiendo} c={c} onClose={() => setSubiendo(null)}
+        <DialogSubida categoria={subiendo.forma === "categoria" ? subiendo.clave : `la unidad ${subiendo.clave}`} c={c} onClose={() => setSubiendo(null)}
           onResultado={(ok) => {
-            const cat = subiendo;
-            set({ plantillas: { ...c.plantillas, [cat]: ok ? "cargada" : "errores" }, intentosPlantilla: { ...c.intentosPlantilla, [cat]: (c.intentosPlantilla[cat] ?? 0) + 1 } });
+            const { forma: f, clave } = subiendo;
+            if (f === "categoria") {
+              set({ plantillas: { ...c.plantillas, [clave]: ok ? "cargada" : "errores" }, intentosPlantilla: { ...c.intentosPlantilla, [clave]: (c.intentosPlantilla[clave] ?? 0) + 1 } });
+            } else {
+              set({ plantillasUnidad: { ...pu, [clave]: ok ? "cargada" : "errores" } });
+            }
             setSubiendo(null);
-            if (ok) snack(`Plantilla de ${cat} cargada`); else setErrores(cat);
+            if (ok) snack(`Plantilla de ${etiqueta(f, clave)} cargada`); else setErrores({ forma: f, clave });
           }} />
       )}
       {errores && (
-        <Dialog large title={`Errores en la plantilla de ${errores}`} onClose={() => setErrores(null)}
+        <Dialog large title={`Errores en la plantilla de ${etiqueta(errores.forma, errores.clave)}`} onClose={() => setErrores(null)}
           message="No se ha cargado ningún dato de esta plantilla. Corrige las filas indicadas y súbela de nuevo."
           footer={<>
             <Button variant="outlined" onClick={() => setErrores(null)}>Cerrar</Button>
-            <Button icon="file_upload" onClick={() => { const cat = errores; setErrores(null); setSubiendo(cat); }}>Subir de nuevo</Button>
+            <Button icon="file_upload" onClick={() => { const x = errores; setErrores(null); setSubiendo(x); }}>Subir de nuevo</Button>
           </>}>
           <table className="lm-table">
-            <thead><tr><th>Fila</th><th>Columna</th><th>Error</th></tr></thead>
+            <thead><tr>{errores.forma === "unidad" && <th>Pestaña</th>}<th>Fila</th><th>Columna</th><th>Error</th></tr></thead>
             <tbody>
-              <tr><td>14</td><td>Nº de serie del activo</td><td>El nº de serie R-55210 está repetido en la fila 9</td></tr>
-              <tr><td>22</td><td>Km</td><td>El km es obligatorio</td></tr>
-              <tr><td>37</td><td>Nº de serie de la unidad</td><td>La unidad 1012 no existe en esta configuración</td></tr>
+              <tr>{errores.forma === "unidad" && <td>Rueda</td>}<td>14</td><td>Nº de serie del activo</td><td>El nº de serie R-55210 está repetido en la fila 9</td></tr>
+              <tr>{errores.forma === "unidad" && <td>Bogie</td>}<td>22</td><td>Km</td><td>El km es obligatorio</td></tr>
+              <tr>{errores.forma === "unidad" && <td>{raiz.categoria}</td>}<td>{errores.forma === "unidad" ? 2 : 37}</td><td>Nº de serie de la unidad</td><td>{errores.forma === "unidad" ? "El nº de serie de la unidad es obligatorio" : "La unidad 1012 no existe en esta configuración"}</td></tr>
             </tbody>
           </table>
         </Dialog>

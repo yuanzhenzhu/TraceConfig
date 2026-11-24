@@ -46,6 +46,8 @@ export type Configuracion = {
   /** Valores de las propiedades de hueco que define su estructura (opcionales). Por hueco y propiedad. */
   valoresHueco?: PropsHueco;
   plantillas: Record<string, EstadoPlantilla>; // por categoría
+  /** (Prueba de Configuración) Plantillas por unidad: clave = nº de orden de la unidad (1, 2…) */
+  plantillasUnidad?: Record<string, EstadoPlantilla>;
   intentosPlantilla: Record<string, number>;
   pasosOmitidos: number[];
   pasoActual: number;
