@@ -14,11 +14,13 @@ export const PASOS_PRUEBA: { n: number; titulo: string }[] = [
   { n: 7, titulo: "Plantillas" },
 ];
 
-export function StepperPrueba({ actual, hecho, bloqueado, onIr }: {
+export function StepperPrueba({ actual, hecho, bloqueado, onIr, plano }: {
   actual: number; hecho: (n: number) => boolean; bloqueado: (n: number) => boolean; onIr?: (n: number) => void;
+  /** Sin superficie propia: cuando va dentro de otra superficie (pantalla de configuración nueva) */
+  plano?: boolean;
 }) {
   return (
-    <nav aria-label="Pasos de la configuración" className="lm-surface" style={{ marginBottom: "var(--lm-space-20)" }}>
+    <nav aria-label="Pasos de la configuración" className={plano ? undefined : "lm-surface"} style={{ marginBottom: plano ? 0 : "var(--lm-space-20)" }}>
       <ol className="lm-stepper" style={{ listStyle: "none", margin: 0 }}>
         {PASOS_PRUEBA.map((x, i) => {
           const lock = bloqueado(x.n);

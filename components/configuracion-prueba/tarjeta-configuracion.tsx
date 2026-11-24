@@ -9,7 +9,7 @@ import { Button, Field, InfoTooltip } from "../ds";
 import { useStore } from "@/lib/store";
 import type { Estructura } from "@/lib/model";
 
-export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones, estructuraFija, soloLectura, minUnidades, aviso, onGuardar }: {
+export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones, estructuraFija, soloLectura, minUnidades, aviso, onGuardar, conBorde }: {
   titulo: string;
   unidades?: number | null;
   estructuraId?: string;
@@ -21,6 +21,8 @@ export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones,
   minUnidades?: number;
   aviso?: ReactNode;
   onGuardar?: (unidades: number, estructuraId: string) => void;
+  /** Tarjeta con borde dentro de otra superficie, en lugar de superficie propia */
+  conBorde?: boolean;
 }) {
   const store = useStore();
   const [texto, setTexto] = useState(unidades ? String(unidades) : "");
@@ -41,10 +43,12 @@ export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones,
   const guardar = () => { setIntentado(true); if (valido) onGuardar?.(n, estId); };
 
   return (
-    <section className="lm-surface lm-surface--p24 stack gap-20">
+    <section className={conBorde ? "stack gap-20" : "lm-surface lm-surface--p24 stack gap-20"}
+      style={conBorde ? { padding: "var(--lm-space-15)", border: "1px solid var(--lm-sys-outline-variant)", borderRadius: "var(--lm-corner-30)" } : undefined}>
       <h2 className="lm-title-small" style={{ margin: 0 }}>{titulo}</h2>
       {aviso}
-      <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
+      {/* Sin estructuras disponibles solo se muestra el aviso */}
+      {hay && <div className="row gap-20 wrap" style={{ alignItems: "flex-start" }}>
         <Field label="Nº de unidades" required htmlFor="cfg-unid" error={errUnidades} style={{ width: 300 }}
           support={minUnidades !== undefined ? `Ahora tiene ${minUnidades} unidades. Indica el nuevo total` : undefined}>
           <input id="cfg-unid" className="lm-input" inputMode="numeric" value={texto} placeholder="Por ejemplo: 12" readOnly={soloLectura}
@@ -62,9 +66,9 @@ export function TarjetaConfiguracion({ titulo, unidades, estructuraId, opciones,
             text={elegida
               ? `${elegida.nombre}: ${elegida.descripcion || "sin descripción"}${estructuraFija ? ". Ya está confirmada y no se puede cambiar" : ""}`
               : "Elige la estructura de esta configuración. Una vez guardada no se podrá cambiar"} />
-          {!soloLectura && <Button disabled={!hay} onClick={guardar}>Guardar</Button>}
+          {!soloLectura && <Button onClick={guardar}>Guardar</Button>}
         </span>
-      </div>
+      </div>}
     </section>
   );
 }

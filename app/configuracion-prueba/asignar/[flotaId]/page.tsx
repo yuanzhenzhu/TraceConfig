@@ -72,24 +72,22 @@ export default function AsignarEstructuraPage() {
       <div className="lm-header">
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: flota.nombre, href: "/configuracion-prueba" }, { label: "Nueva configuración" }]} />
-          <h1 className="lm-headline-small" style={{ margin: 0 }}>Nueva configuración de {flota.nombre}</h1>
+          <h1 className="lm-headline-small" style={{ margin: 0 }}>{flota.nombre}</h1>
         </div>
       </div>
 
-      {/* Hasta guardar la estructura y las unidades, el resto de pasos está bloqueado */}
-      <StepperPrueba actual={1} hecho={() => false} bloqueado={(x) => x !== 1} />
+      {/* (24-11-2026) Stepper y tarjeta en una misma superficie. Hasta guardar, el resto de pasos está bloqueado */}
+      <section className="lm-surface lm-surface--p24 stack gap-20">
+      <StepperPrueba plano actual={1} hecho={() => false} bloqueado={(x) => x !== 1} />
 
-      <TarjetaConfiguracion key={String(sinEstructuras)} titulo={`Configuración ${suyas.length + 1}`}
+      <TarjetaConfiguracion conBorde key={String(sinEstructuras)} titulo={`Configuración ${suyas.length + 1}`}
         estructuraId={creada ?? ""} opciones={disponibles}
         onGuardar={(unidades, estructuraId) => setPendiente({ unidades, estructuraId })}
         aviso={!disponibles.length && (
           <Banner type="attention" title="No hay estructuras disponibles"
-            actions={<Button variant="text" small onClick={crearEstructura}>Crear estructura</Button>}>
-            {usadas.size > 0
-              ? `${flota.nombre} ya usa todas las estructuras del catálogo. Crea una nueva para esta configuración.`
-              : "Crea la estructura de esta configuración. Se añadirá al catálogo y volverás aquí con ella elegida."}
-          </Banner>
+            actions={<Button variant="text" small onClick={crearEstructura}>Crear estructura</Button>} />
         )} />
+      </section>
 
       <footer className="row gap-10 wrap" style={{ marginTop: "var(--lm-space-40)", color: "var(--lm-sys-on-surface-variant)" }}>
         <span className="lm-label-medium">PROTOTIPO · Ver caso:</span>
