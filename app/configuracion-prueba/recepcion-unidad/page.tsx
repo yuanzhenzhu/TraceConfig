@@ -79,7 +79,7 @@ export default function RecepcionUnidadPage() {
             <select id="ru-origen" className="lm-select lm-select--dense" value={fOrigen} onChange={(e) => filtrar(() => setFOrigen(e.target.value as Origen | ""))}>
               <option value="">Todos</option>
               <option value="estructura">{ORIGEN.estructura}</option>
-              <option value="unidad">{ORIGEN.unidad}</option>
+              <option value="movimiento">{ORIGEN.movimiento}</option>
             </select>
           </Field>
           <Field label="Estado" htmlFor="ru-estado">
@@ -139,7 +139,7 @@ export default function RecepcionUnidadPage() {
       </section>
 
       <footer className="row gap-10 wrap" style={{ marginTop: "var(--lm-space-40)", color: "var(--lm-sys-on-surface-variant)" }}>
-        <span className="lm-label-medium">PROTOTIPO · Los huecos pendientes son de ejemplo: una categoría nueva (Sensor) en {huecos[0] ? nombreCfg(huecos[0].configId) : "una configuración"} y dos unidades nuevas en otra.</span>
+        <span className="lm-label-medium">PROTOTIPO · Los huecos pendientes son de ejemplo: una categoría nueva (Sensor) en {huecos[0] ? nombreCfg(huecos[0].configId) : "una configuración"} y huecos vaciados por desmontajes en otra.</span>
         <span className="grow" />
         <Button variant="text" icon="restart_alt" onClick={() => { restablecer(); snack("Recepción restablecida"); }}>Restablecer recepción</Button>
       </footer>

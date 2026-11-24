@@ -3,7 +3,8 @@
 // (Prueba, 18-11-2026) Recepción en unidad: huecos de configuraciones ya terminadas (Activas) que aún no tienen datos.
 // Dos orígenes:
 // - Estructura modificada: se añadió una categoría nueva en los extremos de la estructura después del alta.
-// - Unidad nueva: se añadieron unidades a la configuración después del alta.
+// - Montaje o desmontaje: un desmontaje de unidad dejó vacío un hueco (y los de sus hijos) que hay que volver a rellenar.
+// (24-11-2026) No hay caso de alta de unidad: al añadir unidades todas las plantillas son obligatorias, así que no dejan huecos pendientes.
 // Cada hueco necesita al menos nº de serie y km, y los valores de sus propiedades de categoría o de hueco si las tiene.
 // Los huecos pendientes son FICTICIOS (ejemplo sobre las configuraciones Activas) y lo recibido se guarda en el navegador.
 
@@ -11,7 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { unidadesDe } from "@/lib/activos";
 import { recorrer, rutaDe, type Configuracion, type Estructura, type Nodo, type PropsCategoria } from "@/lib/model";
 
-export type Origen = "estructura" | "unidad";
+export type Origen = "estructura" | "movimiento";
 export type HuecoPendiente = {
   id: string; configId: string; flotaId: string; unidad: string; hueco: string; categoria: string; origen: Origen;
   propsCategoria: string[]; propsHueco: string[];
@@ -21,7 +22,7 @@ export type Recibido = { serie: string; km: string; props: Record<string, string
 const SEP = " › ";
 const CLAVE = "lm-prueba-recepcion-unidad";
 
-/** Huecos pendientes de ejemplo: una categoría nueva en los extremos de la primera configuración Activa y dos unidades nuevas en la segunda. */
+/** Huecos pendientes de ejemplo: una categoría nueva en los extremos de la primera configuración en uso y huecos vaciados por desmontajes en la segunda. */
 export function huecosPendientes(configs: Configuracion[], estructuras: Estructura[], propsCategoria: PropsCategoria): HuecoPendiente[] {
   const activas = unidadesDe(configs, estructuras).filter(({ c }) => c.estado === "activa");
   const out: HuecoPendiente[] = [];
@@ -39,20 +40,23 @@ export function huecosPendientes(configs: Configuracion[], estructuras: Estructu
     }));
   }
 
-  // 2. Unidad nueva: dos unidades añadidas a la segunda configuración Activa, con todos sus huecos
+  // 2. Montaje o desmontaje: en la segunda configuración en uso, un desmontaje de unidad dejó vacío un hueco con hijos
+  //    (por ejemplo un bogie con sus ejes y ruedas) en la primera y la tercera unidad, y un hueco extremo en la segunda.
   const b = activas[1];
   if (b) {
     const est = estructuras.find((e) => e.id === b.c.estructuraId)!;
-    const ultima = Math.max(...b.series.map(Number));
-    [ultima + 1, ultima + 2].map((n) => String(n).padStart(4, "0")).forEach((u) => {
-      recorrer(est.raiz, (n, nivel) => {
-        if (nivel === 1) return; // la unidad se da de alta con su nº de serie al añadirla
-        out.push({
-          id: `rec-${b.c.id}-${u}-${n.id}`, configId: b.c.id, flotaId: b.c.flotaId, unidad: u, hueco: rutaDe(est.raiz, n.id).join(SEP),
-          categoria: n.categoria, origen: "unidad", propsCategoria: pc(n.categoria), propsHueco: Object.keys(est.propsHueco?.[n.id] ?? {}),
-        });
-      });
+    let conHijos: Nodo | undefined; let extremo: Nodo | undefined;
+    recorrer(est.raiz, (n, nivel) => {
+      if (nivel >= 3 && n.hijos.length && !conHijos) conHijos = n;
+      if (nivel >= 3 && !n.hijos.length && !extremo) extremo = n;
     });
+    const vaciar = (u: string, desde: Nodo) => recorrer(desde, (n) => out.push({
+      id: `rec-${b.c.id}-${u}-${n.id}-m`, configId: b.c.id, flotaId: b.c.flotaId, unidad: u, hueco: rutaDe(est.raiz, n.id).join(SEP),
+      categoria: n.categoria, origen: "movimiento", propsCategoria: pc(n.categoria), propsHueco: Object.keys(est.propsHueco?.[n.id] ?? {}),
+    }));
+    const [u1, u2, u3] = b.series;
+    if (conHijos) { if (u1) vaciar(u1, conHijos); if (u3) vaciar(u3, conHijos); }
+    if (extremo && u2) vaciar(u2, extremo);
   }
   return out;
 }
@@ -71,4 +75,4 @@ export function useRecepcion() {
   return { recibidos, recibir, restablecer };
 }
 
-export const ORIGEN: Record<Origen, string> = { estructura: "Estructura modificada", unidad: "Unidad nueva" };
+export const ORIGEN: Record<Origen, string> = { estructura: "Estructura modificada", movimiento: "Montaje o desmontaje" };

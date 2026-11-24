@@ -107,7 +107,7 @@ export default function RecepcionPlantillaPage() {
                 <select id="rp-origen" className="lm-select" value={origen} onChange={(e) => cambiar(() => setOrigen(e.target.value as Origen | ""))}>
                   <option value="">Todos</option>
                   <option value="estructura">{ORIGEN.estructura}</option>
-                  <option value="unidad">{ORIGEN.unidad}</option>
+                  <option value="movimiento">{ORIGEN.movimiento}</option>
                 </select>
               </Field>
               <Button variant="tonal" icon="file_download" disabled={!seleccion.length} onClick={descargar}>Descargar plantilla</Button>
