@@ -38,6 +38,7 @@ export default function AsistentePage() {
   // Borrador al añadir unidades: no se guarda nada hasta pulsar Añadir unidades en el resumen.
   const [borr, setBorr] = useState<Pick<Configuracion, "unidades" | "plantillas" | "intentosPlantilla" | "plantillasUnidad"> | null>(null);
   const [salirAnadir, setSalirAnadir] = useState(false);
+  const [salirAlta, setSalirAlta] = useState(false);
   // (Prueba, 24-11-2026) Pasos 2, 3 y 4 con Cancelar y Guardar: al entrar se guarda una copia para poder descartar los cambios.
   const [copia, setCopia] = useState<{ paso: number; drivers: Configuracion["drivers"]; valoresHueco: Configuracion["valoresHueco"]; propsCategoria: typeof store.propsCategoria } | null>(null);
   useEffect(() => {
@@ -175,7 +176,7 @@ export default function AsistentePage() {
           </span>
         </div>
         <div className="lm-header__actions">
-          {anadir && <Button variant="outlined" onClick={() => (hayCambiosAnadir ? setSalirAnadir(true) : router.push("/configuracion-prueba"))}>Cancelar</Button>}
+          {anadir && p !== 7 && <Button variant="outlined" onClick={() => (hayCambiosAnadir ? setSalirAnadir(true) : router.push("/configuracion-prueba"))}>Cancelar</Button>}
         </div>
       </div>
 
@@ -183,7 +184,7 @@ export default function AsistentePage() {
         <div style={{ marginBottom: "var(--lm-space-20)" }}>
           {anadir ? (
             <Banner type="info" title={`Estás añadiendo unidades a ${etiquetaCfg(store, c)}`}>
-              Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). Todas las plantillas son obligatorias. Los cambios se guardan al pulsar Añadir unidades en Plantillas: si sales antes, no se guarda nada.
+              Solo puedes cambiar el número de unidades (paso 1) y cargar las plantillas (paso 5). Todas las plantillas son obligatorias. Los cambios se guardan al pulsar Finalizar en Plantillas: si sales antes, no se guarda nada.
             </Banner>
           ) : (
             <Banner type="info" title="Estás consultando una configuración en uso">
@@ -194,7 +195,7 @@ export default function AsistentePage() {
       )}
 
       {/* (Prueba, 24-11-2026) Sin barra inferior: se navega con el stepper, los cambios se guardan solos
-          y la acción final (Finalizar configuración o Añadir unidades) está al final de Plantillas. */}
+          y al final de Plantillas van Cancelar y Finalizar (alta y añadir unidades). */}
       {/* Paso 1: igual que al crear la configuración (stepper y tarjeta en una misma superficie). En el resto, el stepper va aparte. */}
       {p === 1 ? (
         <section className="lm-surface lm-surface--p24 stack gap-20">
@@ -216,11 +217,30 @@ export default function AsistentePage() {
       {p === 7 && est && <Paso7 {...props} />}
 
       {p === 7 && !(soloLectura && !anadir) && (
+        // (Prueba, 24-11-2026) Último paso: Cancelar y Finalizar, en el alta y al añadir unidades.
         <div className="row gap-10" style={{ justifyContent: "flex-end", marginTop: "var(--lm-space-20)" }}>
-          {anadir
-            ? <Button icon="check" disabled={!listoAnadir} onClick={guardarAnadir}>Añadir {(cv.unidades ?? 0) - anadir.antes > 0 ? (cv.unidades ?? 0) - anadir.antes : ""} unidades</Button>
-            : <Button icon="check" disabled={!todasCargadas(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>}
+          {anadir ? (
+            <>
+              <Button variant="outlined" onClick={() => (hayCambiosAnadir ? setSalirAnadir(true) : router.push("/configuracion-prueba"))}>Cancelar</Button>
+              <Button disabled={!listoAnadir} onClick={guardarAnadir}>Finalizar</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outlined" onClick={() => setSalirAlta(true)}>Cancelar</Button>
+              <Button disabled={!todasCargadas(c, raiz)} onClick={finalizar}>Finalizar</Button>
+            </>
+          )}
         </div>
+      )}
+
+      {/* Alta: al cancelar en Plantillas no se pierde nada; lo subido queda guardado para seguir después */}
+      {salirAlta && (
+        <Dialog title="¿Salir de la configuración?" onClose={() => setSalirAlta(false)}
+          message={`Las plantillas que has subido se quedan guardadas. ${etiquetaCfg(store, c)} sigue en 2/3 y, cuando vuelvas con Configurar, podrás seguir donde lo dejaste.`}
+          footer={<>
+            <Button variant="outlined" onClick={() => setSalirAlta(false)}>Seguir cargando</Button>
+            <Button onClick={() => { snack(`Plantillas de ${etiquetaCfg(store, c)} guardadas`); router.push("/configuracion-prueba"); }}>Salir</Button>
+          </>} />
       )}
 
       {salirAnadir && anadir && (
