@@ -6,17 +6,18 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Banner, Breadcrumb, Button, Dialog, EmptyState, Icon, Loading, Tag, useSnackbar } from "@/components/ds";
-import { Paso1, Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/configuracion-prueba/pasos-1-3";
+import { Banner, Breadcrumb, Button, Dialog, EmptyState, Loading, Tag, useSnackbar } from "@/components/ds";
+import { Paso2, Paso3, paso1Valido, type PasoProps } from "@/components/configuracion-prueba/pasos-1-3";
 import { Paso4 } from "@/components/configuracion-prueba/pasos-4-6";
 import { Paso7 } from "@/components/configuracion-prueba/pasos-7-8";
 import { PASOS_PRUEBA, StepperPrueba } from "@/components/configuracion-prueba/stepper";
-import { categoriasDe, driversIniciales, plantillasIniciales, type Configuracion, type Flota } from "@/lib/model";
+import { TarjetaConfiguracion } from "@/components/configuracion-prueba/tarjeta-configuracion";
+import { plantillasIniciales, type Configuracion, type Flota } from "@/lib/model";
 import { todasCargadas } from "@/components/configuracion-prueba/plantillas";
 import { useStore } from "@/lib/store";
 import { etiquetaCfg, nombreEstructura } from "@/components/configuracion-prueba/nombre";
 
-// (Prueba, 24-11-2026) Pasos: Estructura y unidades, Drivers, Propiedades hueco, Propiedades categoría (estos tres opcionales)
+// (Prueba, 24-11-2026) Pasos: Estructura y unidades, Drivers, Propiedades hueco, Propiedades categoría
 // y Plantillas. El paso 1 de una configuración nueva está en Asignar estructura (una configuración cada vez).
 // Sin Resumen: se finaliza (o se añaden las unidades) en Plantillas.
 /** Orden de un paso en el asistente (los números de paso no van en orden). */
@@ -33,8 +34,6 @@ export default function AsistentePage() {
 
   const [paso, setPaso] = useState<number | null>(null);
   const [intentado, setIntentado] = useState(false);
-  const [salir, setSalir] = useState(false);
-  const [confirmarEst, setConfirmarEst] = useState(false); // aviso al fijar la estructura (paso 1 → siguiente)
   const [modoAnadir, setModoAnadir] = useState(false);
   // Borrador al añadir unidades: no se guarda nada hasta pulsar Añadir unidades en el resumen.
   const [borr, setBorr] = useState<Pick<Configuracion, "unidades" | "plantillas" | "intentosPlantilla"> | null>(null);
@@ -81,21 +80,18 @@ export default function AsistentePage() {
   const listoAnadir = !!anadir && unidadesOk && todasCargadas(cv, raiz);
   const hayCambiosAnadir = !!anadir && (cv.unidades !== c.unidades || JSON.stringify(cv.plantillas) !== JSON.stringify(raiz ? plantillasIniciales(raiz) : {}));
   const qsModo = anadir ? "&modo=anadir" : "";
-  const visibles = PASOS_PRUEBA;
-  const idx = visibles.findIndex((x) => x.n === p);
-  const actual = visibles[idx] ?? visibles[0];
-  const siguiente = visibles[idx + 1];
-  const anterior = visibles[idx - 1];
+  // Nº de la configuración dentro de su flota (tarjeta «Configuración N» del paso 1)
+  const numCfg = store.configs.filter((x) => x.flotaId === c.flotaId && x.guardada).findIndex((x) => x.id === c.id) + 1 || 1;
 
   const v1 = paso1Valido(c, est);
-  // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al pasar del paso 1).
+  // Los pasos siguientes dependen de la estructura: solo se puede ir a ellos una vez confirmada (al guardar el paso 1).
   const estructuraFijada = c.pasoMax > 1;
   const alcanzable = (n: number) => soloLectura || n === 1 || (v1 && c.guardada && estructuraFijada);
   const valido = (n: number) => (n === 1 ? v1 : n === 3 ? !!c.drivers : n === 7 ? todasCargadas(c, raiz) : true);
 
   const irA = (n: number, forzar = false) => {
     if (!forzar && !alcanzable(n)) return;
-    if (soloLectura) { // en consulta solo se navega: no se guarda nada
+    if (soloLectura) { // en consulta (y al añadir unidades) no se guarda nada al navegar
       setPaso(n);
       setIntentado(false);
       window.history.replaceState(null, "", `/configuracion-prueba/${c.id}?paso=${n}${qsModo}`);
@@ -111,29 +107,17 @@ export default function AsistentePage() {
     window.scrollTo({ top: 0 });
   };
 
-  const avanzar = (confirmado = false) => {
-    setIntentado(true);
-    if (!valido(p)) return;
-    if (p === 1 && !estructuraFijada && !confirmado) { setConfirmarEst(true); return; }
-    setConfirmarEst(false);
-    if (p === 1 && raiz) {
-      // Si se cambia de estructura, las plantillas se recalculan para sus categorías.
-      const nuevas = plantillasIniciales(raiz);
-      Object.keys(nuevas).forEach((k) => { if (c.plantillas[k]) nuevas[k] = c.plantillas[k]; });
-      // Los drivers son de esta configuración y de su estructura: si cambia la estructura, se parte de los de por defecto.
-      set({
-        plantillas: nuevas,
-        ...(!c.drivers || c.drivers.estructuraId !== est?.id ? { drivers: { ...driversIniciales(raiz), estructuraId: est!.id } } : {}),
-      });
+  // Paso 1 (Guardar): la estructura ya está confirmada; solo cambian las unidades.
+  const guardarPaso1 = (unidades: number) => {
+    if (anadir) {
+      set({ unidades });
+      snack(`Se añadirán ${unidades - anadir.antes} unidades: carga las plantillas para terminar`);
+      irA(7);
+      return;
     }
-    if (p === 1 && c.guardada && est?.borradorDe) store.actualizarConfig(c.id, { guardada: true }); // la estructura nueva pasa al catálogo
-    if (p === 1 && !c.guardada) {
-      store.actualizarConfig(c.id, { guardada: true });
-      snack(`Configuración ${etiquetaCfg(store, c)} guardada en 2/3`);
-    }
-    if (c.pasosOmitidos.includes(p)) set({ pasosOmitidos: c.pasosOmitidos.filter((x) => x !== p) });
-    // Tras validar el paso actual, el siguiente es alcanzable aunque el estado aún no se haya refrescado.
-    if (siguiente) irA(siguiente.n, true);
+    store.actualizarConfig(c.id, { unidades });
+    snack(`Configuración ${etiquetaCfg(store, c)} guardada`);
+    irA(3);
   };
   const finalizar = () => {
     set({ estado: "activa", pasoActual: 7 });
@@ -147,14 +131,9 @@ export default function AsistentePage() {
     snack(`${n} unidades añadidas a ${etiquetaCfg(store, c)}: ahora tiene ${cv.unidades}`);
     router.push("/configuracion-prueba");
   };
-  const guardarYSalir = () => {
-    if (!c.guardada) { setSalir(true); return; }
-    snack(`Configuración ${etiquetaCfg(store, c)} guardada`);
-    router.push("/configuracion-prueba");
-  };
 
   return (
-    <main className="lm-page" style={{ paddingBottom: 120 }}>
+    <main className="lm-page">
       <div className="lm-header">
         <div className="lm-header__titles">
           <Breadcrumb items={[{ label: "Configuración", href: "/configuracion-prueba" }, { label: flota.nombre, href: "/configuracion-prueba" }, { label: c.estructuraId ? nombreEstructura(store, c) : "Nueva configuración" }]} />
@@ -164,6 +143,7 @@ export default function AsistentePage() {
           </span>
         </div>
         <div className="lm-header__actions">
+          {anadir && <Button variant="outlined" onClick={() => (hayCambiosAnadir ? setSalirAnadir(true) : router.push("/configuracion-prueba"))}>Cancelar</Button>}
         </div>
       </div>
 
@@ -181,54 +161,29 @@ export default function AsistentePage() {
         </div>
       )}
 
-      {(
-        <>
-          <StepperPrueba actual={p} onIr={irA} bloqueado={(n) => !alcanzable(n)}
-            hecho={(n) => !c.pasosOmitidos.includes(n) && (anadir
-              ? (n === 1 ? unidadesOk : n === 7 ? todasCargadas(cv, raiz) : true)
-              : soloLectura || (orden(n) < orden(c.pasoMax) && valido(n)))} />
+      {/* (Prueba, 24-11-2026) Sin barra inferior: se navega con el stepper, los cambios se guardan solos
+          y la acción final (Finalizar configuración o Añadir unidades) está al final de Plantillas. */}
+      <StepperPrueba actual={p} onIr={irA} bloqueado={(n) => !alcanzable(n)}
+        hecho={(n) => !c.pasosOmitidos.includes(n) && (anadir
+          ? (n === 1 ? unidadesOk : n === 7 ? todasCargadas(cv, raiz) : true)
+          : soloLectura || (orden(n) < orden(c.pasoMax) && valido(n)))} />
 
-          {p === 1 && <Paso1 {...props} />}
-          {p === 2 && est && <Paso2 {...props} />}
-          {p === 3 && est && <Paso3 {...props} />}
-          {p === 4 && est && <Paso4 {...props} />}
-          {p === 7 && est && <Paso7 {...props} />}
-          
-          <footer className="lm-footer-bar">
-            <div className="row gap-10" style={{ maxWidth: 1360, margin: "0 auto", padding: "var(--lm-space-15) var(--lm-space-30)" }}>
-              {anadir
-                ? <Button variant="text" icon="close" onClick={() => (hayCambiosAnadir ? setSalirAnadir(true) : router.push("/configuracion-prueba"))}>Cancelar</Button>
-                : soloLectura
-                ? <Button variant="text" icon="arrow_back_ios_new" onClick={() => router.push("/configuracion-prueba")}>Volver al listado</Button>
-                : <Button variant="text" icon={c.guardada ? undefined : "close"} onClick={guardarYSalir}>{c.guardada ? "Guardar y salir" : "Cancelar"}</Button>}
-              <span className="grow lm-body-small muted">
-                Paso {idx + 1} de {visibles.length} · {actual.titulo}
-                {anadir ? " · Añadir unidades" : soloLectura && " · Solo consulta"}
-                {anadir && intentado && p === 1 && !unidadesOk && <span style={{ color: "var(--lm-sys-error)" }}> · Revisa el número de unidades</span>}
-                {intentado && !valido(p) && <span style={{ color: "var(--lm-sys-error)" }}> · Revisa los campos marcados</span>}
-              </span>
-              {anterior && <Button variant="outlined" onClick={() => irA(anterior.n)}>Anterior</Button>}
-              {anadir
-                ? p === 7
-                  ? <Button icon="check" disabled={!listoAnadir} onClick={guardarAnadir}>Añadir {(cv.unidades ?? 0) - anadir.antes > 0 ? (cv.unidades ?? 0) - anadir.antes : ""} unidades</Button>
-                  : <Button onClick={() => { if (p === 1 && !unidadesOk) { setIntentado(true); return; } irA(siguiente!.n); }}>Siguiente</Button>
-                : soloLectura
-                ? siguiente && <Button onClick={() => irA(siguiente.n)}>Siguiente</Button>
-                : p === 7
-                  ? <Button icon="check" disabled={!todasCargadas(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>
-                  : <Button onClick={() => avanzar()}>Siguiente</Button>}
-            </div>
-          </footer>
-        </>
+      {p === 1 && (
+        <TarjetaConfiguracion key={`${c.id}-${anadir ? "anadir" : "alta"}`} titulo={`Configuración ${numCfg}`}
+          unidades={cv.unidades} estructuraId={c.estructuraId ?? ""} opciones={[]} estructuraFija
+          soloLectura={soloLectura && !anadir} minUnidades={anadir?.antes} onGuardar={guardarPaso1} />
       )}
+      {p === 2 && est && <Paso2 {...props} />}
+      {p === 3 && est && <Paso3 {...props} />}
+      {p === 4 && est && <Paso4 {...props} />}
+      {p === 7 && est && <Paso7 {...props} />}
 
-      {confirmarEst && est && (
-        <Dialog title={`¿Usar ${est.nombre} en esta configuración?`} onClose={() => setConfirmarEst(false)}
-          message={`Los pasos siguientes (valores de propiedades de hueco, drivers, propiedades de categoría y carga de datos) se basan en la estructura ${est.nombre}. Una vez confirmada, no se podrá cambiar. Si después necesitas otra estructura, tendrás que crear de nuevo la configuración.`}
-          footer={<>
-            <Button variant="outlined" onClick={() => setConfirmarEst(false)}>Revisar estructura</Button>
-            <Button onClick={() => avanzar(true)}>Confirmar y continuar</Button>
-          </>} />
+      {p === 7 && !(soloLectura && !anadir) && (
+        <div className="row gap-10" style={{ justifyContent: "flex-end", marginTop: "var(--lm-space-20)" }}>
+          {anadir
+            ? <Button icon="check" disabled={!listoAnadir} onClick={guardarAnadir}>Añadir {(cv.unidades ?? 0) - anadir.antes > 0 ? (cv.unidades ?? 0) - anadir.antes : ""} unidades</Button>
+            : <Button icon="check" disabled={!todasCargadas(c, raiz)} onClick={finalizar}>Finalizar configuración</Button>}
+        </div>
       )}
 
       {salirAnadir && anadir && (
@@ -237,15 +192,6 @@ export default function AsistentePage() {
           footer={<>
             <Button variant="outlined" onClick={() => setSalirAnadir(false)}>Seguir añadiendo</Button>
             <Button variant="danger" onClick={() => router.push("/configuracion-prueba")}>Salir sin guardar</Button>
-          </>} />
-      )}
-
-      {salir && (
-        <Dialog title="¿Salir sin guardar?" onClose={() => setSalir(false)}
-          message="La configuración se guarda al completar el paso Estructura y unidades. Si sales ahora, se perderá lo que has hecho."
-          footer={<>
-            <Button variant="outlined" onClick={() => setSalir(false)}>Seguir configurando</Button>
-            <Button variant="danger" onClick={() => { store.descartarConfig(c.id); router.push("/configuracion-prueba"); }}>Salir sin guardar</Button>
           </>} />
       )}
     </main>

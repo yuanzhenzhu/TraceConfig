@@ -3,8 +3,8 @@
 // (Prueba, 18-11-2026) Panel de progreso: se abre con el icono de información junto a los estados
 // 1/3 (flota sin estructura) y 2/3 (configuración sin todas las plantillas). Figma Main-Trace 1169:21396.
 // Se basa en el patrón `configuration-detail-card` (popover) de Compositions: panel sobre la tabla, con tokens del sistema.
-// (24-11-2026) Título «Progreso (N/3)», pasos Flota · Estructuras y unidades (con sus opcionales) · Plantillas
-// dentro de un recuadro, y una sola acción abajo: Continuar (botón principal a todo el ancho).
+// (24-11-2026) Título «Progreso (N/3)», pasos Flota · Estructuras y unidades · Plantillas dentro de un recuadro,
+// y una sola acción abajo: Configurar (botón principal a todo el ancho). Sin la palabra «Opcionales».
 
 import { useEffect, useRef, useState } from "react";
 import { Button, Icon, IconButton } from "../ds";
@@ -13,8 +13,8 @@ export type Tarea = {
   titulo: string;
   /** hecha: check verde · pendiente: círculo vacío */
   estado: "hecha" | "pendiente";
-  /** Texto más pequeño debajo de la tarea, con una etiqueta encima (p. ej. «Opcionales») */
-  sub?: { etiqueta: string; texto: string };
+  /** Texto más pequeño debajo de la tarea */
+  sub?: string;
 };
 
 export function TareasPendientes({ titulo, tareas, label, accion }: {
@@ -64,12 +64,7 @@ export function TareasPendientes({ titulo, tareas, label, accion }: {
                 </span>
                 <span className="stack gap-10 grow" style={{ paddingTop: "var(--lm-space-5)" }}>
                   <span className="lm-title-medium">{t.titulo}</span>
-                  {t.sub && (
-                    <span className="stack gap-5">
-                      <span className="lm-label-small" style={{ textTransform: "uppercase" }}>{t.sub.etiqueta}</span>
-                      <span className="muted">{t.sub.texto}</span>
-                    </span>
-                  )}
+                  {t.sub && <span className="muted">{t.sub}</span>}
                 </span>
               </li>
             ))}

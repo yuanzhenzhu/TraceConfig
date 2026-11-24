@@ -260,7 +260,7 @@ export function ListaPropsHueco({ raiz, definicion, valor, onChange }: {
                   {editable && (
                     <td>
                       <input className="lm-input lm-input--dense" aria-label={`${p.nombre} de ${posicion}`} value={valor![n.id]?.[p.id] ?? ""}
-                        placeholder={`Opcional, por ejemplo: ${p.ejemplo}`} onChange={(e) => cambiar(n.id, p.id, e.target.value)} />
+                        placeholder={`Por ejemplo: ${p.ejemplo}`} onChange={(e) => cambiar(n.id, p.id, e.target.value)} />
                     </td>
                   )}
                 </tr>

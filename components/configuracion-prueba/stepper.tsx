@@ -1,16 +1,16 @@
 "use client";
 
 // (Prueba, 24-11-2026) Stepper del asistente de configuración: empieza por Estructura y unidades.
-// Drivers, Propiedades hueco y Propiedades categoría son opcionales. Los pasos a los que aún no se puede ir llevan candado.
+// Los pasos a los que aún no se puede ir llevan candado. Sin la palabra «Opcional» (24-11-2026).
 // Sin paso Resumen: se finaliza en Plantillas.
 
 import { Icon } from "../ds";
 
-export const PASOS_PRUEBA: { n: number; titulo: string; opcional?: boolean }[] = [
+export const PASOS_PRUEBA: { n: number; titulo: string }[] = [
   { n: 1, titulo: "Estructura y unidades" },
-  { n: 3, titulo: "Drivers", opcional: true },
-  { n: 2, titulo: "Propiedades hueco", opcional: true },
-  { n: 4, titulo: "Propiedades categoría", opcional: true },
+  { n: 3, titulo: "Drivers" },
+  { n: 2, titulo: "Añadir valor a propiedades de hueco" },
+  { n: 4, titulo: "Propiedades categoría" },
   { n: 7, titulo: "Plantillas" },
 ];
 
@@ -28,10 +28,7 @@ export function StepperPrueba({ actual, hecho, bloqueado, onIr }: {
             <li key={x.n} className="row gap-10" style={{ flex: i < PASOS_PRUEBA.length - 1 ? 1 : undefined }}>
               <button className={`lm-step ${cls}`} disabled={lock} aria-current={x.n === actual ? "step" : undefined} onClick={() => onIr?.(x.n)}>
                 <span className="lm-step__dot">{lock ? <Icon name="lock" label="Bloqueado" /> : ok ? <Icon name="check" /> : i + 1}</span>
-                <span className="lm-step__label">
-                  <span>{x.titulo}</span>
-                  {x.opcional && <small>Opcional</small>}
-                </span>
+                <span className="lm-step__label"><span>{x.titulo}</span></span>
               </button>
               {i < PASOS_PRUEBA.length - 1 && <span className="lm-stepper__line" />}
             </li>

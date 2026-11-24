@@ -195,7 +195,7 @@ export function Paso2({ c, set, est, soloLectura }: PasoProps) {
   const n = contarConProps(est!);
   return (
     <section className="lm-surface lm-surface--p24 stack gap-20">
-      <h2 className="lm-title-medium" style={{ margin: 0 }}>Valores de propiedades de hueco</h2>
+      <h2 className="lm-title-medium" style={{ margin: 0 }}>Añadir valor a propiedades de hueco</h2>
       {n === 0 ? (
         <EmptyState icon="radio_button_checked" title={`${est!.nombre} no tiene propiedades de hueco`}
           text="No hay valores que dar. Puedes continuar con el paso siguiente"

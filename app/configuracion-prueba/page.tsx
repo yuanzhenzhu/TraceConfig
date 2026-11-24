@@ -73,9 +73,9 @@ export default function ListadoPage() {
 
   // (Prueba) Las configuraciones se crean en Asignar estructura: cada una es una estructura y su nº de unidades.
   // (Prueba, 24-11-2026) Columna Configuración: 1/3 (flota creada, sin estructura), 2/3 (estructura y unidades asignadas, faltan plantillas) y En uso (plantillas cargadas).
-  // Panel Progreso (N/3): icono info junto a 1/3 y 2/3, con una sola acción, Continuar:
+  // Panel Progreso (N/3): icono info junto a 1/3 y 2/3, con una sola acción, Configurar:
   // en 1/3 lleva a Asignar estructura y en 2/3 retoma el asistente.
-  const SUB_ESTRUCTURA = { etiqueta: "Opcionales", texto: "Drivers, propiedades de hueco, propiedades de categoría" };
+  const SUB_ESTRUCTURA = "Drivers, propiedades de hueco, propiedades de categoría";
   const tareas = (n: 1 | 2): Tarea[] => [
     { titulo: "Flota", estado: "hecha" },
     { titulo: "Estructuras y unidades", estado: n === 2 ? "hecha" : "pendiente", sub: SUB_ESTRUCTURA },
@@ -179,7 +179,7 @@ export default function ListadoPage() {
                         <td className="num">{total || "—"}</td>
                         <td>
                           <span className="row gap-5 wrap">
-                            {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">1/3</Tag><TareasPendientes titulo="Progreso (1/3)" label={`Progreso de ${f.nombre}`} tareas={tareas(1)} accion={{ label: "Continuar", onClick: () => nuevaConfig(f.id) }} /></span>}
+                            {todas.length === 0 && <span className="row gap-5"><Tag tone="attention">1/3</Tag><TareasPendientes titulo="Progreso (1/3)" label={`Progreso de ${f.nombre}`} tareas={tareas(1)} accion={{ label: "Configurar", onClick: () => nuevaConfig(f.id) }} /></span>}
                             {/* (Prueba, 24-11-2026) Resumen de la flota: con alguna configuración sin terminar, «N avisos» en amarillo
                                 (con una sola configuración, su 2/3); si todas están en uso, «En uso» en verde. */}
                             {todas.length > 0 && (enConf === 0
@@ -191,7 +191,7 @@ export default function ListadoPage() {
                         </td>
                         <td className="actions">
                           <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
-                            {todas.length === 0 && <Button variant="tonal" small onClick={() => nuevaConfig(f.id)}>Asignar estructura</Button>}
+                            {todas.length === 0 && <Button variant="tonal" small onClick={() => nuevaConfig(f.id)}>Configurar</Button>}
                             <Menu label={`Acciones de ${f.nombre}`} items={[
                               { label: "Añadir configuración", icon: "add", onSelect: () => nuevaConfig(f.id) },
                               { label: "Modificar nombre y descripción", icon: "edit", onSelect: () => setEditando(f) },
@@ -218,13 +218,13 @@ export default function ListadoPage() {
                               <span className="row gap-10">
                                 {c.estado === "activa"
                                   ? <Tag tone="success">En uso</Tag>
-                                  : <span className="row gap-5"><Tag tone="attention">2/3</Tag><TareasPendientes titulo="Progreso (2/3)" label={`Progreso de ${etiquetaCfg(store, c)}`} tareas={tareas(2)} accion={{ label: "Continuar", onClick: () => router.push(`/configuracion-prueba/${c.id}`) }} /></span>}
+                                  : <span className="row gap-5"><Tag tone="attention">2/3</Tag><TareasPendientes titulo="Progreso (2/3)" label={`Progreso de ${etiquetaCfg(store, c)}`} tareas={tareas(2)} accion={{ label: "Configurar", onClick: () => router.push(`/configuracion-prueba/${c.id}`) }} /></span>}
                               </span>
                             </td>
                             <td className="actions">
                               <span className="row gap-5" style={{ justifyContent: "flex-end" }}>
                                 {c.estado === "en-configuracion" && (
-                                  <Button variant="tonal" small onClick={() => router.push(`/configuracion-prueba/${c.id}`)}>{est ? "Continuar" : "Iniciar configuración"}</Button>
+                                  <Button variant="tonal" small onClick={() => router.push(`/configuracion-prueba/${c.id}`)}>Configurar</Button>
                                 )}
                                 <Menu label={`Acciones de ${etiquetaCfg(store, c)}`} items={[
                                   ...(c.estado === "activa"
@@ -262,7 +262,7 @@ export default function ListadoPage() {
           existentes={store.flotas.map((f) => f.nombre.trim().toLowerCase())}
           onClose={() => setDialogFlota(false)}
           onCrear={({ nombre, descripcion }) => {
-            // Se crea la flota y queda en el listado en 1/3, con la acción Asignar estructura.
+            // Se crea la flota y queda en el listado en 1/3, con la acción Configurar.
             const f = store.crearFlota({ nombre, descripcion });
             setDialogFlota(false);
             snack(`Flota ${f.nombre} creada`);

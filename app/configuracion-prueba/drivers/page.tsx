@@ -150,7 +150,7 @@ function PestanaMedia() {
   return (
     <section className="lm-surface lm-surface--p16 stack gap-15">
       <div className="row gap-15 wrap">
-        <span className="muted grow">De qué drivers se calcula la media y cómo, para cada flota o línea. Es opcional.</span>
+        <span className="muted grow">De qué drivers se calcula la media y cómo, para cada flota o línea.</span>
         <ButtonToggle label="Cálculos que se muestran" value={filtro} onChange={setFiltro}
           options={[{ value: "todos", label: `Todos (${filas.length})` }, { value: "flota", label: `Por flota (${filas.filter((f) => f.nivel === "flota").length})` }, { value: "linea", label: `Por línea (${filas.filter((f) => f.nivel === "linea").length})` }]} />
         <Button icon="add" onClick={() => setEditando("nuevo")}>Añadir cálculo de media</Button>

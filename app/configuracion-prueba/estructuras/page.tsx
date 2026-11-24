@@ -61,7 +61,7 @@ export default function EstructurasPage() {
                     <td className="num">—</td>
                     <td><Tag tone="attention">1/3</Tag></td>
                     <td className="actions">
-                      <Button variant="tonal" small onClick={() => router.push(`/configuracion-prueba/asignar/${f.id}`)}>Asignar estructura</Button>
+                      <Button variant="tonal" small onClick={() => router.push(`/configuracion-prueba/asignar/${f.id}`)}>Configurar</Button>
                     </td>
                   </tr>
                 ))}
